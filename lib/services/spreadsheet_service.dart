@@ -1,22 +1,21 @@
-// lib/services/spreadsheet_service.dart
-
-import 'dart:typed_data'; // CORRIGIDO: import 'dart:typed_data';
-import 'dart:math';      // CORRIGIDO: import 'dart:math';
+import 'dart:typed_data';
 import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'json_storage_service.dart';
+import 'package:bovicheck/models/animal/animal.dart';
 
 class SpreadsheetService {
   Future<bool> exportAllData() async {
-    final allData = JsonStorageService.instance.getAllData();
+    final animals = JsonStorageService.instance.getAllAnimals();
 
-    if (allData.isEmpty) {
+    if (animals.isEmpty) {
       return false;
     }
 
     var excel = Excel.createExcel();
 
+    // Estilos
     var headerStyle = CellStyle(
       bold: true,
       verticalAlign: VerticalAlign.Center,
@@ -24,59 +23,25 @@ class SpreadsheetService {
     );
     headerStyle.wrap = TextWrapping.WrapText;
 
-    var dataStyle = CellStyle(
-      verticalAlign: VerticalAlign.Center,
-    );
-    dataStyle.wrap = TextWrapping.WrapText;
-    
-    allData.forEach((indexName, records) {
-      if (records.isNotEmpty) {
-        String sheetName = indexName.replaceAll(RegExp(r'[\/:*?\[\]]'), '').substring(0, min(31, indexName.length));
-        Sheet sheetObject = excel[sheetName];
+    _createAnimalSheet(excel, animals, headerStyle);
 
-        List<String> headerTitles = ['Nome do Índice', 'Valor', 'Unidade', 'Data e Hora'];
-        for (var i = 0; i < headerTitles.length; i++) {
-          var cell = sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
-          cell.value = TextCellValue(headerTitles[i]);
-          cell.cellStyle = headerStyle;
-        }
+    _createWeightSheet(excel, animals, headerStyle);
 
-        final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
-        for (var rowIndex = 0; rowIndex < records.length; rowIndex++) {
-          var record = records[rowIndex];
-          var rowData = [
-            TextCellValue(record.indexName),
-            DoubleCellValue(record.value),
-            TextCellValue(record.unit),
-            TextCellValue(dateFormat.format(record.date)),
-          ];
-          
-          for (var colIndex = 0; colIndex < rowData.length; colIndex++) {
-            var cell = sheetObject.cell(CellIndex.indexByColumnRow(
-              columnIndex: colIndex, 
-              rowIndex: rowIndex + 1,
-            ));
-            cell.value = rowData[colIndex];
-            cell.cellStyle = dataStyle;
-          }
-        }
+    _createHealthSheet(excel, animals, headerStyle);
 
-        for (var i = 0; i < headerTitles.length; i++) {
-          sheetObject.setColumnAutoFit(i);
-        }
-      }
-    });
+    _createReproductiveSheet(excel, animals, headerStyle);
 
-    if (excel.sheets.containsKey('Sheet1') && excel.sheets['Sheet1']!.maxRows == 0) {
-      excel.delete('Sheet1');
-    }
+    _createMilkSheet(excel, animals, headerStyle);
+
+    excel.delete('Sheet1');
 
     final fileBytes = excel.encode();
     if (fileBytes == null) {
       return false;
     }
-    
-    final fileName = 'BoviCheck_Export_Completo_${DateFormat('yyyyMMdd').format(DateTime.now())}.xlsx';
+
+    final fileName =
+        'BoviCheck_Export_Rebanho_${DateFormat('yyyyMMdd').format(DateTime.now())}.xlsx';
     final Uint8List bytes = Uint8List.fromList(fileBytes);
 
     String? outputFile = await FilePicker.platform.saveFile(
@@ -86,5 +51,211 @@ class SpreadsheetService {
     );
 
     return outputFile != null;
+  }
+
+  void _createAnimalSheet(
+      Excel excel, List<Animal> animals, CellStyle headerStyle) {
+    Sheet sheet = excel['Rebanho'];
+    final headers = [
+      'ID',
+      'Brinco',
+      'Nome',
+      'Data Nasc.',
+      'Sexo',
+      'Raça',
+      'Lote ID',
+      'Status',
+      'Data Saída',
+      'Motivo Saída'
+    ];
+    for (var i = 0; i < headers.length; i++) {
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+        ..value = TextCellValue(headers[i])
+        ..cellStyle = headerStyle;
+    }
+
+    for (var i = 0; i < animals.length; i++) {
+      final animal = animals[i];
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1))
+          .value = TextCellValue(animal.id);
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1))
+          .value = TextCellValue(animal.brinco);
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1))
+          .value = TextCellValue(animal.nome ?? '');
+      sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1))
+              .value =
+          TextCellValue(DateFormat('dd/MM/yyyy').format(animal.dataNascimento));
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1))
+          .value = TextCellValue(animal.sexo);
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: i + 1))
+          .value = TextCellValue(animal.raca ?? '');
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: i + 1))
+          .value = TextCellValue(animal.loteId ?? '');
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: i + 1))
+          .value = TextCellValue(animal.status.name);
+      sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: i + 1))
+              .value =
+          TextCellValue(animal.dataSaida != null
+              ? DateFormat('dd/MM/yyyy').format(animal.dataSaida!)
+              : '');
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: i + 1))
+          .value = TextCellValue(animal.motivoSaida ?? '');
+    }
+  }
+
+  void _createWeightSheet(
+      Excel excel, List<Animal> animals, CellStyle headerStyle) {
+    Sheet sheet = excel['Pesagens'];
+    final headers = ['Animal Brinco', 'Data', 'Peso (kg)'];
+    for (var i = 0; i < headers.length; i++) {
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+        ..value = TextCellValue(headers[i])
+        ..cellStyle = headerStyle;
+    }
+
+    int rowIndex = 1;
+    for (final animal in animals) {
+      for (final record in animal.historicoPeso) {
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+            .value = TextCellValue(animal.brinco);
+        sheet
+                .cell(CellIndex.indexByColumnRow(
+                    columnIndex: 1, rowIndex: rowIndex))
+                .value =
+            TextCellValue(DateFormat('dd/MM/yyyy').format(record.date));
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex))
+            .value = DoubleCellValue(record.weight);
+        rowIndex++;
+      }
+    }
+  }
+
+  void _createHealthSheet(
+      Excel excel, List<Animal> animals, CellStyle headerStyle) {
+    Sheet sheet = excel['Saude'];
+    final headers = ['Animal Brinco', 'Data', 'Diagnóstico', 'Tratamento'];
+    for (var i = 0; i < headers.length; i++) {
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+        ..value = TextCellValue(headers[i])
+        ..cellStyle = headerStyle;
+    }
+
+    int rowIndex = 1;
+    for (final animal in animals) {
+      for (final record in animal.historicoSaude) {
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+            .value = TextCellValue(animal.brinco);
+        sheet
+                .cell(CellIndex.indexByColumnRow(
+                    columnIndex: 1, rowIndex: rowIndex))
+                .value =
+            TextCellValue(DateFormat('dd/MM/yyyy').format(record.date));
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex))
+            .value = TextCellValue(record.diagnosis);
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
+            .value = TextCellValue(record.treatment ?? '');
+        rowIndex++;
+      }
+    }
+  }
+
+  void _createReproductiveSheet(
+      Excel excel, List<Animal> animals, CellStyle headerStyle) {
+    Sheet sheet = excel['Reproducao'];
+    final headers = ['Animal Brinco', 'Data', 'Tipo de Evento', 'Resultado'];
+    for (var i = 0; i < headers.length; i++) {
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+        ..value = TextCellValue(headers[i])
+        ..cellStyle = headerStyle;
+    }
+
+    int rowIndex = 1;
+    for (final animal in animals) {
+      for (final record in animal.historicoReprodutivo) {
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+            .value = TextCellValue(animal.brinco);
+        sheet
+                .cell(CellIndex.indexByColumnRow(
+                    columnIndex: 1, rowIndex: rowIndex))
+                .value =
+            TextCellValue(DateFormat('dd/MM/yyyy').format(record.date));
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex))
+            .value = TextCellValue(record.eventType);
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
+            .value = TextCellValue(record.result ?? '');
+        rowIndex++;
+      }
+    }
+  }
+
+  void _createMilkSheet(
+      Excel excel, List<Animal> animals, CellStyle headerStyle) {
+    Sheet sheet = excel['Producao_Leite'];
+    final headers = [
+      'Animal Brinco',
+      'Data',
+      'Prod. Manhã (L)',
+      'Prod. Tarde (L)',
+      'Total (L)'
+    ];
+    for (var i = 0; i < headers.length; i++) {
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+        ..value = TextCellValue(headers[i])
+        ..cellStyle = headerStyle;
+    }
+
+    int rowIndex = 1;
+    for (final animal in animals) {
+      for (final record in animal.historicoLeite) {
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+            .value = TextCellValue(animal.brinco);
+        sheet
+                .cell(CellIndex.indexByColumnRow(
+                    columnIndex: 1, rowIndex: rowIndex))
+                .value =
+            TextCellValue(DateFormat('dd/MM/yyyy').format(record.date));
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex))
+            .value = DoubleCellValue(record.morningProduction);
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
+            .value = DoubleCellValue(record.afternoonProduction);
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
+            .value = DoubleCellValue(record.totalProduction);
+        rowIndex++;
+      }
+    }
   }
 }

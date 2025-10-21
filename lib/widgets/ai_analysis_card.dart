@@ -1,8 +1,6 @@
-// lib/widgets/ai_analysis_card.dart
-
 import 'package:bovicheck/services/ai_evaluation_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart'; // 1. IMPORTE O PACOTE
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 class AiAnalysisCard extends StatelessWidget {
   final AIAnalysisResult analysis;
@@ -38,8 +36,6 @@ class AiAnalysisCard extends StatelessWidget {
         break;
     }
 
-    // 3. ADICIONE O ESTILO para o Markdown aqui
-    // Isso garante que o texto normal (p) e o negrito (strong) fiquem com a aparência correta.
     final markdownStyle = MarkdownStyleSheet(
       p: theme.textTheme.bodyMedium?.copyWith(
         color: theme.colorScheme.onSurface,
@@ -73,12 +69,10 @@ class AiAnalysisCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            // 2. SUBSTITUA O WIDGET Text POR MarkdownBody
             MarkdownBody(
               data: analysis.summary,
               styleSheet: markdownStyle,
-              selectable:
-                  true, // Permite que o usuário copie o texto da análise
+              selectable: true,
             ),
             const SizedBox(height: 8),
             Align(

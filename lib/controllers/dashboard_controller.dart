@@ -1,37 +1,68 @@
-// lib/controllers/dashboard_controller.dart
-
+import 'package:bovicheck/models/animal/animal.dart';
+import 'package:bovicheck/models/propriedade.dart';
+import 'package:bovicheck/services/herd_analysis_service.dart';
 import 'package:flutter/material.dart';
-import '../models/calculation_record.dart';
 import '../services/ai_evaluation_service.dart';
-import '../services/json_storage_service.dart';
+import '../services/database_service.dart';
 import '../services/user_activity_service.dart';
 
 class DashboardController extends ChangeNotifier {
-  List<CalculationRecord> _latestRecords = [];
+  Map<String, double?> _latestAnalysis = {};
   List<String> _mostUsedActions = [];
   AIAnalysisResult? dashboardAIAnalysis;
 
-  List<CalculationRecord> get latestRecords => _latestRecords;
+  int _animalCount = 0;
+  int _loteCount = 0;
+  int _propCount = 0;
+
+  Map<String, double?> get latestAnalysis => _latestAnalysis;
   List<String> get mostUsedActions => _mostUsedActions;
+
+  int get animalCount => _animalCount;
+  int get loteCount => _loteCount;
+  int get propCount => _propCount;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
   DashboardController() {
-    fetchLatestRecords();
+    fetchDashboardData();
   }
 
-  Future<void> fetchLatestRecords() async {
+  Future<void> fetchDashboardData() async {
     _isLoading = true;
     notifyListeners();
 
-    _latestRecords =
-        JsonStorageService.instance.getLatestCalculationForEachIndex();
+    final List<Animal> allAnimals =
+        await DatabaseService.instance.getAllAnimals();
+    final List<Propriedade> allProps =
+        await DatabaseService.instance.getAllPropriedades();
+    final allLotes = await DatabaseService.instance.getAllLotes();
+
+    _animalCount = allAnimals.length;
+    _loteCount = allLotes.length;
+    _propCount = allProps.length;
+
+    final Propriedade? mainProp = allProps.isNotEmpty ? allProps.first : null;
+    final AIEvaluationService aiService = AIEvaluationService();
+
+    if (allAnimals.isNotEmpty) {
+      final analysisService = HerdAnalysisService(allAnimals);
+      final period = DateTimeRange(
+        start: DateTime.now().subtract(const Duration(days: 365)),
+        end: DateTime.now(),
+      );
+      _latestAnalysis = analysisService.analyze(period);
+      dashboardAIAnalysis =
+          aiService.analyzeDashboard(_latestAnalysis, propriedade: mainProp);
+    } else {
+      _latestAnalysis = {};
+      dashboardAIAnalysis =
+          aiService.analyzeDashboard({}, propriedade: mainProp);
+    }
+
     _mostUsedActions =
         await UserActivityService.instance.getMostUsedActions(count: 4);
-
-    dashboardAIAnalysis =
-        AIEvaluationService().analyzeDashboard(_latestRecords);
 
     _isLoading = false;
     notifyListeners();

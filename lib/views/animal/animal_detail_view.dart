@@ -1,5 +1,3 @@
-// lib/views/animal/animal_detail_view.dart
-
 import 'package:bovicheck/views/animal/tabs/breeding_tab.dart';
 import 'package:bovicheck/views/animal/tabs/health_tab.dart';
 import 'package:bovicheck/views/animal/tabs/production_tab.dart';
@@ -50,17 +48,21 @@ class _AnimalDetailViewState extends State<AnimalDetailView> {
             if (animal.sexo == 'Fêmea') ProductionTab(animalId: animal.id),
             if (animal.sexo == 'Fêmea') BreedingTab(animalId: animal.id),
           ];
-          
-          final List<BottomNavigationBarItem> navBarItems = [
-            const BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), label: 'Desempenho'),
-            const BottomNavigationBarItem(icon: Icon(Icons.scale_outlined), label: 'Pesagens'),
-            const BottomNavigationBarItem(icon: Icon(Icons.healing_outlined), label: 'Saúde'),
-            if (animal.sexo == 'Fêmea')
-              const BottomNavigationBarItem(icon: Icon(Icons.opacity_outlined), label: 'Produção'),
-            if (animal.sexo == 'Fêmea')
-              const BottomNavigationBarItem(icon: Icon(Icons.favorite_border), label: 'Reprodução'),
-          ];
 
+          final List<BottomNavigationBarItem> navBarItems = [
+            const BottomNavigationBarItem(
+                icon: Icon(Icons.dashboard_outlined), label: 'Desempenho'),
+            const BottomNavigationBarItem(
+                icon: Icon(Icons.scale_outlined), label: 'Pesagens'),
+            const BottomNavigationBarItem(
+                icon: Icon(Icons.healing_outlined), label: 'Saúde'),
+            if (animal.sexo == 'Fêmea')
+              const BottomNavigationBarItem(
+                  icon: Icon(Icons.opacity_outlined), label: 'Produção'),
+            if (animal.sexo == 'Fêmea')
+              const BottomNavigationBarItem(
+                  icon: Icon(Icons.favorite_border), label: 'Reprodução'),
+          ];
 
           return Scaffold(
             appBar: AppBar(
@@ -73,7 +75,8 @@ class _AnimalDetailViewState extends State<AnimalDetailView> {
                   onPressed: () async {
                     await Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => AnimalFormView(animal: animal)),
+                      MaterialPageRoute(
+                          builder: (_) => AnimalFormView(animal: animal)),
                     );
                     controller.fetchAnimal();
                   },

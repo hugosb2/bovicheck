@@ -14,7 +14,7 @@ class AboutView extends StatefulWidget {
 class _AboutViewState extends State<AboutView> {
   String _version = '...';
   String _buildNumber = '...';
-  String _buildSignature = '...'; // ADICIONADO: Estado para a nova informação
+  String _buildSignature = '...';
 
   @override
   void initState() {
@@ -24,14 +24,13 @@ class _AboutViewState extends State<AboutView> {
 
   Future<void> _initPackageInfo() async {
     final info = await PackageInfo.fromPlatform();
-    // ADICIONADO: Lógica para criar a assinatura de build
     final formattedDate = DateFormat('yyyyMMdd').format(DateTime.now());
 
     if (mounted) {
       setState(() {
         _version = info.version;
         _buildNumber = info.buildNumber;
-        _buildSignature = 'v${info.version}_$formattedDate'; // Formato v0.9_20250828
+        _buildSignature = 'v${info.version}_$formattedDate';
       });
     }
   }
@@ -61,7 +60,9 @@ class _AboutViewState extends State<AboutView> {
               children: [
                 Image.asset('assets/icon.png', width: 80, height: 80),
                 const SizedBox(height: 16),
-                const Text('BoviCheck', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                const Text('BoviCheck',
+                    style:
+                        TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -71,7 +72,6 @@ class _AboutViewState extends State<AboutView> {
             title: 'Versão',
             subtitle: '$_version ($_buildNumber)',
           ),
-          // ADICIONADO: Novo card para a assinatura de build
           _buildInfoCard(
             context,
             icon: Icons.fingerprint,

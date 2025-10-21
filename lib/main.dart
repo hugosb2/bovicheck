@@ -1,35 +1,41 @@
-// lib/main.dart
-
+import 'package:bovicheck/views/herd_indicators_view.dart';
 import 'package:bovicheck/views/lotes/lotes_management_view.dart';
+import 'package:bovicheck/views/propriedade/propriedade_management_view.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-// CORRIGIDO: O ponto foi trocado por dois pontos aqui
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'controllers/dashboard_controller.dart';
 import 'providers/theme_provider.dart';
-import 'services/json_storage_service.dart';
+import 'services/database_service.dart';
 import 'views/about_view.dart';
 import 'views/animal/animal_list_view.dart';
-import 'views/calculation_view.dart';
 import 'views/dashboard_view.dart';
-import 'views/indices_list_view.dart';
 import 'views/settings/backup_restore_view.dart';
 import 'views/settings/color_settings_view.dart';
 import 'views/settings/data_settings_view.dart';
 import 'views/settings/theme_settings_view.dart';
 import 'views/settings_view.dart';
 import 'views/splash_view.dart';
+import 'package:bovicheck/views/propriedade/propriedade_form_view.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'dart:io';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
+
   await dotenv.load(fileName: ".env");
 
   final themeProvider = ThemeProvider();
   await themeProvider.loadPreferences();
 
-  await JsonStorageService.instance.loadData();
+  await DatabaseService.instance.initDB();
 
   runApp(
     MultiProvider(
@@ -94,16 +100,18 @@ class MyApp extends StatelessWidget {
               routes: {
                 '/splash': (context) => const SplashView(),
                 '/': (context) => const DashboardView(),
-                '/indices': (context) => IndicesListView(),
-                '/calculation': (context) => const CalculationView(),
                 '/about': (context) => const AboutView(),
                 '/settings': (context) => const SettingsView(),
                 '/settings/theme': (context) => const ThemeSettingsView(),
                 '/settings/colors': (context) => const ColorSettingsView(),
                 '/settings/data': (context) => const DataSettingsView(),
                 '/settings/backup': (context) => const BackupRestoreView(),
+                '/settings/propriedades': (context) =>
+                    const PropriedadeManagementView(),
+                '/propriedade/form': (context) => const PropriedadeFormView(),
                 '/animals': (context) => const AnimalListView(),
                 '/lotes': (context) => const LotesManagementView(),
+                '/herd-indicators': (context) => const HerdIndicatorsView(),
               },
               debugShowCheckedModeBanner: false,
             );

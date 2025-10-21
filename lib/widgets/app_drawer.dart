@@ -1,5 +1,3 @@
-// lib/widgets/app_drawer.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/user_activity_service.dart';
@@ -46,11 +44,19 @@ class AppDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.pets_outlined),
+            leading: const Icon(Icons.fence_outlined), // ÍCONE ALTERADO
             title: const Text('Meu Rebanho'),
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/animals');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.landscape_outlined), // ÍCONE ALTERADO
+            title: const Text('Propriedades'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/settings/propriedades');
             },
           ),
           ListTile(
@@ -61,14 +67,13 @@ class AppDrawer extends StatelessWidget {
               Navigator.pushNamed(context, '/lotes');
             },
           ),
-          // REMOVIDO: O ListTile para 'Análise do Rebanho' foi removido daqui.
           ListTile(
-            leading: const Icon(Icons.calculate_outlined),
-            title: const Text('Calcular Índices'),
+            leading: const Icon(Icons.analytics_outlined),
+            title: const Text('Indicadores do Rebanho'),
             onTap: () {
-              UserActivityService.instance.logAction('navigate:IndicesList');
+              UserActivityService.instance.logAction('navigate:HerdIndicators');
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/indices');
+              Navigator.pushNamed(context, '/herd-indicators');
             },
           ),
           ListTile(

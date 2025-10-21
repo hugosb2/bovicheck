@@ -1,9 +1,7 @@
-// lib/views/animal/animal_list_view.dart
-
 import 'package:bovicheck/controllers/animal_list_controller.dart';
 import 'package:bovicheck/models/animal/animal.dart';
 import 'package:bovicheck/models/lote.dart';
-import 'package:bovicheck/services/json_storage_service.dart';
+import 'package:bovicheck/services/database_service.dart';
 import 'package:bovicheck/views/animal/animal_detail_view.dart';
 import 'package:bovicheck/views/animal/animal_form_view.dart';
 import 'package:flutter/material.dart';
@@ -17,111 +15,184 @@ class AnimalListView extends StatefulWidget {
 
 class _AnimalListViewState extends State<AnimalListView> {
   String? _selectedLoteId;
-  List<Lote> _lotes = [];
+  late Future<List<Lote>> _lotesFuture;
 
   @override
   void initState() {
     super.initState();
-    _lotes = JsonStorageService.instance.getAllLotes();
+    _lotesFuture = DatabaseService.instance.getAllLotes();
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return ChangeNotifierProvider(
       create: (_) => AnimalListController(),
-      // O Consumer agora envolve o Scaffold para fornecer o 'context' correto.
       child: Consumer<AnimalListController>(
         builder: (context, controller, child) {
           return Scaffold(
             appBar: AppBar(
               title: const Text('Meu Rebanho'),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
             ),
             body: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: TextField(
-                    decoration: const InputDecoration(
-                      labelText: 'Buscar por brinco ou nome',
-                      prefixIcon: Icon(Icons.search),
+                    decoration: InputDecoration(
+                      hintText: 'Buscar por brinco ou nome...',
+                      prefixIcon: const Icon(Icons.search),
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainerHighest,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30.0),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 0, horizontal: 20),
                     ),
                     onChanged: (value) => controller.search(value),
                   ),
                 ),
-                SizedBox(
-                  height: 50,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    children: [
-                      ChoiceChip(
-                        label: const Text('Todos'),
-                        selected: _selectedLoteId == null,
-                        onSelected: (selected) {
-                          setState(() => _selectedLoteId = null);
-                          controller.filterByLote(null);
+                FutureBuilder<List<Lote>>(
+                  future: _lotesFuture,
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const SizedBox(height: 50);
+                    }
+                    final lotes = snapshot.data ?? [];
+                    if (lotes.isEmpty) return const SizedBox.shrink();
+
+                    return SizedBox(
+                      height: 50,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: lotes.length + 1,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            return ChoiceChip(
+                              label: const Text('Todos'),
+                              selected: _selectedLoteId == null,
+                              onSelected: (selected) {
+                                setState(() => _selectedLoteId = null);
+                                controller.filterByLote(null);
+                              },
+                              showCheckmark: false,
+                            );
+                          }
+                          final lote = lotes[index - 1];
+                          return ChoiceChip(
+                            label: Text(lote.nome),
+                            selected: _selectedLoteId == lote.id,
+                            onSelected: (selected) {
+                              final newLoteId = selected ? lote.id : null;
+                              setState(() => _selectedLoteId = newLoteId);
+                              controller.filterByLote(newLoteId);
+                            },
+                            showCheckmark: false,
+                          );
                         },
                       ),
-                      ..._lotes.map((lote) => Padding(
-                            padding: const EdgeInsets.only(left: 8.0),
-                            child: ChoiceChip(
-                              label: Text(lote.nome),
-                              selected: _selectedLoteId == lote.id,
-                              onSelected: (selected) {
-                                final newLoteId = selected ? lote.id : null;
-                                setState(() => _selectedLoteId = newLoteId);
-                                controller.filterByLote(newLoteId);
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: controller.isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : controller.filteredAnimals.isEmpty
+                          ? Center(
+                              child: Text(
+                                'Nenhum animal encontrado.',
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                    color: theme.colorScheme.outline),
+                              ),
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0, vertical: 8.0),
+                              itemCount: controller.filteredAnimals.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final animal =
+                                    controller.filteredAnimals[index];
+                                final age = DateTime.now()
+                                    .difference(animal.dataNascimento)
+                                    .inDays;
+                                final ageString = (age / 365).floor() > 0
+                                    ? '${(age / 365).floor()} a'
+                                    : '${(age / 30).floor()} m';
+
+                                return Card(
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                    side: BorderSide(
+                                        color: theme.colorScheme.outlineVariant
+                                            .withAlpha(100)),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundColor:
+                                          theme.colorScheme.primaryContainer,
+                                      foregroundColor:
+                                          theme.colorScheme.onPrimaryContainer,
+                                      child: const Icon(Icons.pets, size: 20),
+                                    ),
+                                    title: Text(
+                                      'Brinco: ${animal.brinco}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    subtitle: Text(
+                                      '${animal.nome ?? 'Sem nome'} • ${animal.sexo} • $ageString',
+                                    ),
+                                    trailing: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            animal.status == AnimalStatus.ativo
+                                                ? Colors.green.shade100
+                                                : Colors.red.shade100,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        animal.status.name,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: animal.status ==
+                                                  AnimalStatus.ativo
+                                              ? Colors.green.shade800
+                                              : Colors.red.shade800,
+                                        ),
+                                      ),
+                                    ),
+                                    onTap: () async {
+                                      await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (_) => AnimalDetailView(
+                                                  animalId: animal.id)));
+                                      controller.fetchAnimals();
+                                    },
+                                  ),
+                                );
                               },
                             ),
-                          )),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: controller.filteredAnimals.isEmpty
-                      ? const Center(child: Text('Nenhum animal encontrado.'))
-                      : ListView.builder(
-                          itemCount: controller.filteredAnimals.length,
-                          itemBuilder: (context, index) {
-                            final animal = controller.filteredAnimals[index];
-                            final age = DateTime.now()
-                                .difference(animal.dataNascimento)
-                                .inDays;
-                            final ageString = (age / 365).floor() > 0
-                                ? '${(age / 365).floor()} anos'
-                                : '${(age / 30).floor()} meses';
-                            return ListTile(
-                              leading: CircleAvatar(
-                                  child:
-                                      Text(animal.sexo == 'Fêmea' ? 'F' : 'M')),
-                              title: Text('Brinco: ${animal.brinco}'),
-                              subtitle: Text(
-                                  '${animal.nome ?? 'Sem nome'} • $ageString'),
-                              trailing: Icon(Icons.circle,
-                                  color: animal.status == AnimalStatus.ativo
-                                      ? Colors.green
-                                      : Colors.red,
-                                  size: 12),
-                              onTap: () async {
-                                await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) => AnimalDetailView(
-                                            animalId: animal.id)));
-                                controller.fetchAnimals();
-                              },
-                            );
-                          },
-                        ),
                 ),
               ],
             ),
             floatingActionButton: FloatingActionButton(
               onPressed: () async {
-                // O 'controller' agora é acessado diretamente pelo builder do Consumer,
-                // o que resolve o erro de contexto.
                 await Navigator.push(context,
                     MaterialPageRoute(builder: (_) => const AnimalFormView()));
                 controller.fetchAnimals();

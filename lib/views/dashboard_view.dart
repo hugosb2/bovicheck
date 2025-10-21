@@ -1,14 +1,10 @@
-// lib/views/dashboard_view.dart
-
+import 'package:bovicheck/views/analysis_history_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/dashboard_controller.dart';
-import '../models/calculation_record.dart';
-import '../services/json_storage_service.dart';
 import '../services/spreadsheet_service.dart';
 import '../widgets/ai_analysis_card.dart';
 import '../widgets/app_drawer.dart';
-import 'history_view.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -18,28 +14,57 @@ class DashboardView extends StatefulWidget {
 }
 
 class _DashboardViewState extends State<DashboardView> {
+  final Map<String, Map<String, dynamic>> metricDetails = {
+    'birthRate': {'title': 'Taxa de Natalidade', 'unit': '%'},
+    'pregnancyRate': {'title': 'Taxa de Prenhez', 'unit': '%'},
+    'weaningRate': {'title': 'Taxa de Desmame', 'unit': '%'},
+    'mortalityRate': {'title': 'Taxa de Mortalidade', 'unit': '%'},
+    'averageAgeAtFirstCalving': {
+      'title': 'Idade ao 1º Parto',
+      'unit': ' meses'
+    },
+    'averageCalvingInterval': {
+      'title': 'Intervalo Entre Partos',
+      'unit': ' dias'
+    },
+    'averageAdgBirthToWeaning': {
+      'title': 'GMD Nasc.-Desmame',
+      'unit': ' kg/dia'
+    },
+    'averageDailyMilkProduction': {
+      'title': 'Produção Leite/Vaca',
+      'unit': ' L/dia'
+    },
+  };
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<DashboardController>(context, listen: false)
-          .fetchLatestRecords();
+          .fetchDashboardData();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<DashboardController>();
+    final theme = Theme.of(context);
+
+    final analysisEntries = controller.latestAnalysis.entries
+        .where((entry) =>
+            entry.value != null && metricDetails.containsKey(entry.key))
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard BoviCheck'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
       ),
       drawer: const AppDrawer(),
       body: RefreshIndicator(
-        onRefresh: controller.fetchLatestRecords,
+        onRefresh: controller.fetchDashboardData,
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
@@ -51,16 +76,30 @@ class _DashboardViewState extends State<DashboardView> {
                 child:
                     AiAnalysisCard(analysis: controller.dashboardAIAnalysis!),
               ),
-            _buildDashboardSummary(context, controller.latestRecords),
+            _buildDashboardSummary(
+              context,
+              controller.animalCount,
+              controller.loteCount,
+              controller.propCount,
+            ),
             const SizedBox(height: 24),
             _buildAcoesRapidas(context, controller),
             const SizedBox(height: 24),
-            if (controller.latestRecords.isNotEmpty)
+            if (analysisEntries.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
-                child: Text(
-                  'Últimos Registros',
-                  style: Theme.of(context).textTheme.titleLarge,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Análise do Rebanho (Últimos 365 dias)',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    const Divider(height: 24),
+                  ],
                 ),
               ),
             if (controller.isLoading)
@@ -69,12 +108,82 @@ class _DashboardViewState extends State<DashboardView> {
                 padding: EdgeInsets.all(32.0),
                 child: CircularProgressIndicator(),
               ))
-            else if (controller.latestRecords.isEmpty)
+            else if (analysisEntries.isEmpty)
               _buildEmptyState(context)
             else
-              ...controller.latestRecords
-                  .map((record) => _buildIndiceCard(context, record)),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: analysisEntries.length,
+                itemBuilder: (context, index) {
+                  final entry = analysisEntries[index];
+                  final details = metricDetails[entry.key]!;
+                  return _buildAnalysisCard(
+                    context,
+                    title: details['title'],
+                    value: entry.value!,
+                    unit: details['unit'],
+                    indexKey: entry.key,
+                  );
+                },
+              ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnalysisCard(
+    BuildContext context, {
+    required String title,
+    required double value,
+    required String unit,
+    required String indexKey,
+  }) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.symmetric(vertical: 6.0),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AnalysisHistoryView(
+                indexKey: indexKey,
+                indexName: title,
+                unit: unit,
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                '${value.toStringAsFixed(1)} $unit',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ],
+          ),
         ),
       ),
     );
@@ -83,11 +192,18 @@ class _DashboardViewState extends State<DashboardView> {
   Widget _buildAcoesRapidas(
       BuildContext context, DashboardController controller) {
     final Map<String, Map<String, dynamic>> actionDetails = {
-      'navigate:IndicesList': {
-        'label': 'Calcular Índice',
-        'icon': Icons.calculate_outlined,
+      'navigate:HerdIndicators': {
+        'label': 'Indicadores do Rebanho',
+        'icon': Icons.analytics_outlined,
         'action': () async {
-          await Navigator.pushNamed(context, '/indices');
+          await Navigator.pushNamed(context, '/herd-indicators');
+        }
+      },
+      'navigate:animals': {
+        'label': 'Meu Rebanho',
+        'icon': Icons.fence_outlined, // ÍCONE ALTERADO
+        'action': () async {
+          await Navigator.pushNamed(context, '/animals');
         }
       },
       'navigate:Settings': {
@@ -111,18 +227,6 @@ class _DashboardViewState extends State<DashboardView> {
           }
         }
       },
-      'action:CreateBackup': {
-        'label': 'Criar Backup',
-        'icon': Icons.backup_outlined,
-        'action': () async {
-          await Navigator.pushNamed(context, '/settings/backup');
-        }
-      },
-      'navigate:Dashboard': {
-        'label': 'Dashboard',
-        'icon': Icons.dashboard_outlined,
-        'action': () async {}
-      },
     };
 
     return Column(
@@ -130,9 +234,12 @@ class _DashboardViewState extends State<DashboardView> {
       children: [
         Text(
           'Ações Rápidas',
-          style: Theme.of(context).textTheme.titleLarge,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
         ),
-        const SizedBox(height: 12),
+        const Divider(height: 24),
         if (controller.mostUsedActions.isEmpty && !controller.isLoading)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),
@@ -142,35 +249,30 @@ class _DashboardViewState extends State<DashboardView> {
             ),
           )
         else
-          Wrap(
-            spacing: 12.0,
-            runSpacing: 12.0,
-            children: controller.mostUsedActions.map((actionId) {
-              if (actionId.startsWith('calculate:')) {
-                final indexName = actionId.split(':')[1];
-                return FilledButton.tonal(
-                  onPressed: () async {
-                    await Navigator.pushNamed(context, '/calculation',
-                        arguments: indexName);
-                    controller.fetchLatestRecords();
-                  },
-                  child: Text(indexName),
-                );
-              } else if (actionDetails.containsKey(actionId)) {
+          Wrap(spacing: 12.0, runSpacing: 12.0, children: [
+            FilledButton.tonalIcon(
+              icon: const Icon(Icons.add_circle_outline),
+              label: const Text("Novo Animal"),
+              onPressed: () async {
+                await Navigator.pushNamed(context, '/animals');
+                controller.fetchDashboardData();
+              },
+            ),
+            ...controller.mostUsedActions.map((actionId) {
+              if (actionDetails.containsKey(actionId)) {
                 final details = actionDetails[actionId]!;
                 return FilledButton.tonalIcon(
                   icon: Icon(details['icon']),
                   label: Text(details['label']),
                   onPressed: () async {
                     await details['action']();
-                    controller.fetchLatestRecords();
+                    controller.fetchDashboardData();
                   },
                 );
               }
-
               return const SizedBox.shrink();
-            }).toList(),
-          ),
+            })
+          ]),
       ],
     );
   }
@@ -201,10 +303,7 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Widget _buildDashboardSummary(
-      BuildContext context, List<CalculationRecord> records) {
-    final totalIndices = records.length;
-    final totalRegistros = JsonStorageService.instance.getTotalRecordsCount();
-
+      BuildContext context, int animalCount, int loteCount, int propCount) {
     return Card(
       elevation: 0,
       color: Theme.of(context).colorScheme.surfaceContainer,
@@ -217,10 +316,18 @@ class _DashboardViewState extends State<DashboardView> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildSummaryItem(context, Icons.storage_outlined,
-                totalIndices.toString(), 'Índices Ativos'),
-            _buildSummaryItem(context, Icons.format_list_numbered_rounded,
-                totalRegistros.toString(), 'Total de Registros'),
+            _buildSummaryItem(
+                context,
+                Icons.fence_outlined, // ÍCONE ALTERADO
+                animalCount.toString(),
+                'Animais'),
+            _buildSummaryItem(context, Icons.grid_view_outlined,
+                loteCount.toString(), 'Lotes'),
+            _buildSummaryItem(
+                context,
+                Icons.landscape_outlined, // ÍCONE ALTERADO
+                propCount.toString(),
+                'Propriedades'),
           ],
         ),
       ),
@@ -248,101 +355,6 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  Widget _buildIndiceCard(BuildContext context, CalculationRecord record) {
-    final controller = context.read<DashboardController>();
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.symmetric(vertical: 6.0),
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: InkWell(
-                onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => HistoryView(indexName: record.indexName),
-                    ),
-                  );
-                  controller.fetchLatestRecords();
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      record.indexName,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${record.value.toStringAsFixed(2)} ${record.unit}',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            IconButton(
-              icon: Icon(Icons.delete_sweep_outlined,
-                  color: Theme.of(context).colorScheme.error),
-              tooltip: 'Apagar histórico de ${record.indexName}',
-              onPressed: () =>
-                  _showClearIndexConfirmationDialog(context, record.indexName),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showClearIndexConfirmationDialog(
-      BuildContext context, String indexName) async {
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: Text('Apagar Histórico de "$indexName"?'),
-          content: const Text(
-              'Esta ação não pode ser desfeita e irá apagar todos os registros salvos para este índice.'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () => Navigator.of(dialogContext).pop(),
-            ),
-            FilledButton.tonal(
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.errorContainer,
-                foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
-              ),
-              child: const Text('Apagar'),
-              onPressed: () async {
-                await JsonStorageService.instance
-                    .clearHistoryForIndex(indexName);
-                if (dialogContext.mounted) {
-                  Provider.of<DashboardController>(dialogContext, listen: false)
-                      .fetchLatestRecords();
-                  Navigator.of(dialogContext).pop();
-                }
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Widget _buildEmptyState(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24.0),
@@ -361,13 +373,13 @@ class _DashboardViewState extends State<DashboardView> {
           ),
           const SizedBox(height: 16),
           const Text(
-            'Nenhum registro encontrado',
+            'Nenhum animal cadastrado',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           const Text(
-            'Calcule um índice para vê-lo aqui e começar a acompanhar seus resultados.',
+            'Adicione animais ao seu rebanho para começar a ver as análises de produtividade aqui.',
             textAlign: TextAlign.center,
           ),
         ],

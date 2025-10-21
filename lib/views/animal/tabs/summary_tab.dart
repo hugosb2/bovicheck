@@ -1,5 +1,3 @@
-// lib/views/animal/tabs/summary_tab.dart
-
 import 'package:bovicheck/controllers/animal_detail_controller.dart';
 import 'package:bovicheck/services/herd_analysis_service.dart';
 import 'package:flutter/material.dart';
@@ -19,27 +17,41 @@ class SummaryTab extends StatelessWidget {
       children: [
         _buildInfoCard('Dados Básicos', [
           _buildInfoTile('Nome', animal.nome ?? 'Não informado'),
-          _buildInfoTile('Data de Nasc.', '${controller.formattedBirthDate} (${controller.formattedAge})'),
+          _buildInfoTile('Data de Nasc.',
+              '${controller.formattedBirthDate} (${controller.formattedAge})'),
           _buildInfoTile('Sexo', animal.sexo),
           _buildInfoTile('Raça', animal.raca ?? 'Não informada'),
           _buildInfoTile('Status', animal.status.name),
         ]),
-
         if (animal.sexo == 'Fêmea')
           _buildInfoCard('Desempenho Reprodutivo', [
-            _buildInfoTile('Idade ao 1º Parto', results['ageAtFirstCalving'], unit: ' meses'),
-            _buildInfoTile('Intervalo Médio Entre Partos', results['averageCalvingInterval'], unit: ' dias'),
+            _buildInfoTile('Idade ao 1º Parto', results['ageAtFirstCalving'],
+                unit: ' meses'),
+            _buildInfoTile('Intervalo Médio Entre Partos',
+                results['averageCalvingInterval'],
+                unit: ' dias'),
           ]),
-        
         _buildInfoCard('Desempenho de Peso', [
-           _buildInfoTile('GMD Nasc.-Desmame', results['adgBirthToWeaning'], unit: ' kg/dia'),
+          _buildInfoTile('GMD Nasc.-Desmame', results['adgBirthToWeaning'],
+              unit: ' kg/dia'),
         ]),
-
         if (animal.sexo == 'Fêmea' && results['latestLactation'] != null)
           _buildInfoCard('Última Lactação', [
-             _buildInfoTile('Produção Média Diária', (results['latestLactation'] as LactationCycle).averageDailyProduction, unit: ' L/dia'),
-             _buildInfoTile('Produção Total', (results['latestLactation'] as LactationCycle).totalProduction, unit: ' L'),
-             _buildInfoTile('Dias em Lactação', (results['latestLactation'] as LactationCycle).lengthInDays.toDouble(), unit: ' dias', decimalPlaces: 0),
+            _buildInfoTile(
+                'Produção Média Diária',
+                (results['latestLactation'] as LactationCycle)
+                    .averageDailyProduction,
+                unit: ' L/dia'),
+            _buildInfoTile('Produção Total',
+                (results['latestLactation'] as LactationCycle).totalProduction,
+                unit: ' L'),
+            _buildInfoTile(
+                'Dias em Lactação',
+                (results['latestLactation'] as LactationCycle)
+                    .lengthInDays
+                    .toDouble(),
+                unit: ' dias',
+                decimalPlaces: 0),
           ]),
       ],
     );
@@ -53,7 +65,9 @@ class SummaryTab extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(title,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const Divider(),
             ...tiles,
           ],
@@ -62,7 +76,8 @@ class SummaryTab extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoTile(String title, dynamic value, {String unit = '', int decimalPlaces = 1}) {
+  Widget _buildInfoTile(String title, dynamic value,
+      {String unit = '', int decimalPlaces = 1}) {
     String valueStr = 'Dados insuficientes';
     if (value != null) {
       if (value is double) {
@@ -78,7 +93,9 @@ class SummaryTab extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: const TextStyle(fontSize: 16)),
-          Text(valueStr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(valueStr,
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ],
       ),
     );

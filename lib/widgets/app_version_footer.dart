@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart'; // CORRIGIDO: O erro de digitação estava aqui
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -20,7 +20,6 @@ class _AppVersionFooterState extends State<AppVersionFooter> {
 
   Future<void> _initBuildSignature() async {
     final info = await PackageInfo.fromPlatform();
-    // A data atual é formatada para o padrão yyyyMMdd
     final formattedDate = DateFormat('yyyyMMdd').format(DateTime.now());
 
     if (mounted) {
@@ -32,7 +31,6 @@ class _AppVersionFooterState extends State<AppVersionFooter> {
 
   @override
   Widget build(BuildContext context) {
-    // O widget só exibe o texto depois que a informação for carregada
     return _buildSignature.isEmpty
         ? const SizedBox.shrink()
         : Padding(

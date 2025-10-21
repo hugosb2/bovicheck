@@ -10,10 +10,8 @@ class PermissionView extends StatelessWidget {
     if (!context.mounted) return;
 
     if (status.isGranted) {
-      // Se a permissão for concedida, substitui a tela atual pela de backup
       Navigator.pushReplacementNamed(context, '/settings/backup');
     } else if (status.isPermanentlyDenied) {
-      // Se for negada permanentemente, mostra um diálogo para abrir as configurações
       await showDialog(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -38,10 +36,10 @@ class PermissionView extends StatelessWidget {
         ),
       );
     } else {
-      // Se for apenas negada, informa o usuário
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Permissão negada. A função de backup não pode ser utilizada.'),
+          content: Text(
+              'Permissão negada. A função de backup não pode ser utilizada.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -82,7 +80,8 @@ class PermissionView extends StatelessWidget {
                 icon: const Icon(Icons.check),
                 label: const Text('Conceder Permissão'),
                 style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
                 onPressed: () => _requestPermission(context),
               ),

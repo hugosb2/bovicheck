@@ -1,7 +1,6 @@
-// lib/views/lotes/lotes_management_view.dart
-
 import 'package:bovicheck/models/lote.dart';
-import 'package:bovicheck/services/json_storage_service.dart';
+import 'package:bovicheck/models/propriedade.dart';
+import 'package:bovicheck/services/database_service.dart';
 import 'package:bovicheck/widgets/app_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
@@ -14,89 +13,144 @@ class LotesManagementView extends StatefulWidget {
 }
 
 class _LotesManagementViewState extends State<LotesManagementView> {
-  List<Lote> _lotes = [];
+  late Future<List<Lote>> _lotesFuture;
+  late Future<List<Propriedade>> _propriedadesFuture;
+  Map<String, String> _propriedadeNomes = {};
 
   @override
   void initState() {
     super.initState();
-    _loadLotes();
+    _loadData();
   }
 
-  void _loadLotes() {
+  void _loadData() {
     setState(() {
-      _lotes = JsonStorageService.instance.getAllLotes();
+      _lotesFuture = DatabaseService.instance.getAllLotes();
+      _propriedadesFuture = DatabaseService.instance.getAllPropriedades();
+      _propriedadesFuture.then((props) {
+        _propriedadeNomes = {for (var p in props) p.id: p.nome};
+      });
     });
   }
 
-  Future<void> _showLoteDialog({Lote? lote}) async {
+  String _getPropriedadeNome(String propriedadeId) {
+    return _propriedadeNomes[propriedadeId] ?? 'Propriedade não encontrada';
+  }
+
+  Future<void> _showLoteDialog(
+      {Lote? lote, required List<Propriedade> propriedades}) async {
     final isEditing = lote != null;
     final formKey = GlobalKey<FormState>();
     String nome = lote?.nome ?? '';
     String descricao = lote?.descricao ?? '';
+    String? selectedPropriedadeId = lote?.propriedadeId;
+
+    if (selectedPropriedadeId != null &&
+        !propriedades.any((p) => p.id == selectedPropriedadeId)) {
+      selectedPropriedadeId = null;
+    }
+    if (!isEditing &&
+        propriedades.isNotEmpty &&
+        selectedPropriedadeId == null) {
+      selectedPropriedadeId = propriedades.first.id;
+    }
 
     await showDialog(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(isEditing ? 'Editar Lote' : 'Novo Lote'),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  initialValue: nome,
-                  decoration: const InputDecoration(labelText: 'Nome do Lote'),
-                  validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
-                  onSaved: (v) => nome = v!,
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(isEditing ? 'Editar Lote' : 'Novo Lote'),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      value: selectedPropriedadeId,
+                      decoration:
+                          const InputDecoration(labelText: 'Propriedade *'),
+                      items: propriedades.map((prop) {
+                        return DropdownMenuItem(
+                          value: prop.id,
+                          child: Text(prop.nome),
+                        );
+                      }).toList(),
+                      onChanged: (v) =>
+                          setDialogState(() => selectedPropriedadeId = v),
+                      validator: (v) =>
+                          v == null ? 'Propriedade é obrigatória' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      initialValue: nome,
+                      decoration:
+                          const InputDecoration(labelText: 'Nome do Lote *'),
+                      validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
+                      onSaved: (v) => nome = v!,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      initialValue: descricao,
+                      decoration: const InputDecoration(
+                          labelText: 'Descrição (Opcional)'),
+                      onSaved: (v) => descricao = v ?? '',
+                      maxLines: 2,
+                    ),
+                  ],
                 ),
-                TextFormField(
-                  initialValue: descricao,
-                  decoration: const InputDecoration(labelText: 'Descrição (Opcional)'),
-                  onSaved: (v) => descricao = v ?? '',
+              ),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: const Text('Cancelar')),
+                FilledButton(
+                  onPressed: () async {
+                    if (formKey.currentState!.validate()) {
+                      formKey.currentState!.save();
+                      final newLote = Lote(
+                        id: lote?.id ?? const Uuid().v4(),
+                        nome: nome,
+                        descricao: descricao,
+                        propriedadeId: selectedPropriedadeId!,
+                      );
+                      await DatabaseService.instance.addOrUpdateLote(newLote);
+                      _loadData();
+                      if (mounted) Navigator.pop(dialogContext);
+                    }
+                  },
+                  child: const Text('Salvar'),
                 ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancelar')),
-            FilledButton(
-              onPressed: () async {
-                if (formKey.currentState!.validate()) {
-                  formKey.currentState!.save();
-                  final newLote = Lote(
-                    id: lote?.id ?? const Uuid().v4(),
-                    nome: nome,
-                    descricao: descricao,
-                  );
-                  await JsonStorageService.instance.addOrUpdateLote(newLote);
-                  _loadLotes();
-                  if(mounted) Navigator.pop(dialogContext);
-                }
-              },
-              child: const Text('Salvar'),
-            ),
-          ],
+            );
+          },
         );
       },
     );
   }
 
   Future<void> _deleteLote(Lote lote) async {
-    // Captura o context antes do await
-    final navigator = Navigator.of(context);
     final theme = Theme.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final currentContext = context;
 
     final confirmed = await showDialog<bool>(
-      context: context,
+      context: currentContext,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirmar Exclusão'),
-        content: Text('Tem certeza que deseja apagar o lote "${lote.nome}"? Os animais neste lote ficarão sem lote.'),
+        content: Text(
+            'Tem certeza que deseja apagar o lote "${lote.nome}"? Os animais neste lote ficarão sem lote associado.'),
         actions: [
-          TextButton(onPressed: () => navigator.pop(false), child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: theme.colorScheme.error),
-            onPressed: () => navigator.pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.error,
+              foregroundColor: theme.colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Apagar'),
           ),
         ],
@@ -104,43 +158,147 @@ class _LotesManagementViewState extends State<LotesManagementView> {
     );
 
     if (confirmed == true) {
-      await JsonStorageService.instance.deleteLote(lote.id);
-      _loadLotes();
+      await DatabaseService.instance.deleteLote(lote.id);
+      _loadData();
+      if (mounted) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+              content: Text('Lote apagado.'),
+              behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
+  Future<void> _onFabPressed(List<Propriedade> propriedades) async {
+    final currentContext = context;
+    if (propriedades.isEmpty) {
+      showDialog(
+        context: currentContext,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Nenhuma Propriedade Encontrada'),
+          content: const Text(
+              'Você precisa cadastrar uma Propriedade Rural antes de poder adicionar um Lote.'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancelar')),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.pushNamed(context, '/settings/propriedades');
+              },
+              child: const Text('Cadastrar Propriedade'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      _showLoteDialog(propriedades: propriedades);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gerenciar Lotes'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
       ),
       drawer: const AppDrawer(),
-      body: _lotes.isEmpty
-          ? const Center(child: Text('Nenhum lote criado. Toque em + para adicionar.'))
-          : ListView.builder(
-              itemCount: _lotes.length,
-              itemBuilder: (context, index) {
-                final lote = _lotes[index];
-                return ListTile(
-                  title: Text(lote.nome),
-                  subtitle: Text(lote.descricao ?? 'Sem descrição'),
+      body: FutureBuilder<List<dynamic>>(
+        future: Future.wait([_lotesFuture, _propriedadesFuture]),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+                child: Text('Erro ao carregar dados: ${snapshot.error}'));
+          }
+
+          final lotes = (snapshot.data?[0] as List<Lote>?) ?? [];
+          final propriedades = (snapshot.data?[1] as List<Propriedade>?) ?? [];
+
+          if (_propriedadeNomes.isEmpty && propriedades.isNotEmpty) {
+            _propriedadeNomes = {for (var p in propriedades) p.id: p.nome};
+          }
+
+          if (lotes.isEmpty) {
+            return Center(
+              child: Text(
+                'Nenhum lote criado.\nToque em + para adicionar.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge
+                    ?.copyWith(color: theme.colorScheme.outline),
+              ),
+            );
+          }
+
+          return ListView.separated(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            itemCount: lotes.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              final lote = lotes[index];
+              final nomePropriedade = _getPropriedadeNome(lote.propriedadeId);
+
+              return Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0),
+                  side: BorderSide(
+                      color: theme.colorScheme.outlineVariant.withAlpha(100)),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: theme.colorScheme.tertiaryContainer,
+                    foregroundColor: theme.colorScheme.onTertiaryContainer,
+                    child: const Icon(Icons.layers_outlined, size: 20),
+                  ),
+                  title: Text(lote.nome,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(nomePropriedade),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      IconButton(icon: const Icon(Icons.edit_outlined), onPressed: () => _showLoteDialog(lote: lote)),
-                      IconButton(icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error), onPressed: () => _deleteLote(lote)),
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined),
+                        tooltip: 'Editar',
+                        onPressed: () => _showLoteDialog(
+                            lote: lote, propriedades: propriedades),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.delete_outline,
+                            color: theme.colorScheme.error),
+                        tooltip: 'Apagar',
+                        onPressed: () => _deleteLote(lote),
+                      ),
                     ],
                   ),
-                );
-              },
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showLoteDialog,
-        child: const Icon(Icons.add),
+                ),
+              );
+            },
+          );
+        },
       ),
+      floatingActionButton: FutureBuilder<List<Propriedade>>(
+          future: _propriedadesFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const SizedBox.shrink();
+            }
+            final propriedades = snapshot.data ?? [];
+            return FloatingActionButton(
+              onPressed: () => _onFabPressed(propriedades),
+              child: const Icon(Icons.add),
+            );
+          }),
     );
   }
 }

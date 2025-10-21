@@ -28,7 +28,8 @@ class SettingsView extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.color_lens_outlined),
             title: const Text('Cores'),
-            subtitle: const Text('Ajuste as cores dinâmicas e a paleta do app.'),
+            subtitle:
+                const Text('Ajuste as cores dinâmicas e a paleta do app.'),
             onTap: () {
               Navigator.pushNamed(context, '/settings/colors');
             },
@@ -42,11 +43,11 @@ class SettingsView extends StatelessWidget {
             },
           ),
           const Divider(),
-          // ADICIONADO: ListTile para redefinir preferências na tela principal
           ListTile(
             leading: const Icon(Icons.settings_backup_restore_outlined),
             title: const Text('Redefinir Preferências'),
-            subtitle: const Text('Restaura as configurações de tema e cor para o padrão.'),
+            subtitle: const Text(
+                'Restaura as configurações de tema e cor para o padrão.'),
             onTap: () => _showResetPreferencesConfirmationDialog(context),
           ),
           ListTile(
@@ -62,14 +63,15 @@ class SettingsView extends StatelessWidget {
     );
   }
 
-  // ADICIONADO: Lógica do diálogo de confirmação movida para cá
-  Future<void> _showResetPreferencesConfirmationDialog(BuildContext context) async {
+  Future<void> _showResetPreferencesConfirmationDialog(
+      BuildContext context) async {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Redefinir Preferências?'),
-          content: const Text('Tem certeza que deseja restaurar as configurações de aparência do aplicativo para o padrão?'),
+          content: const Text(
+              'Tem certeza que deseja restaurar as configurações de aparência do aplicativo para o padrão?'),
           actions: <Widget>[
             TextButton(
               child: const Text('Cancelar'),
@@ -78,8 +80,9 @@ class SettingsView extends StatelessWidget {
             FilledButton(
               child: const Text('Redefinir'),
               onPressed: () async {
-                await Provider.of<ThemeProvider>(dialogContext, listen: false).resetToDefaults();
-                
+                await Provider.of<ThemeProvider>(dialogContext, listen: false)
+                    .resetToDefaults();
+
                 if (dialogContext.mounted) Navigator.of(dialogContext).pop();
 
                 if (context.mounted) {
