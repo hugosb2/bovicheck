@@ -1,8 +1,11 @@
+import 'package:bovicheck/controllers/dashboard_controller.dart';
 import 'package:bovicheck/models/lote.dart';
 import 'package:bovicheck/models/propriedade.dart';
 import 'package:bovicheck/services/database_service.dart';
+import 'package:bovicheck/styles/app_icons.dart';
 import 'package:bovicheck/widgets/app_drawer.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 class LotesManagementView extends StatefulWidget {
@@ -117,7 +120,11 @@ class _LotesManagementViewState extends State<LotesManagementView> {
                       );
                       await DatabaseService.instance.addOrUpdateLote(newLote);
                       _loadData();
-                      if (mounted) Navigator.pop(dialogContext);
+                      if (mounted) {
+                        Provider.of<DashboardController>(context, listen: false)
+                            .fetchDashboardData();
+                        Navigator.pop(dialogContext);
+                      }
                     }
                   },
                   child: const Text('Salvar'),
@@ -161,6 +168,9 @@ class _LotesManagementViewState extends State<LotesManagementView> {
       await DatabaseService.instance.deleteLote(lote.id);
       _loadData();
       if (mounted) {
+        Provider.of<DashboardController>(context, listen: false)
+            .fetchDashboardData();
+
         scaffoldMessenger.showSnackBar(
           const SnackBar(
               content: Text('Lote apagado.'),
@@ -248,18 +258,12 @@ class _LotesManagementViewState extends State<LotesManagementView> {
               final nomePropriedade = _getPropriedadeNome(lote.propriedadeId);
 
               return Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  side: BorderSide(
-                      color: theme.colorScheme.outlineVariant.withAlpha(100)),
-                ),
-                clipBehavior: Clip.antiAlias,
+                // Estilo já vem do AppTheme
                 child: ListTile(
                   leading: CircleAvatar(
                     backgroundColor: theme.colorScheme.tertiaryContainer,
                     foregroundColor: theme.colorScheme.onTertiaryContainer,
-                    child: const Icon(Icons.layers_outlined, size: 20),
+                    child: const Icon(AppIcons.loteAvatar, size: 20),
                   ),
                   title: Text(lote.nome,
                       style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -268,13 +272,13 @@ class _LotesManagementViewState extends State<LotesManagementView> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined),
+                        icon: const Icon(AppIcons.edit),
                         tooltip: 'Editar',
                         onPressed: () => _showLoteDialog(
                             lote: lote, propriedades: propriedades),
                       ),
                       IconButton(
-                        icon: Icon(Icons.delete_outline,
+                        icon: Icon(AppIcons.delete,
                             color: theme.colorScheme.error),
                         tooltip: 'Apagar',
                         onPressed: () => _deleteLote(lote),
@@ -296,7 +300,7 @@ class _LotesManagementViewState extends State<LotesManagementView> {
             final propriedades = snapshot.data ?? [];
             return FloatingActionButton(
               onPressed: () => _onFabPressed(propriedades),
-              child: const Icon(Icons.add),
+              child: const Icon(AppIcons.add),
             );
           }),
     );

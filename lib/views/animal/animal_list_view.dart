@@ -1,7 +1,10 @@
 import 'package:bovicheck/controllers/animal_list_controller.dart';
+import 'package:bovicheck/controllers/dashboard_controller.dart';
 import 'package:bovicheck/models/animal/animal.dart';
 import 'package:bovicheck/models/lote.dart';
 import 'package:bovicheck/services/database_service.dart';
+import 'package:bovicheck/styles/app_colors.dart';
+import 'package:bovicheck/styles/app_icons.dart';
 import 'package:bovicheck/views/animal/animal_detail_view.dart';
 import 'package:bovicheck/views/animal/animal_form_view.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +24,12 @@ class _AnimalListViewState extends State<AnimalListView> {
   void initState() {
     super.initState();
     _lotesFuture = DatabaseService.instance.getAllLotes();
+  }
+
+  Future<void> _refreshDataAfterNavigation() async {
+    Provider.of<AnimalListController>(context, listen: false).fetchAnimals();
+    Provider.of<DashboardController>(context, listen: false)
+        .fetchDashboardData();
   }
 
   @override
@@ -44,7 +53,7 @@ class _AnimalListViewState extends State<AnimalListView> {
                   child: TextField(
                     decoration: InputDecoration(
                       hintText: 'Buscar por brinco ou nome...',
-                      prefixIcon: const Icon(Icons.search),
+                      prefixIcon: const Icon(AppIcons.search),
                       filled: true,
                       fillColor: theme.colorScheme.surfaceContainerHighest,
                       border: OutlineInputBorder(
@@ -130,21 +139,13 @@ class _AnimalListViewState extends State<AnimalListView> {
                                     : '${(age / 30).floor()} m';
 
                                 return Card(
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12.0),
-                                    side: BorderSide(
-                                        color: theme.colorScheme.outlineVariant
-                                            .withAlpha(100)),
-                                  ),
-                                  clipBehavior: Clip.antiAlias,
                                   child: ListTile(
                                     leading: CircleAvatar(
                                       backgroundColor:
                                           theme.colorScheme.primaryContainer,
                                       foregroundColor:
                                           theme.colorScheme.onPrimaryContainer,
-                                      child: const Icon(Icons.pets, size: 20),
+                                      child: const Icon(AppIcons.pet, size: 20),
                                     ),
                                     title: Text(
                                       'Brinco: ${animal.brinco}',
@@ -158,10 +159,10 @@ class _AnimalListViewState extends State<AnimalListView> {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color:
-                                            animal.status == AnimalStatus.ativo
-                                                ? Colors.green.shade100
-                                                : Colors.red.shade100,
+                                        color: animal.status ==
+                                                AnimalStatus.ativo
+                                            ? AppColors.statusActiveContainer
+                                            : AppColors.statusInactiveContainer,
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
@@ -171,8 +172,8 @@ class _AnimalListViewState extends State<AnimalListView> {
                                           fontWeight: FontWeight.bold,
                                           color: animal.status ==
                                                   AnimalStatus.ativo
-                                              ? Colors.green.shade800
-                                              : Colors.red.shade800,
+                                              ? AppColors.statusActive
+                                              : AppColors.statusInactive,
                                         ),
                                       ),
                                     ),
@@ -182,7 +183,8 @@ class _AnimalListViewState extends State<AnimalListView> {
                                           MaterialPageRoute(
                                               builder: (_) => AnimalDetailView(
                                                   animalId: animal.id)));
-                                      controller.fetchAnimals();
+
+                                      _refreshDataAfterNavigation();
                                     },
                                   ),
                                 );
@@ -195,9 +197,10 @@ class _AnimalListViewState extends State<AnimalListView> {
               onPressed: () async {
                 await Navigator.push(context,
                     MaterialPageRoute(builder: (_) => const AnimalFormView()));
-                controller.fetchAnimals();
+
+                _refreshDataAfterNavigation();
               },
-              child: const Icon(Icons.add),
+              child: const Icon(AppIcons.add),
             ),
           );
         },

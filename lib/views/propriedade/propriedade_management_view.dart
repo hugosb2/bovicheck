@@ -1,7 +1,10 @@
+import 'package:bovicheck/controllers/dashboard_controller.dart';
 import 'package:bovicheck/models/propriedade.dart';
 import 'package:bovicheck/services/database_service.dart';
+import 'package:bovicheck/styles/app_icons.dart';
 import 'package:bovicheck/views/propriedade/propriedade_form_view.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class PropriedadeManagementView extends StatefulWidget {
   const PropriedadeManagementView({super.key});
@@ -32,6 +35,10 @@ class _PropriedadeManagementViewState extends State<PropriedadeManagementView> {
       MaterialPageRoute(builder: (_) => const PropriedadeFormView()),
     );
     _loadPropriedades();
+    if (mounted) {
+      Provider.of<DashboardController>(context, listen: false)
+          .fetchDashboardData();
+    }
   }
 
   Future<void> _navigateToEditForm(Propriedade prop) async {
@@ -40,6 +47,10 @@ class _PropriedadeManagementViewState extends State<PropriedadeManagementView> {
       MaterialPageRoute(builder: (_) => PropriedadeFormView(propriedade: prop)),
     );
     _loadPropriedades();
+    if (mounted) {
+      Provider.of<DashboardController>(context, listen: false)
+          .fetchDashboardData();
+    }
   }
 
   Future<void> _deletePropriedade(Propriedade prop) async {
@@ -95,6 +106,9 @@ class _PropriedadeManagementViewState extends State<PropriedadeManagementView> {
       await DatabaseService.instance.deletePropriedade(prop.id);
       _loadPropriedades();
       if (mounted) {
+        Provider.of<DashboardController>(context, listen: false)
+            .fetchDashboardData();
+
         scaffoldMessenger.showSnackBar(
           const SnackBar(
               content: Text('Propriedade apagada.'),
@@ -149,18 +163,11 @@ class _PropriedadeManagementViewState extends State<PropriedadeManagementView> {
               String subtitle = '${prop.cidade}, ${prop.estado}';
               String proprietario = 'Proprietário: ${prop.proprietario}';
               return Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  side: BorderSide(
-                      color: theme.colorScheme.outlineVariant.withAlpha(100)),
-                ),
-                clipBehavior: Clip.antiAlias,
                 child: ListTile(
                   leading: CircleAvatar(
                     backgroundColor: theme.colorScheme.secondaryContainer,
                     foregroundColor: theme.colorScheme.onSecondaryContainer,
-                    child: const Icon(Icons.home_work_outlined, size: 20),
+                    child: const Icon(AppIcons.propertyAvatar, size: 20),
                   ),
                   title: Text(prop.nome,
                       style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -170,12 +177,12 @@ class _PropriedadeManagementViewState extends State<PropriedadeManagementView> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined),
+                        icon: const Icon(AppIcons.edit), // ATUALIZADO
                         tooltip: 'Editar',
                         onPressed: () => _navigateToEditForm(prop),
                       ),
                       IconButton(
-                        icon: Icon(Icons.delete_outline,
+                        icon: Icon(AppIcons.delete, // ATUALIZADO
                             color: theme.colorScheme.error),
                         tooltip: 'Apagar',
                         onPressed: () => _deletePropriedade(prop),
@@ -190,7 +197,7 @@ class _PropriedadeManagementViewState extends State<PropriedadeManagementView> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _navigateToAddForm,
-        child: const Icon(Icons.add),
+        child: const Icon(AppIcons.add),
       ),
     );
   }
