@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import '../services/ai_evaluation_service.dart';
 import '../services/database_service.dart';
 import '../services/user_activity_service.dart';
+import 'package:bovicheck/models/analysis_snapshot.dart';
+import 'package:collection/collection.dart';
+import 'package:uuid/uuid.dart';
 
 class DashboardController extends ChangeNotifier {
   Map<String, double?> _latestAnalysis = {};
@@ -34,10 +37,14 @@ class DashboardController extends ChangeNotifier {
     notifyListeners();
 
     final List<Animal> allAnimals =
-        await DatabaseService.instance.getAllAnimals();
+        await DatabaseService.instance.getAllAnimalsWithHistory();
     final List<Propriedade> allProps =
         await DatabaseService.instance.getAllPropriedades();
     final allLotes = await DatabaseService.instance.getAllLotes();
+
+    final history = await DatabaseService.instance.getAnalysisHistory();
+
+    final lastSavedSnapshot = history.isNotEmpty ? history.first : null;
 
     _animalCount = allAnimals.length;
     _loteCount = allLotes.length;
@@ -61,6 +68,20 @@ class DashboardController extends ChangeNotifier {
           aiService.analyzeDashboard({}, propriedade: mainProp);
     }
 
+    bool areResultsDifferent = lastSavedSnapshot == null
+        ? _latestAnalysis.isNotEmpty
+        : !const DeepCollectionEquality()
+            .equals(_latestAnalysis, lastSavedSnapshot.results);
+
+    if (areResultsDifferent && _latestAnalysis.values.any((v) => v != null)) {
+      final newSnapshot = AnalysisSnapshot(
+        id: const Uuid().v4(),
+        date: DateTime.now(),
+        results: _latestAnalysis,
+      );
+      await DatabaseService.instance.addAnalysisSnapshot(newSnapshot);
+      debugPrint("Novo snapshot de indicadores salvo pelo Dashboard.");
+    }
     _mostUsedActions =
         await UserActivityService.instance.getMostUsedActions(count: 4);
 

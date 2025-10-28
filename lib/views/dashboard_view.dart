@@ -201,7 +201,7 @@ class _DashboardViewState extends State<DashboardView> {
       },
       'navigate:animals': {
         'label': 'Meu Rebanho',
-        'icon': Icons.fence_outlined, // ÍCONE ALTERADO
+        'icon': Icons.tag_outlined, // ÍCONE ALTERADO
         'action': () async {
           await Navigator.pushNamed(context, '/animals');
         }
@@ -318,14 +318,14 @@ class _DashboardViewState extends State<DashboardView> {
           children: [
             _buildSummaryItem(
                 context,
-                Icons.fence_outlined, // ÍCONE ALTERADO
+                Icons.tag_outlined, // ÍCONE ALTERADO
                 animalCount.toString(),
                 'Animais'),
             _buildSummaryItem(context, Icons.grid_view_outlined,
                 loteCount.toString(), 'Lotes'),
             _buildSummaryItem(
                 context,
-                Icons.landscape_outlined, // ÍCONE ALTERADO
+                Icons.cottage_outlined, // Ícone para Propriedades
                 propCount.toString(),
                 'Propriedades'),
           ],

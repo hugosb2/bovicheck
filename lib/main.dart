@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'controllers/dashboard_controller.dart';
 import 'providers/theme_provider.dart';
 import 'services/database_service.dart';
+import 'styles/app_theme.dart';
 import 'views/about_view.dart';
 import 'views/animal/animal_list_view.dart';
 import 'views/dashboard_view.dart';
@@ -57,23 +58,19 @@ class MyApp extends StatelessWidget {
       builder: (context, themeProvider, child) {
         return DynamicColorBuilder(
           builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
-            ColorScheme lightColorScheme;
-            ColorScheme darkColorScheme;
+            ThemeData lightTheme;
+            ThemeData darkTheme;
 
             if (themeProvider.useDynamicColors &&
                 lightDynamic != null &&
                 darkDynamic != null) {
-              lightColorScheme = lightDynamic.harmonized();
-              darkColorScheme = darkDynamic.harmonized();
+              lightTheme = AppTheme.buildLightTheme(lightDynamic.harmonized());
+              darkTheme = AppTheme.buildDarkTheme(darkDynamic.harmonized());
             } else {
-              lightColorScheme = ColorScheme.fromSeed(
-                seedColor: themeProvider.selectedColor,
-                brightness: Brightness.light,
-              );
-              darkColorScheme = ColorScheme.fromSeed(
-                seedColor: themeProvider.selectedColor,
-                brightness: Brightness.dark,
-              );
+              lightTheme =
+                  AppTheme.buildLightThemeFromSeed(themeProvider.selectedColor);
+              darkTheme =
+                  AppTheme.buildDarkThemeFromSeed(themeProvider.selectedColor);
             }
 
             return MaterialApp(
@@ -87,14 +84,8 @@ class MyApp extends StatelessWidget {
                 Locale('pt', 'BR'),
               ],
               locale: const Locale('pt', 'BR'),
-              theme: ThemeData(
-                colorScheme: lightColorScheme,
-                useMaterial3: true,
-              ),
-              darkTheme: ThemeData(
-                colorScheme: darkColorScheme,
-                useMaterial3: true,
-              ),
+              theme: lightTheme, // ATUALIZADO
+              darkTheme: darkTheme, // ATUALIZADO
               themeMode: themeProvider.themeMode,
               initialRoute: '/splash',
               routes: {

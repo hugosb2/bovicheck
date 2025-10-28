@@ -19,6 +19,41 @@ class AnimalDetailView extends StatefulWidget {
 class _AnimalDetailViewState extends State<AnimalDetailView> {
   int _selectedIndex = 0;
 
+  Future<void> _showDeleteAnimalConfirmation(
+      BuildContext context, AnimalDetailController controller) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Confirmar Exclusão'),
+          content: Text(
+              'Tem certeza que deseja apagar o animal "${controller.animal?.brinco}"? Todos os seus dados (pesagens, saúde, etc.) serão perdidos permanentemente.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
+              ),
+              child: const Text('Apagar'),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      await controller.deleteAnimal();
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -41,28 +76,56 @@ class _AnimalDetailViewState extends State<AnimalDetailView> {
             );
           }
 
-          final List<Widget> widgetOptions = <Widget>[
-            const SummaryTab(),
-            WeightsTab(animalId: animal.id),
-            HealthTab(animalId: animal.id),
-            if (animal.sexo == 'Fêmea') ProductionTab(animalId: animal.id),
-            if (animal.sexo == 'Fêmea') BreedingTab(animalId: animal.id),
-          ];
+          final List<Widget> widgetOptions = [];
+          final List<Widget> drawerItems = [];
+          int tabIndex = 0;
 
-          final List<BottomNavigationBarItem> navBarItems = [
-            const BottomNavigationBarItem(
-                icon: Icon(Icons.dashboard_outlined), label: 'Desempenho'),
-            const BottomNavigationBarItem(
-                icon: Icon(Icons.scale_outlined), label: 'Pesagens'),
-            const BottomNavigationBarItem(
-                icon: Icon(Icons.healing_outlined), label: 'Saúde'),
-            if (animal.sexo == 'Fêmea')
-              const BottomNavigationBarItem(
-                  icon: Icon(Icons.opacity_outlined), label: 'Produção'),
-            if (animal.sexo == 'Fêmea')
-              const BottomNavigationBarItem(
-                  icon: Icon(Icons.favorite_border), label: 'Reprodução'),
-          ];
+          widgetOptions.add(const SummaryTab());
+          drawerItems.add(_buildDrawerItem(
+            context,
+            icon: Icons.dashboard_outlined,
+            title: 'Desempenho',
+            index: tabIndex,
+          ));
+          tabIndex++;
+
+          widgetOptions.add(WeightsTab(animalId: animal.id));
+          drawerItems.add(_buildDrawerItem(
+            context,
+            icon: Icons.scale_outlined,
+            title: 'Pesagens',
+            index: tabIndex,
+          ));
+          tabIndex++;
+
+          widgetOptions.add(HealthTab(animalId: animal.id));
+          drawerItems.add(_buildDrawerItem(
+            context,
+            icon: Icons.healing_outlined,
+            title: 'Saúde',
+            index: tabIndex,
+          ));
+          tabIndex++;
+
+          if (animal.sexo == 'Fêmea') {
+            widgetOptions.add(ProductionTab(animalId: animal.id));
+            drawerItems.add(_buildDrawerItem(
+              context,
+              icon: Icons.opacity_outlined,
+              title: 'Produção',
+              index: tabIndex,
+            ));
+            tabIndex++;
+
+            widgetOptions.add(BreedingTab(animalId: animal.id));
+            drawerItems.add(_buildDrawerItem(
+              context,
+              icon: Icons.favorite_border,
+              title: 'Reprodução',
+              index: tabIndex,
+            ));
+            tabIndex++;
+          }
 
           return Scaffold(
             appBar: AppBar(
@@ -72,6 +135,7 @@ class _AnimalDetailViewState extends State<AnimalDetailView> {
               actions: [
                 IconButton(
                   icon: const Icon(Icons.edit),
+                  tooltip: 'Editar Animal',
                   onPressed: () async {
                     await Navigator.push(
                       context,
@@ -81,25 +145,83 @@ class _AnimalDetailViewState extends State<AnimalDetailView> {
                     controller.fetchAnimal();
                   },
                 ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip: 'Apagar Animal',
+                  onPressed: () =>
+                      _showDeleteAnimalConfirmation(context, controller),
+                ),
+                Builder(
+                  builder: (context) {
+                    return IconButton(
+                      icon: const Icon(Icons.menu),
+                      tooltip: 'Ver seções',
+                      onPressed: () {
+                        Scaffold.of(context).openEndDrawer();
+                      },
+                    );
+                  },
+                ),
               ],
             ),
-            body: IndexedStack(
-              index: _selectedIndex,
-              children: widgetOptions,
-            ),
-            bottomNavigationBar: BottomNavigationBar(
-              type: BottomNavigationBarType.fixed,
-              items: navBarItems,
-              currentIndex: _selectedIndex,
-              onTap: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                });
-              },
+            body: widgetOptions[_selectedIndex],
+            endDrawer: Drawer(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  DrawerHeader(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Brinco: ${animal.brinco}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (animal.nome != null)
+                          Text(
+                            animal.nome!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              fontSize: 16,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  ...drawerItems,
+                ],
+              ),
             ),
           );
         },
       ),
+    );
+  }
+
+  Widget _buildDrawerItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required int index,
+  }) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      selected: _selectedIndex == index,
+      onTap: () {
+        setState(() {
+          _selectedIndex = index;
+        });
+        Navigator.pop(context);
+      },
     );
   }
 }

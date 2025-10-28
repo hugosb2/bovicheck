@@ -1,8 +1,9 @@
+import 'package:bovicheck/services/database_service.dart'; // ADICIONADO
 import 'package:bovicheck/services/pdf_export_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/dashboard_controller.dart';
-import '../../services/json_storage_service.dart';
+// import '../../services/json_storage_service.dart'; // REMOVIDO
 import '../../services/spreadsheet_service.dart';
 import '../../services/user_activity_service.dart';
 
@@ -126,7 +127,7 @@ class _DataSettingsViewState extends State<DataSettingsView> {
               ),
               child: const Text('Apagar Tudo'),
               onPressed: () async {
-                await JsonStorageService.instance.clearAllData();
+                await DatabaseService.instance.clearAllData();
                 if (dialogContext.mounted) {
                   Provider.of<DashboardController>(dialogContext, listen: false)
                       .fetchDashboardData();

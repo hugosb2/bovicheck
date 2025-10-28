@@ -1,4 +1,5 @@
 import 'package:bovicheck/models/lote.dart';
+import 'package:bovicheck/styles/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
@@ -160,17 +161,6 @@ class _AnimalFormViewState extends State<AnimalFormView> {
         controller: controller,
         decoration: InputDecoration(
           labelText: label,
-          filled: true,
-          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.0),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.0),
-            borderSide:
-                BorderSide(color: Theme.of(context).colorScheme.primary),
-          ),
           counterText: maxLength != null ? null : "",
           suffixIcon: suffixIcon,
         ),
@@ -196,17 +186,6 @@ class _AnimalFormViewState extends State<AnimalFormView> {
         value: value,
         decoration: InputDecoration(
           labelText: label,
-          filled: true,
-          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.0),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.0),
-            borderSide:
-                BorderSide(color: Theme.of(context).colorScheme.primary),
-          ),
         ),
         items: items,
         onChanged: onChanged,
@@ -260,7 +239,7 @@ class _AnimalFormViewState extends State<AnimalFormView> {
                   readOnly: true,
                   onTap: () => _selectDate(context, field: 'nascimento'),
                   validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
-                  suffixIcon: const Icon(Icons.calendar_today),
+                  suffixIcon: const Icon(AppIcons.dateRange),
                 ),
                 _buildDropdownField<String>(
                   label: 'Sexo',
@@ -332,7 +311,7 @@ class _AnimalFormViewState extends State<AnimalFormView> {
                       readOnly: true,
                       onTap: () => _selectDate(context, field: 'saida'),
                       validator: (v) => v!.isEmpty ? 'Data obrigatória' : null,
-                      suffixIcon: const Icon(Icons.calendar_today),
+                      suffixIcon: const Icon(AppIcons.dateRange),
                     ),
                   ],
                   Container(
@@ -360,7 +339,7 @@ class _AnimalFormViewState extends State<AnimalFormView> {
                       onTap: () => _selectDate(context, field: 'desmame'),
                       validator: (v) =>
                           v!.isEmpty ? 'Data obrigatória se desmamado' : null,
-                      suffixIcon: const Icon(Icons.calendar_today),
+                      suffixIcon: const Icon(AppIcons.dateRange),
                     ),
                 ],
                 const SizedBox(height: 32),

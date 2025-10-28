@@ -1,13 +1,13 @@
 import 'dart:typed_data';
+import 'package:bovicheck/services/database_service.dart'; // ALTERADO
 import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
-import 'json_storage_service.dart';
 import 'package:bovicheck/models/animal/animal.dart';
 
 class SpreadsheetService {
   Future<bool> exportAllData() async {
-    final animals = JsonStorageService.instance.getAllAnimals();
+    final animals = await DatabaseService.instance.getAllAnimalsWithHistory();
 
     if (animals.isEmpty) {
       return false;
@@ -15,7 +15,6 @@ class SpreadsheetService {
 
     var excel = Excel.createExcel();
 
-    // Estilos
     var headerStyle = CellStyle(
       bold: true,
       verticalAlign: VerticalAlign.Center,
@@ -147,7 +146,15 @@ class SpreadsheetService {
   void _createHealthSheet(
       Excel excel, List<Animal> animals, CellStyle headerStyle) {
     Sheet sheet = excel['Saude'];
-    final headers = ['Animal Brinco', 'Data', 'Diagnóstico', 'Tratamento'];
+    final headers = [
+      'Animal Brinco',
+      'Data',
+      'Diagnóstico',
+      'Tratamento',
+      'Medicação',
+      'Tipo Medicação',
+      'Dose'
+    ]; // Headers combinados
     for (var i = 0; i < headers.length; i++) {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
         ..value = TextCellValue(headers[i])
@@ -156,6 +163,7 @@ class SpreadsheetService {
 
     int rowIndex = 1;
     for (final animal in animals) {
+      // Eventos de Saúde
       for (final record in animal.historicoSaude) {
         sheet
             .cell(
@@ -174,6 +182,31 @@ class SpreadsheetService {
             .cell(
                 CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
             .value = TextCellValue(record.treatment ?? '');
+        rowIndex++;
+      }
+      // Registros de Medicação
+      for (final record in animal.historicoMedicacao) {
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+            .value = TextCellValue(animal.brinco);
+        sheet
+                .cell(CellIndex.indexByColumnRow(
+                    columnIndex: 1, rowIndex: rowIndex))
+                .value =
+            TextCellValue(DateFormat('dd/MM/yyyy').format(record.date));
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
+            .value = TextCellValue(record.productName);
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
+            .value = TextCellValue(record.type);
+        sheet
+            .cell(
+                CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
+            .value = TextCellValue(record.dose);
         rowIndex++;
       }
     }

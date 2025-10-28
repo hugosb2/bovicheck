@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:bovicheck/models/analysis_snapshot.dart';
-import 'package:bovicheck/services/json_storage_service.dart';
+import 'package:bovicheck/services/database_service.dart'; // ALTERADO
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -23,15 +23,20 @@ class AnalysisHistoryView extends StatefulWidget {
 }
 
 class _AnalysisHistoryViewState extends State<AnalysisHistoryView> {
-  late List<AnalysisSnapshot> _fullHistory;
+  List<AnalysisSnapshot> _fullHistory = [];
   List<AnalysisSnapshot> _filteredHistory = [];
   DateTimeRange? _selectedPeriod;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fullHistory = JsonStorageService.instance.getAnalysisHistory()
-      ..sort((a, b) => a.date.compareTo(b.date));
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    _fullHistory = await DatabaseService.instance.getAnalysisHistory();
+    _fullHistory.sort((a, b) => a.date.compareTo(b.date));
 
     if (_fullHistory.isNotEmpty) {
       _selectedPeriod = DateTimeRange(
@@ -40,6 +45,12 @@ class _AnalysisHistoryViewState extends State<AnalysisHistoryView> {
       );
     }
     _filterHistoryByDate();
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _filterHistoryByDate() {
@@ -83,138 +94,148 @@ class _AnalysisHistoryViewState extends State<AnalysisHistoryView> {
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildPeriodSelector(),
-          const SizedBox(height: 24),
-          Text(
-            'Evolução do Índice',
-            style: Theme.of(context).textTheme.headlineSmall,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          if (_filteredHistory.isEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(_fullHistory.isEmpty
-                    ? 'Nenhum snapshot foi salvo ainda.'
-                    : 'Nenhum registro encontrado para o período selecionado.'),
-              ),
-            )
-          else
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                height: 300,
-                width: chartWidth,
-                child: BarChart(
-                  BarChartData(
-                    alignment: BarChartAlignment.center,
-                    barTouchData: BarTouchData(
-                      touchTooltipData: BarTouchTooltipData(
-                        getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                          final snapshot = _filteredHistory[groupIndex];
-                          final date =
-                              DateFormat('dd/MM/yy').format(snapshot.date);
-                          return BarTooltipItem(
-                            '$date\n${rod.toY.toStringAsFixed(1)} ${widget.unit}',
-                            TextStyle(
-                              color: Theme.of(context).colorScheme.onPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    titlesData: FlTitlesData(
-                      leftTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false)),
-                      topTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 22,
-                          getTitlesWidget: (value, meta) {
-                            final snapshot = _filteredHistory[value.toInt()];
-                            final result = snapshot.results[widget.indexKey]!;
-                            return Text(result.toStringAsFixed(1),
-                                style: const TextStyle(fontSize: 10));
-                          },
-                        ),
-                      ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (value, meta) {
-                            final date = _filteredHistory[value.toInt()].date;
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 4.0),
-                              child: Text(DateFormat('dd/MM').format(date),
-                                  style: const TextStyle(fontSize: 10)),
-                            );
-                          },
-                          reservedSize: 20,
-                        ),
-                      ),
-                      rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false)),
-                    ),
-                    borderData: FlBorderData(show: false),
-                    gridData: const FlGridData(show: false),
-                    barGroups: _filteredHistory.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final snapshot = entry.value;
-                      return BarChartGroupData(
-                        x: index,
-                        barRods: [
-                          BarChartRodData(
-                            toY: snapshot.results[widget.indexKey]!,
-                            color: Theme.of(context).colorScheme.primary,
-                            width: barWidth,
-                            borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(4)),
-                          ),
-                        ],
-                      );
-                    }).toList(),
-                  ),
+      body: _isLoading // ADICIONADO
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _buildPeriodSelector(),
+                const SizedBox(height: 24),
+                Text(
+                  'Evolução do Índice',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                  textAlign: TextAlign.center,
                 ),
-              ),
-            ),
-          const Divider(height: 40),
-          Text(
-            'Registros Salvos',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          if (_filteredHistory.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 16),
-              child: Text("Nenhum registro a ser exibido."),
-            )
-          else
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _filteredHistory.length,
-              itemBuilder: (context, index) {
-                final snapshot = _filteredHistory.reversed.toList()[index];
-                final value = snapshot.results[widget.indexKey];
-                return ListTile(
-                  leading: const Icon(Icons.history),
-                  title: Text(
-                    value != null
-                        ? '${value.toStringAsFixed(1)} ${widget.unit}'
-                        : 'Dado não disponível',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                const SizedBox(height: 24),
+                if (_filteredHistory.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(_fullHistory.isEmpty
+                          ? 'Nenhum snapshot foi salvo ainda.'
+                          : 'Nenhum registro encontrado para o período selecionado.'),
+                    ),
+                  )
+                else
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      height: 300,
+                      width: chartWidth,
+                      child: BarChart(
+                        BarChartData(
+                          alignment: BarChartAlignment.center,
+                          barTouchData: BarTouchData(
+                            touchTooltipData: BarTouchTooltipData(
+                              getTooltipItem:
+                                  (group, groupIndex, rod, rodIndex) {
+                                final snapshot = _filteredHistory[groupIndex];
+                                final date = DateFormat('dd/MM/yy')
+                                    .format(snapshot.date);
+                                return BarTooltipItem(
+                                  '$date\n${rod.toY.toStringAsFixed(1)} ${widget.unit}',
+                                  TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.onPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          titlesData: FlTitlesData(
+                            leftTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false)),
+                            topTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 22,
+                                getTitlesWidget: (value, meta) {
+                                  final snapshot =
+                                      _filteredHistory[value.toInt()];
+                                  final result =
+                                      snapshot.results[widget.indexKey]!;
+                                  return Text(result.toStringAsFixed(1),
+                                      style: const TextStyle(fontSize: 10));
+                                },
+                              ),
+                            ),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                getTitlesWidget: (value, meta) {
+                                  final date =
+                                      _filteredHistory[value.toInt()].date;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 4.0),
+                                    child: Text(
+                                        DateFormat('dd/MM').format(date),
+                                        style: const TextStyle(fontSize: 10)),
+                                  );
+                                },
+                                reservedSize: 20,
+                              ),
+                            ),
+                            rightTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false)),
+                          ),
+                          borderData: FlBorderData(show: false),
+                          gridData: const FlGridData(show: false),
+                          barGroups:
+                              _filteredHistory.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final snapshot = entry.value;
+                            return BarChartGroupData(
+                              x: index,
+                              barRods: [
+                                BarChartRodData(
+                                  toY: snapshot.results[widget.indexKey]!,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  width: barWidth,
+                                  borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(4)),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
                   ),
-                  subtitle: Text(DateFormat('dd/MM/yyyy \'às\' HH:mm')
-                      .format(snapshot.date)),
-                );
-              },
+                const Divider(height: 40),
+                Text(
+                  'Registros Salvos',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                if (_filteredHistory.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 16),
+                    child: Text("Nenhum registro a ser exibido."),
+                  )
+                else
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _filteredHistory.length,
+                    itemBuilder: (context, index) {
+                      final snapshot =
+                          _filteredHistory.reversed.toList()[index];
+                      final value = snapshot.results[widget.indexKey];
+                      return ListTile(
+                        leading: const Icon(Icons.history),
+                        title: Text(
+                          value != null
+                              ? '${value.toStringAsFixed(1)} ${widget.unit}'
+                              : 'Dado não disponível',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(DateFormat('dd/MM/yyyy \'às\' HH:mm')
+                            .format(snapshot.date)),
+                      );
+                    },
+                  ),
+              ],
             ),
-        ],
-      ),
     );
   }
 

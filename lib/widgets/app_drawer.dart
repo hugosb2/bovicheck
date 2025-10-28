@@ -44,7 +44,7 @@ class AppDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.fence_outlined), // ÍCONE ALTERADO
+            leading: const Icon(Icons.tag_outlined), // ÍCONE ALTERADO
             title: const Text('Meu Rebanho'),
             onTap: () {
               Navigator.pop(context);
@@ -52,7 +52,8 @@ class AppDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.landscape_outlined), // ÍCONE ALTERADO
+            leading:
+                const Icon(Icons.cottage_outlined), // Ícone para Propriedades
             title: const Text('Propriedades'),
             onTap: () {
               Navigator.pop(context);

@@ -1,7 +1,5 @@
-// lib/services/pdf_export_service.dart
-
 import 'package:bovicheck/models/animal/animal.dart';
-import 'package:bovicheck/services/json_storage_service.dart';
+import 'package:bovicheck/services/database_service.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -10,7 +8,7 @@ import 'package:printing/printing.dart';
 
 class PdfExportService {
   Future<void> generateAndShareHerdReport() async {
-    final animals = JsonStorageService.instance.getAllAnimals();
+    final animals = await DatabaseService.instance.getAllAnimals();
     final pdf = await _generatePdf(animals);
 
     await Printing.layoutPdf(

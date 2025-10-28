@@ -1,3 +1,4 @@
+import 'package:bovicheck/styles/app_colors.dart'; // IMPORTADO
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -6,7 +7,7 @@ class ThemeProvider extends ChangeNotifier {
   static const String _useDynamicColorsKey = 'use_dynamic_colors';
   static const String _selectedColorKey = 'selected_color';
 
-  static const Color _defaultColor = Colors.green;
+  static const Color _defaultColor = AppColors.defaultThemeColor;
 
   ThemeMode _themeMode = ThemeMode.system;
   bool _useDynamicColors = true;
@@ -48,16 +49,16 @@ class ThemeProvider extends ChangeNotifier {
 
   Future<void> loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     final themeIndex = prefs.getInt(_themeModeKey) ?? ThemeMode.system.index;
     _themeMode = ThemeMode.values[themeIndex];
-    
+
     _useDynamicColors = prefs.getBool(_useDynamicColorsKey) ?? true;
 
     final colorValue = prefs.getInt(_selectedColorKey) ?? _defaultColor.value;
     _selectedColor = Color(colorValue);
   }
-  
+
   Map<String, dynamic> toMap() {
     return {
       'theme_mode': _themeMode.index,
@@ -74,7 +75,6 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // NOVO: Método para redefinir as configurações para o padrão
   Future<void> resetToDefaults() async {
     _themeMode = ThemeMode.system;
     _useDynamicColors = true;

@@ -42,6 +42,12 @@ class AnimalDetailController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // NOVO MÉTODO
+  Future<void> deleteAnimal() async {
+    if (_animal == null) return;
+    await DatabaseService.instance.deleteAnimal(_animal!.id);
+  }
+
   Future<void> addWeightRecord(WeightRecord r) async {
     await DatabaseService.instance.addWeightRecord(_animal!.id, r);
     await fetchAnimal();
