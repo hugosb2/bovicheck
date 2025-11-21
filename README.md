@@ -105,7 +105,7 @@ O **BoviCheck** é uma solução completa desenvolvida em Flutter para gestão d
 
 #### Banco de Dados
 - `sqflite` ^2.3.3+1 - Banco de dados SQLite local
-- `sqflite_common_ffi` ^2.3.3 - Suporte para desktop
+- `sqflite_common_ffi` ^2.3.3 - Suporte para desktop para testes
 
 #### Interface e Visualização
 - `fl_chart` ^0.68.0 - Gráficos e visualizações
@@ -135,7 +135,7 @@ O **BoviCheck** é uma solução completa desenvolvida em Flutter para gestão d
 - Git
 
 ### Para Execução
-- **Android**: API 21+ (Android 5.0+)
+- **Android**: Android 9.0+
 - **Windows**: Windows 10+
 
 ---
