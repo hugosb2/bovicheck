@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![BoviCheck](assets/icon.png)
+![BoviCheck](lib/icon.png)
 
 **Um aplicativo completo para gerenciamento de rebanho bovino, cálculo de índices zootécnicos e análise de produtividade.**
 
