@@ -339,7 +339,6 @@ Desenvolvido para produtores rurais
 
 Para dúvidas, sugestões ou problemas:
 
-- Abra uma [Issue](https://github.com/hugosb2)
 - Entre em contato através do email: [hugobs4987@gmail.com]
 
 ---
