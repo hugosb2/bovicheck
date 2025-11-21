@@ -1,7 +1,9 @@
 import 'package:bovicheck/controllers/animal_detail_controller.dart';
 import 'package:bovicheck/models/animal/health_event.dart';
 import 'package:bovicheck/models/animal/medication_record.dart';
+import 'package:bovicheck/styles/app_icons.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -107,9 +109,31 @@ class HealthTab extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleLarge),
                     TextFormField(
                         controller: dateController,
-                        decoration: const InputDecoration(
-                            labelText: 'Data',
-                            suffixIcon: Icon(Icons.calendar_today)),
+                        decoration: InputDecoration(
+                          labelText: 'Data',
+                          filled: true,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          suffixIcon: const Icon(Icons.calendar_today),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2,
+                            ),
+                          ),
+                        ),
                         readOnly: true,
                         onTap: () async {
                           final picked = await showDatePicker(
@@ -123,19 +147,71 @@ class HealthTab extends StatelessWidget {
                                 DateFormat('dd/MM/yyyy').format(picked);
                           }
                         }),
+                    const SizedBox(height: 16),
                     TextFormField(
                         initialValue: diagnosis,
-                        decoration: const InputDecoration(
-                            labelText: 'Diagnóstico (ex: Febre, Ferimento)'),
+                        decoration: InputDecoration(
+                          labelText: 'Diagnóstico (ex: Febre, Ferimento)',
+                          filled: true,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2,
+                            ),
+                          ),
+                        ),
                         validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
                         onSaved: (v) => diagnosis = v!),
+                    const SizedBox(height: 16),
                     TextFormField(
                         initialValue: treatment,
-                        decoration: const InputDecoration(
-                            labelText: 'Tratamento (Opcional)'),
+                        decoration: InputDecoration(
+                          labelText: 'Tratamento (Opcional)',
+                          filled: true,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2,
+                            ),
+                          ),
+                        ),
                         onSaved: (v) => treatment = v!),
                     const SizedBox(height: 24),
-                    ElevatedButton(
+                    FilledButton(
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         child: const Text('Salvar'),
                         onPressed: () {
                           if (formKey.currentState!.validate()) {
@@ -182,9 +258,31 @@ class HealthTab extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleLarge),
                     TextFormField(
                         controller: dateController,
-                        decoration: const InputDecoration(
-                            labelText: 'Data',
-                            suffixIcon: Icon(Icons.calendar_today)),
+                        decoration: InputDecoration(
+                          labelText: 'Data',
+                          filled: true,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          suffixIcon: const Icon(Icons.calendar_today),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2,
+                            ),
+                          ),
+                        ),
                         readOnly: true,
                         onTap: () async {
                           final picked = await showDatePicker(
@@ -198,29 +296,105 @@ class HealthTab extends StatelessWidget {
                                 DateFormat('dd/MM/yyyy').format(picked);
                           }
                         }),
+                    const SizedBox(height: 16),
                     TextFormField(
                         initialValue: productName,
-                        decoration:
-                            const InputDecoration(labelText: 'Nome do Produto'),
+                        decoration: InputDecoration(
+                          labelText: 'Nome do Produto',
+                          filled: true,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2,
+                            ),
+                          ),
+                        ),
                         validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
                         onSaved: (v) => productName = v!),
+                    const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       value: type,
-                      decoration: const InputDecoration(labelText: 'Tipo'),
+                      decoration: InputDecoration(
+                        labelText: 'Tipo',
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 2,
+                          ),
+                        ),
+                      ),
                       items: ['Vacina', 'Vermífugo', 'Antibiótico', 'Outro']
                           .map(
                               (t) => DropdownMenuItem(value: t, child: Text(t)))
                           .toList(),
                       onChanged: (v) => type = v!,
                     ),
+                    const SizedBox(height: 16),
                     TextFormField(
                         initialValue: dose,
-                        decoration: const InputDecoration(
-                            labelText: 'Dose (ex: 10 ml)'),
+                        decoration: InputDecoration(
+                          labelText: 'Dose (ex: 10 ml)',
+                          filled: true,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2,
+                            ),
+                          ),
+                        ),
                         validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
                         onSaved: (v) => dose = v!),
                     const SizedBox(height: 24),
-                    ElevatedButton(
+                    FilledButton(
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         child: const Text('Salvar'),
                         onPressed: () {
                           if (formKey.currentState!.validate()) {
@@ -265,48 +439,138 @@ class HealthTab extends StatelessWidget {
     ];
     unifiedList.sort((a, b) => b.date.compareTo(a.date));
 
+    final theme = Theme.of(context);
     return Scaffold(
       body: unifiedList.isEmpty
-          ? const Center(child: Text('Nenhum registro de saúde ou medicação.'))
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    AppIcons.health,
+                    size: 64,
+                    color: theme.colorScheme.outline,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Nenhum registro de saúde ou medicação.',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            )
           : ListView.builder(
+              padding: const EdgeInsets.all(16),
               itemCount: unifiedList.length,
               itemBuilder: (context, index) {
                 final item = unifiedList[index];
-                return ListTile(
-                  leading: Icon(item.icon),
-                  title: Text(item.title),
-                  subtitle: Text(
-                      '${item.subtitle}\nData: ${DateFormat('dd/MM/yyyy').format(item.date)}'),
-                  isThreeLine: true,
-                  onTap: () => _showRecordOptions(context, controller, item),
-                );
+                return Card(
+                  elevation: 1,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+                    ),
+                  ),
+                  child: ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: (item.icon == Icons.healing_outlined
+                                ? Colors.red
+                                : Colors.blue)
+                            .withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        item.icon,
+                        color: item.icon == Icons.healing_outlined
+                            ? Colors.red.shade700
+                            : Colors.blue.shade700,
+                        size: 24,
+                      ),
+                    ),
+                    title: Text(
+                      item.title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.subtitle,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Data: ${DateFormat('dd/MM/yyyy').format(item.date)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.more_vert,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    onTap: () => _showRecordOptions(context, controller, item),
+                  ),
+                )
+                    .animate()
+                    .fadeIn(duration: 300.ms, delay: (index * 50).ms)
+                    .slideX(begin: 0.1, end: 0);
               },
             ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         heroTag: 'healthTabFab',
         onPressed: () {
           showDialog(
               context: context,
               builder: (ctx) => AlertDialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                     title: const Text('O que você quer registrar?'),
-                    actions: [
-                      TextButton(
-                          child: const Text('Evento de Saúde'),
-                          onPressed: () {
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.healing_outlined, color: Colors.red),
+                          title: const Text('Evento de Saúde'),
+                          onTap: () {
                             Navigator.pop(ctx);
                             _showAddHealthEventDialog(context, controller);
-                          }),
-                      TextButton(
-                          child: const Text('Medicação'),
-                          onPressed: () {
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.medication_outlined, color: Colors.blue),
+                          title: const Text('Medicação'),
+                          onTap: () {
                             Navigator.pop(ctx);
                             _showAddMedicationDialog(context, controller);
-                          }),
-                    ],
+                          },
+                        ),
+                      ],
+                    ),
                   ));
         },
-        child: const Icon(Icons.add),
-      ),
+        icon: const Icon(Icons.add),
+        label: const Text('Novo Registro'),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+      )
+          .animate()
+          .fadeIn(duration: 400.ms, delay: 200.ms)
+          .scale(begin: const Offset(0, 0), end: const Offset(1, 1)),
     );
   }
 }

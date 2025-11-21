@@ -422,4 +422,43 @@ class DatabaseService {
       }
     });
   }
+
+  // --- NOVOS MÉTODOS ADICIONADOS ---
+
+  Future<Propriedade?> getPropriedadeById(String id) async {
+    final db = await instance.database;
+    final maps =
+        await db.query('propriedades', where: 'id = ?', whereArgs: [id]);
+    if (maps.isNotEmpty) {
+      return Propriedade.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<Lote?> getLoteById(String id) async {
+    final db = await instance.database;
+    final maps = await db.query('lotes', where: 'id = ?', whereArgs: [id]);
+    if (maps.isNotEmpty) {
+      return Lote.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<List<Lote>> getLotesForPropriedade(String propriedadeId) async {
+    final db = await instance.database;
+    final maps = await db.query('lotes',
+        where: 'propriedadeId = ?',
+        whereArgs: [propriedadeId],
+        orderBy: 'nome');
+    return maps.map((map) => Lote.fromMap(map)).toList();
+  }
+
+  Future<List<Animal>> getAnimalsForLote(String loteId) async {
+    final db = await instance.database;
+    final maps = await db.query('animals',
+        where: 'loteId = ?', whereArgs: [loteId], orderBy: 'brinco');
+    // Retorna a lista simples de animais, sem histórico (para performance)
+    return maps.map((map) => Animal.fromMap(map)).toList();
+  }
+  // --- FIM DOS NOVOS MÉTODOS ---
 }

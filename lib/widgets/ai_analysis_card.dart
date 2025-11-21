@@ -1,6 +1,7 @@
 import 'package:bovicheck/services/ai_evaluation_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class AiAnalysisCard extends StatelessWidget {
   final AIAnalysisResult analysis;
@@ -39,55 +40,86 @@ class AiAnalysisCard extends StatelessWidget {
     final markdownStyle = MarkdownStyleSheet(
       p: theme.textTheme.bodyMedium?.copyWith(
         color: theme.colorScheme.onSurface,
+        height: 1.6,
       ),
       strong: const TextStyle(fontWeight: FontWeight.bold),
     );
 
     return Card(
-      elevation: 0,
+      elevation: 2,
+      shadowColor: iconColor.withOpacity(0.2),
       color: cardColor,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-        side: BorderSide(color: iconColor.withAlpha(128)),
+        borderRadius: BorderRadius.circular(20.0),
+        side: BorderSide(color: iconColor.withAlpha(180), width: 1.5),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20.0),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              cardColor,
+              cardColor.withOpacity(0.7),
+            ],
+          ),
+        ),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(icon, color: iconColor),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: iconColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: iconColor, size: 24),
+                ),
                 const SizedBox(width: 12),
                 Text(
                   'Análise de IA',
-                  style: theme.textTheme.titleMedium?.copyWith(
+                  style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: iconColor,
+                    letterSpacing: 0.3,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             MarkdownBody(
               data: analysis.summary,
               styleSheet: markdownStyle,
               selectable: true,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Align(
               alignment: Alignment.bottomRight,
-              child: Text(
-                'Powered by Gemini',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontStyle: FontStyle.italic,
-                  color: theme.colorScheme.onSurface.withAlpha(153),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Powered by Gemini',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: theme.colorScheme.onSurface.withAlpha(153),
+                  ),
                 ),
               ),
             ),
           ],
         ),
       ),
-    );
+    )
+        .animate()
+        .fadeIn(duration: 400.ms)
+        .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1));
   }
 }

@@ -1,36 +1,70 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/theme_provider.dart';
 
 class ColorSettingsView extends StatelessWidget {
   const ColorSettingsView({super.key});
 
   final List<Color> colorOptions = const [
-    Colors.green, Colors.blue, Colors.red, Colors.purple,
-    Colors.orange, Colors.teal, Colors.pink, Colors.amber,
+    Colors.green,
+    Colors.blue,
+    Colors.red,
+    Colors.purple,
+    Colors.orange,
+    Colors.teal,
+    Colors.pink,
+    Colors.amber,
   ];
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
+    final theme = Theme.of(context);
     final isManualColorSelectionEnabled = !themeProvider.useDynamicColors;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cores'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.primary.withValues(alpha: 0.8),
+              ],
+            ),
+          ),
+        ),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(16),
         children: [
-          SwitchListTile(
-            title: const Text('Cores Dinâmicas'),
-            subtitle: const Text('Usa as cores do papel de parede (Android 12+)'),
-            value: themeProvider.useDynamicColors,
-            onChanged: (value) => themeProvider.setUseDynamicColors(value),
-          ),
-          const Divider(),
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+              ),
+            ),
+            child: SwitchListTile(
+              title: const Text('Cores Dinâmicas'),
+              subtitle:
+                  const Text('Usa as cores do papel de parede (Android 12+)'),
+              value: themeProvider.useDynamicColors,
+              onChanged: (value) => themeProvider.setUseDynamicColors(value),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1, end: 0),
+          const SizedBox(height: 24),
           Opacity(
             opacity: isManualColorSelectionEnabled ? 1.0 : 0.5,
             child: AbsorbPointer(
@@ -38,20 +72,28 @@ class ColorSettingsView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                    child: Text(
-                      'Cor Principal Manual',
-                      style: Theme.of(context).textTheme.titleMedium,
+                  Text(
+                    'Cor Principal Manual',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Wrap(
-                      spacing: 12.0,
-                      runSpacing: 12.0,
-                      children: colorOptions.map((color) => _buildColorOption(context, color, themeProvider)).toList(),
-                    ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 16.0,
+                    runSpacing: 16.0,
+                    children: colorOptions.asMap().entries.map((entry) {
+                      return _buildColorOption(
+                        context,
+                        color: entry.value,
+                        themeProvider: themeProvider,
+                      )
+                          .animate()
+                          .fadeIn(duration: 200.ms, delay: (entry.key * 50).ms)
+                          .scale(
+                              begin: const Offset(0.8, 0.8),
+                              end: const Offset(1, 1));
+                    }).toList(),
                   ),
                 ],
               ),
@@ -62,24 +104,48 @@ class ColorSettingsView extends StatelessWidget {
     );
   }
 
-  Widget _buildColorOption(BuildContext context, Color color, ThemeProvider themeProvider) {
+  Widget _buildColorOption(
+    BuildContext context, {
+    required Color color,
+    required ThemeProvider themeProvider,
+  }) {
+    final theme = Theme.of(context);
     final bool isSelected = themeProvider.selectedColor == color;
     return GestureDetector(
       onTap: () => themeProvider.setSelectedColor(color),
       child: Container(
-        width: 40,
-        height: 40,
+        width: 56,
+        height: 56,
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
-          border: isSelected ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 3.0) : null,
+          boxShadow: [
+            if (isSelected)
+              BoxShadow(
+                color: color.withValues(alpha: 0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+          ],
+          border: isSelected
+              ? Border.all(
+                  color: Colors.white,
+                  width: 3.0,
+                )
+              : Border.all(
+                  color:
+                      theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  width: 2,
+                ),
         ),
         child: isSelected
             ? Icon(
                 Icons.check,
-                color: ThemeData.estimateBrightnessForColor(color) == Brightness.dark
+                color: ThemeData.estimateBrightnessForColor(color) ==
+                        Brightness.dark
                     ? Colors.white
                     : Colors.black,
+                size: 28,
               )
             : null,
       ),

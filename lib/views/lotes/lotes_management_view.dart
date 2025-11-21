@@ -7,6 +7,10 @@ import 'package:bovicheck/widgets/app_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+
+// 1. IMPORTE A NOVA TELA DE DETALHE
+import 'lote_detail_view.dart';
 
 class LotesManagementView extends StatefulWidget {
   const LotesManagementView({super.key});
@@ -31,13 +35,27 @@ class _LotesManagementViewState extends State<LotesManagementView> {
       _lotesFuture = DatabaseService.instance.getAllLotes();
       _propriedadesFuture = DatabaseService.instance.getAllPropriedades();
       _propriedadesFuture.then((props) {
-        _propriedadeNomes = {for (var p in props) p.id: p.nome};
+        if (mounted) {
+          // Adiciona verificação de 'mounted'
+          setState(() {
+            _propriedadeNomes = {for (var p in props) p.id: p.nome};
+          });
+        }
       });
     });
   }
 
   String _getPropriedadeNome(String propriedadeId) {
     return _propriedadeNomes[propriedadeId] ?? 'Propriedade não encontrada';
+  }
+
+  // 2. CRIE O MÉTODO DE NAVEGAÇÃO PARA O DETALHE
+  Future<void> _navigateToDetailView(Lote lote) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => LoteDetailView(loteId: lote.id)),
+    );
+    _loadData();
   }
 
   Future<void> _showLoteDialog(
@@ -72,8 +90,30 @@ class _LotesManagementViewState extends State<LotesManagementView> {
                   children: [
                     DropdownButtonFormField<String>(
                       value: selectedPropriedadeId,
-                      decoration:
-                          const InputDecoration(labelText: 'Propriedade *'),
+                      decoration: InputDecoration(
+                        labelText: 'Propriedade *',
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 2,
+                          ),
+                        ),
+                      ),
                       items: propriedades.map((prop) {
                         return DropdownMenuItem(
                           value: prop.id,
@@ -88,16 +128,60 @@ class _LotesManagementViewState extends State<LotesManagementView> {
                     const SizedBox(height: 16),
                     TextFormField(
                       initialValue: nome,
-                      decoration:
-                          const InputDecoration(labelText: 'Nome do Lote *'),
+                      decoration: InputDecoration(
+                        labelText: 'Nome do Lote *',
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 2,
+                          ),
+                        ),
+                      ),
                       validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
                       onSaved: (v) => nome = v!,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       initialValue: descricao,
-                      decoration: const InputDecoration(
-                          labelText: 'Descrição (Opcional)'),
+                      decoration: InputDecoration(
+                        labelText: 'Descrição (Opcional)',
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 2,
+                          ),
+                        ),
+                      ),
                       onSaved: (v) => descricao = v ?? '',
                       maxLines: 2,
                     ),
@@ -217,6 +301,19 @@ class _LotesManagementViewState extends State<LotesManagementView> {
         title: const Text('Gerenciar Lotes'),
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.primary.withOpacity(0.8),
+              ],
+            ),
+          ),
+        ),
       ),
       drawer: const AppDrawer(),
       body: FutureBuilder<List<dynamic>>(
@@ -258,35 +355,101 @@ class _LotesManagementViewState extends State<LotesManagementView> {
               final nomePropriedade = _getPropriedadeNome(lote.propriedadeId);
 
               return Card(
-                // Estilo já vem do AppTheme
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: theme.colorScheme.tertiaryContainer,
-                    foregroundColor: theme.colorScheme.onTertiaryContainer,
-                    child: const Icon(AppIcons.loteAvatar, size: 20),
-                  ),
-                  title: Text(lote.nome,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(nomePropriedade),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(AppIcons.edit),
-                        tooltip: 'Editar',
-                        onPressed: () => _showLoteDialog(
-                            lote: lote, propriedades: propriedades),
-                      ),
-                      IconButton(
-                        icon: Icon(AppIcons.delete,
-                            color: theme.colorScheme.error),
-                        tooltip: 'Apagar',
-                        onPressed: () => _deleteLote(lote),
-                      ),
-                    ],
+                elevation: 1,
+                shadowColor: theme.colorScheme.shadow.withOpacity(0.1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+                    width: 1,
                   ),
                 ),
-              );
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => _navigateToDetailView(lote),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  theme.colorScheme.tertiaryContainer,
+                                  theme.colorScheme.tertiaryContainer.withOpacity(0.7),
+                                ],
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: theme.colorScheme.tertiary.withOpacity(0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              AppIcons.loteAvatar,
+                              size: 24,
+                              color: theme.colorScheme.onTertiaryContainer,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  lote.nome,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  nomePropriedade,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(AppIcons.edit),
+                                tooltip: 'Editar',
+                                onPressed: () => _showLoteDialog(
+                                    lote: lote, propriedades: propriedades),
+                              ),
+                              IconButton(
+                                icon: Icon(AppIcons.delete,
+                                    color: theme.colorScheme.error),
+                                tooltip: 'Apagar',
+                                onPressed: () => _deleteLote(lote),
+                              ),
+                            ],
+                          ),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              )
+                  .animate()
+                  .fadeIn(duration: 300.ms, delay: (index * 50).ms)
+                  .slideX(begin: 0.1, end: 0);
             },
           );
         },
@@ -298,10 +461,17 @@ class _LotesManagementViewState extends State<LotesManagementView> {
               return const SizedBox.shrink();
             }
             final propriedades = snapshot.data ?? [];
-            return FloatingActionButton(
+            return FloatingActionButton.extended(
               onPressed: () => _onFabPressed(propriedades),
-              child: const Icon(AppIcons.add),
-            );
+              icon: const Icon(AppIcons.add),
+              label: const Text('Novo Lote'),
+              elevation: 4,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+            )
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 200.ms)
+                .scale(begin: const Offset(0, 0), end: const Offset(1, 1));
           }),
     );
   }

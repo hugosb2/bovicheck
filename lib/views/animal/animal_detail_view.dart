@@ -1,3 +1,5 @@
+import 'package:bovicheck/models/animal/animal.dart';
+import 'package:bovicheck/styles/app_icons.dart';
 import 'package:bovicheck/views/animal/tabs/breeding_tab.dart';
 import 'package:bovicheck/views/animal/tabs/health_tab.dart';
 import 'package:bovicheck/views/animal/tabs/production_tab.dart';
@@ -5,6 +7,7 @@ import 'package:bovicheck/views/animal/tabs/summary_tab.dart';
 import 'package:bovicheck/views/animal/tabs/weights_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../controllers/animal_detail_controller.dart';
 import 'animal_form_view.dart';
 
@@ -16,8 +19,13 @@ class AnimalDetailView extends StatefulWidget {
   State<AnimalDetailView> createState() => _AnimalDetailViewState();
 }
 
-class _AnimalDetailViewState extends State<AnimalDetailView> {
-  int _selectedIndex = 0;
+// 1. ADICIONE 'SingleTickerProviderStateMixin' PARA O TABCONTROLLER
+class _AnimalDetailViewState extends State<AnimalDetailView>
+    with SingleTickerProviderStateMixin {
+  // 2. DECLARE O CONTROLLER, AS ABAS E AS VIEWS
+  late TabController _tabController;
+  final List<Tab> _tabs = [];
+  final List<Widget> _tabViews = [];
 
   Future<void> _showDeleteAnimalConfirmation(
       BuildContext context, AnimalDetailController controller) async {
@@ -54,6 +62,60 @@ class _AnimalDetailViewState extends State<AnimalDetailView> {
     }
   }
 
+  // 3. MÉTODO PARA CONSTRUIR AS ABAS DINAMICAMENTE
+  void _buildTabs(Animal animal, BuildContext context) {
+    _tabs.clear();
+    _tabViews.clear();
+    
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    if (isMobile) {
+      // Em mobile, apenas ícones
+      _tabs.add(const Tab(icon: Icon(AppIcons.summary, size: 20)));
+      _tabViews.add(const SummaryTab());
+
+      _tabs.add(const Tab(icon: Icon(AppIcons.weights, size: 20)));
+      _tabViews.add(WeightsTab(animalId: animal.id));
+
+      _tabs.add(const Tab(icon: Icon(AppIcons.health, size: 20)));
+      _tabViews.add(HealthTab(animalId: animal.id));
+
+      if (animal.sexo == 'Fêmea') {
+        _tabs.add(const Tab(icon: Icon(AppIcons.production, size: 20)));
+        _tabViews.add(ProductionTab(animalId: animal.id));
+
+        _tabs.add(const Tab(icon: Icon(AppIcons.breeding, size: 20)));
+        _tabViews.add(BreedingTab(animalId: animal.id));
+      }
+    } else {
+      // Em telas maiores, ícone + texto
+      _tabs.add(const Tab(icon: Icon(AppIcons.summary, size: 18), text: 'Resumo'));
+      _tabViews.add(const SummaryTab());
+
+      _tabs.add(const Tab(icon: Icon(AppIcons.weights, size: 18), text: 'Pesagens'));
+      _tabViews.add(WeightsTab(animalId: animal.id));
+
+      _tabs.add(const Tab(icon: Icon(AppIcons.health, size: 18), text: 'Saúde'));
+      _tabViews.add(HealthTab(animalId: animal.id));
+
+      if (animal.sexo == 'Fêmea') {
+        _tabs.add(const Tab(icon: Icon(AppIcons.production, size: 18), text: 'Produção'));
+        _tabViews.add(ProductionTab(animalId: animal.id));
+
+        _tabs.add(const Tab(icon: Icon(AppIcons.breeding, size: 18), text: 'Reprodução'));
+        _tabViews.add(BreedingTab(animalId: animal.id));
+      }
+    }
+
+    _tabController = TabController(length: _tabs.length, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -76,65 +138,42 @@ class _AnimalDetailViewState extends State<AnimalDetailView> {
             );
           }
 
-          final List<Widget> widgetOptions = [];
-          final List<Widget> drawerItems = [];
-          int tabIndex = 0;
-
-          widgetOptions.add(const SummaryTab());
-          drawerItems.add(_buildDrawerItem(
-            context,
-            icon: Icons.dashboard_outlined,
-            title: 'Desempenho',
-            index: tabIndex,
-          ));
-          tabIndex++;
-
-          widgetOptions.add(WeightsTab(animalId: animal.id));
-          drawerItems.add(_buildDrawerItem(
-            context,
-            icon: Icons.scale_outlined,
-            title: 'Pesagens',
-            index: tabIndex,
-          ));
-          tabIndex++;
-
-          widgetOptions.add(HealthTab(animalId: animal.id));
-          drawerItems.add(_buildDrawerItem(
-            context,
-            icon: Icons.healing_outlined,
-            title: 'Saúde',
-            index: tabIndex,
-          ));
-          tabIndex++;
-
-          if (animal.sexo == 'Fêmea') {
-            widgetOptions.add(ProductionTab(animalId: animal.id));
-            drawerItems.add(_buildDrawerItem(
-              context,
-              icon: Icons.opacity_outlined,
-              title: 'Produção',
-              index: tabIndex,
-            ));
-            tabIndex++;
-
-            widgetOptions.add(BreedingTab(animalId: animal.id));
-            drawerItems.add(_buildDrawerItem(
-              context,
-              icon: Icons.favorite_border,
-              title: 'Reprodução',
-              index: tabIndex,
-            ));
-            tabIndex++;
+          // 4. CONSTRÓI AS ABAS PELA PRIMEIRA VEZ (OU SE O ANIMAL MUDAR)
+          if (_tabs.isEmpty) {
+            _buildTabs(animal, context);
           }
 
+          // 5. CONSTRÓI O SCAFFOLD COM TABBAR
+          final theme = Theme.of(context);
+          final isMobile = MediaQuery.of(context).size.width < 600;
           return Scaffold(
             appBar: AppBar(
-              title: Text('Brinco: ${animal.brinco}'),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              title: Text(
+                animal.nome != null && animal.nome!.isNotEmpty
+                    ? animal.nome!
+                    : 'Brinco: ${animal.brinco}',
+                style: TextStyle(fontSize: isMobile ? 18 : 20),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+              elevation: 0,
+              flexibleSpace: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      theme.colorScheme.primary,
+                      theme.colorScheme.primary.withOpacity(0.8),
+                    ],
+                  ),
+                ),
+              ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.edit),
+                  icon: const Icon(AppIcons.edit, size: 22),
                   tooltip: 'Editar Animal',
                   onPressed: () async {
                     await Navigator.push(
@@ -146,82 +185,48 @@ class _AnimalDetailViewState extends State<AnimalDetailView> {
                   },
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const Icon(AppIcons.delete, size: 22),
                   tooltip: 'Apagar Animal',
                   onPressed: () =>
                       _showDeleteAnimalConfirmation(context, controller),
                 ),
-                Builder(
-                  builder: (context) {
-                    return IconButton(
-                      icon: const Icon(Icons.menu),
-                      tooltip: 'Ver seções',
-                      onPressed: () {
-                        Scaffold.of(context).openEndDrawer();
-                      },
-                    );
-                  },
-                ),
               ],
-            ),
-            body: widgetOptions[_selectedIndex],
-            endDrawer: Drawer(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  DrawerHeader(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
+              bottom: PreferredSize(
+                preferredSize: Size.fromHeight(isMobile ? 48 : 48),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.1),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    tabs: _tabs,
+                    isScrollable: isMobile,
+                    labelColor: theme.colorScheme.onPrimary,
+                    unselectedLabelColor:
+                        theme.colorScheme.onPrimary.withOpacity(0.7),
+                    indicatorColor: theme.colorScheme.onPrimary,
+                    indicatorWeight: 3,
+                    labelStyle: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: isMobile ? 11 : 13,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Brinco: ${animal.brinco}',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        if (animal.nome != null)
-                          Text(
-                            animal.nome!,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onPrimary,
-                              fontSize: 16,
-                            ),
-                          ),
-                      ],
+                    labelPadding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 12 : 16,
                     ),
                   ),
-                  ...drawerItems,
-                ],
+                ),
               ),
+            ),
+            body: TabBarView(
+              controller: _tabController,
+              children: _tabViews.map((view) => view
+                  .animate()
+                  .fadeIn(duration: 300.ms)
+                  .slideY(begin: 0.05, end: 0)).toList(),
             ),
           );
         },
       ),
-    );
-  }
-
-  Widget _buildDrawerItem(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required int index,
-  }) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
-      selected: _selectedIndex == index,
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-        Navigator.pop(context);
-      },
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:bovicheck/models/animal/animal.dart';
+import 'package:bovicheck/models/lote.dart'; // IMPORTADO
 import 'package:bovicheck/models/propriedade.dart';
 import 'package:bovicheck/services/herd_analysis_service.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,10 @@ class DashboardController extends ChangeNotifier {
   int _animalCount = 0;
   int _loteCount = 0;
   int _propCount = 0;
+
+  // NOVAS PROPRIEDADES
+  Map<String, Map<String, double?>> loteAnalyses = {};
+  Map<String, Lote> allLotesMap = {};
 
   Map<String, double?> get latestAnalysis => _latestAnalysis;
   List<String> get mostUsedActions => _mostUsedActions;
@@ -40,7 +45,7 @@ class DashboardController extends ChangeNotifier {
         await DatabaseService.instance.getAllAnimalsWithHistory();
     final List<Propriedade> allProps =
         await DatabaseService.instance.getAllPropriedades();
-    final allLotes = await DatabaseService.instance.getAllLotes();
+    final allLotes = await DatabaseService.instance.getAllLotes(); // JÁ EXISTIA
 
     final history = await DatabaseService.instance.getAnalysisHistory();
 
@@ -53,21 +58,45 @@ class DashboardController extends ChangeNotifier {
     final Propriedade? mainProp = allProps.isNotEmpty ? allProps.first : null;
     final AIEvaluationService aiService = AIEvaluationService();
 
+    // --- CÁLCULO GLOBAL (EXISTENTE) ---
+    final period = DateTimeRange(
+      start: DateTime.now().subtract(const Duration(days: 365)),
+      end: DateTime.now(),
+    );
+
     if (allAnimals.isNotEmpty) {
       final analysisService = HerdAnalysisService(allAnimals);
-      final period = DateTimeRange(
-        start: DateTime.now().subtract(const Duration(days: 365)),
-        end: DateTime.now(),
-      );
       _latestAnalysis = analysisService.analyze(period);
-      dashboardAIAnalysis =
-          aiService.analyzeDashboard(_latestAnalysis, propriedade: mainProp);
     } else {
       _latestAnalysis = {};
-      dashboardAIAnalysis =
-          aiService.analyzeDashboard({}, propriedade: mainProp);
     }
+    // --- FIM DO CÁLCULO GLOBAL ---
 
+    // --- NOVO CÁLCULO POR LOTE ---
+    loteAnalyses.clear();
+    allLotesMap = {for (var lote in allLotes) lote.id: lote};
+
+    for (final lote in allLotes) {
+      final animalsInLote =
+          allAnimals.where((animal) => animal.loteId == lote.id).toList();
+
+      if (animalsInLote.isNotEmpty) {
+        final loteAnalysisService = HerdAnalysisService(animalsInLote);
+        final loteResults = loteAnalysisService.analyze(period);
+
+        // Só adiciona o lote se tiver resultados válidos
+        if (loteResults.values.any((v) => v != null)) {
+          loteAnalyses[lote.id] = loteResults;
+        }
+      }
+    }
+    // --- FIM DO NOVO CÁLCULO POR LOTE ---
+
+    // A Análise de IA continua baseada nos dados globais
+    dashboardAIAnalysis =
+        aiService.analyzeDashboard(_latestAnalysis, propriedade: mainProp);
+
+    // Lógica de Snapshot (mantida para os dados globais)
     bool areResultsDifferent = lastSavedSnapshot == null
         ? _latestAnalysis.isNotEmpty
         : !const DeepCollectionEquality()

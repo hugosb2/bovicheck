@@ -1,9 +1,10 @@
 import 'dart:math';
 
 import 'package:bovicheck/models/analysis_snapshot.dart';
-import 'package:bovicheck/services/database_service.dart'; // ALTERADO
+import 'package:bovicheck/services/database_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 
 class AnalysisHistoryView extends StatefulWidget {
@@ -88,41 +89,112 @@ class _AnalysisHistoryViewState extends State<AnalysisHistoryView> {
       _filteredHistory.length * (barWidth + barSpacing),
     );
 
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text('Histórico de ${widget.indexName}'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.primary.withOpacity(0.8),
+              ],
+            ),
+          ),
+        ),
       ),
       body: _isLoading // ADICIONADO
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                _buildPeriodSelector(),
+                _buildPeriodSelector()
+                    .animate()
+                    .fadeIn(duration: 300.ms)
+                    .slideY(begin: -0.1, end: 0),
                 const SizedBox(height: 24),
                 Text(
                   'Evolução do Índice',
-                  style: Theme.of(context).textTheme.headlineSmall,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
                   textAlign: TextAlign.center,
-                ),
+                )
+                    .animate()
+                    .fadeIn(duration: 300.ms, delay: 100.ms),
                 const SizedBox(height: 24),
                 if (_filteredHistory.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(_fullHistory.isEmpty
-                          ? 'Nenhum snapshot foi salvo ainda.'
-                          : 'Nenhum registro encontrado para o período selecionado.'),
+                  Container(
+                    padding: const EdgeInsets.all(32.0),
+                    margin: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          theme.colorScheme.surfaceContainer,
+                          theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.bar_chart_outlined,
+                            size: 48,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _fullHistory.isEmpty
+                                ? 'Nenhum snapshot foi salvo ainda.'
+                                : 'Nenhum registro encontrado para o período selecionado.',
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   )
+                    .animate()
+                    .fadeIn(duration: 400.ms)
                 else
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      height: 300,
-                      width: chartWidth,
-                      child: BarChart(
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.shadow.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        height: 300,
+                        width: chartWidth,
+                        child: BarChart(
                         BarChartData(
                           alignment: BarChartAlignment.center,
                           barTouchData: BarTouchData(
@@ -202,16 +274,42 @@ class _AnalysisHistoryViewState extends State<AnalysisHistoryView> {
                       ),
                     ),
                   ),
-                const Divider(height: 40),
+                    )
+                    .animate()
+                    .fadeIn(duration: 400.ms, delay: 200.ms)
+                    .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1)),
+                const SizedBox(height: 32),
                 Text(
                   'Registros Salvos',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                )
+                    .animate()
+                    .fadeIn(duration: 300.ms, delay: 300.ms),
+                const SizedBox(height: 16),
                 if (_filteredHistory.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 16),
-                    child: Text("Nenhum registro a ser exibido."),
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        "Nenhum registro a ser exibido.",
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   )
+                    .animate()
+                    .fadeIn(duration: 300.ms, delay: 400.ms)
                 else
                   ListView.builder(
                     shrinkWrap: true,
@@ -221,17 +319,47 @@ class _AnalysisHistoryViewState extends State<AnalysisHistoryView> {
                       final snapshot =
                           _filteredHistory.reversed.toList()[index];
                       final value = snapshot.results[widget.indexKey];
-                      return ListTile(
-                        leading: const Icon(Icons.history),
-                        title: Text(
-                          value != null
-                              ? '${value.toStringAsFixed(1)} ${widget.unit}'
-                              : 'Dado não disponível',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                      return Card(
+                        elevation: 1,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+                          ),
                         ),
-                        subtitle: Text(DateFormat('dd/MM/yyyy \'às\' HH:mm')
-                            .format(snapshot.date)),
-                      );
+                        child: ListTile(
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.history,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          title: Text(
+                            value != null
+                                ? '${value.toStringAsFixed(1)} ${widget.unit}'
+                                : 'Dado não disponível',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          subtitle: Text(
+                            DateFormat('dd/MM/yyyy \'às\' HH:mm')
+                                .format(snapshot.date),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      )
+                          .animate()
+                          .fadeIn(duration: 300.ms, delay: (400 + index * 50).ms)
+                          .slideX(begin: 0.1, end: 0);
                     },
                   ),
               ],
@@ -240,35 +368,98 @@ class _AnalysisHistoryViewState extends State<AnalysisHistoryView> {
   }
 
   Widget _buildPeriodSelector() {
+    final theme = Theme.of(context);
     final dateFormat = DateFormat('dd/MM/yy');
     final bool isEnabled = _fullHistory.isNotEmpty;
 
     return Card(
-      child: ListTile(
-        enabled: isEnabled,
-        leading: const Icon(Icons.date_range_outlined),
-        title: const Text('Período de Análise'),
-        subtitle: Text(
-          _selectedPeriod != null
-              ? '${dateFormat.format(_selectedPeriod!.start)} - ${dateFormat.format(_selectedPeriod!.end)}'
-              : 'Nenhum registro encontrado',
+      elevation: 2,
+      shadowColor: theme.colorScheme.shadow.withOpacity(0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+          width: 1,
         ),
-        onTap: () async {
-          if (!isEnabled) return;
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () async {
+            if (!isEnabled) return;
 
-          final newPeriod = await showDateRangePicker(
-            context: context,
-            firstDate: _fullHistory.first.date,
-            lastDate: _fullHistory.last.date,
-            initialDateRange: _selectedPeriod,
-          );
-          if (newPeriod != null) {
-            setState(() {
-              _selectedPeriod = newPeriod;
-            });
-            _filterHistoryByDate();
-          }
-        },
+            final newPeriod = await showDateRangePicker(
+              context: context,
+              firstDate: _fullHistory.first.date,
+              lastDate: _fullHistory.last.date,
+              initialDateRange: _selectedPeriod,
+            );
+            if (newPeriod != null) {
+              setState(() {
+                _selectedPeriod = newPeriod;
+              });
+              _filterHistoryByDate();
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  theme.colorScheme.surface,
+                  theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                ],
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.date_range_outlined,
+                    color: theme.colorScheme.primary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Período de Análise',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _selectedPeriod != null
+                            ? '${dateFormat.format(_selectedPeriod!.start)} - ${dateFormat.format(_selectedPeriod!.end)}'
+                            : 'Nenhum registro encontrado',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: theme.colorScheme.primary,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

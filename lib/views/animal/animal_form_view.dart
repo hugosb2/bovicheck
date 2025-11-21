@@ -48,6 +48,7 @@ class _AnimalFormViewState extends State<AnimalFormView> {
     _availableLotesFuture = DatabaseService.instance.getAllLotes();
 
     if (animal != null) {
+      // Editando
       _sexo = animal.sexo;
       _dataNascimento = animal.dataNascimento;
       _dataNascimentoController.text =
@@ -57,6 +58,16 @@ class _AnimalFormViewState extends State<AnimalFormView> {
       _isDesmamado = animal.isDesmamado;
       _dataDesmame = animal.dataDesmame;
       _selectedLoteId = animal.loteId;
+    } else {
+      // Criando novo
+      // ATUALIZADO: Pré-seleciona o primeiro lote da lista
+      _availableLotesFuture.then((lotes) {
+        if (lotes.isNotEmpty) {
+          setState(() {
+            _selectedLoteId = lotes.first.id;
+          });
+        }
+      });
     }
 
     _motivoSaidaController =
@@ -129,7 +140,7 @@ class _AnimalFormViewState extends State<AnimalFormView> {
         dataNascimento: _dataNascimento!,
         sexo: _sexo,
         raca: _racaController.text.isNotEmpty ? _racaController.text : null,
-        loteId: _selectedLoteId,
+        loteId: _selectedLoteId, // Agora é obrigatório
         status: _status,
         dataSaida: _status != AnimalStatus.ativo ? _dataSaida : null,
         motivoSaida:
@@ -155,14 +166,38 @@ class _AnimalFormViewState extends State<AnimalFormView> {
     VoidCallback? onTap,
     Widget? suffixIcon,
   }) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: TextFormField(
         controller: controller,
         decoration: InputDecoration(
           labelText: label,
+          filled: true,
+          fillColor: theme.colorScheme.surfaceContainerHighest,
           counterText: maxLength != null ? null : "",
           suffixIcon: suffixIcon,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide(
+              color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide(
+              color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide(
+              color: theme.colorScheme.primary,
+              width: 2,
+            ),
+          ),
         ),
         validator: validator,
         keyboardType: keyboardType,
@@ -180,12 +215,36 @@ class _AnimalFormViewState extends State<AnimalFormView> {
     required void Function(T?)? onChanged,
     required String? Function(T?)? validator,
   }) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: DropdownButtonFormField<T>(
         value: value,
         decoration: InputDecoration(
           labelText: label,
+          filled: true,
+          fillColor: theme.colorScheme.surfaceContainerHighest,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide(
+              color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide(
+              color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide(
+              color: theme.colorScheme.primary,
+              width: 2,
+            ),
+          ),
         ),
         items: items,
         onChanged: onChanged,
@@ -209,11 +268,25 @@ class _AnimalFormViewState extends State<AnimalFormView> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? 'Editar Animal' : 'Novo Animal'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.primary.withOpacity(0.8),
+              ],
+            ),
+          ),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -267,23 +340,33 @@ class _AnimalFormViewState extends State<AnimalFormView> {
                       child = Text('Erro ao carregar lotes: ${snapshot.error}');
                     } else {
                       final lotes = snapshot.data ?? [];
-                      child = _buildDropdownField<String?>(
-                        label: 'Lote (Opcional)',
-                        value: _selectedLoteId,
-                        items: [
-                          const DropdownMenuItem<String?>(
-                              value: null, child: Text('Nenhum')),
-                          ...lotes.map((lote) => DropdownMenuItem(
-                              value: lote.id, child: Text(lote.nome))),
-                        ],
-                        onChanged: (v) => setState(() => _selectedLoteId = v),
-                        validator: null,
-                      );
+                      // ATUALIZADO: Se lotes estiver vazio (não deveria ser alcançável)
+                      if (lotes.isEmpty) {
+                        child = Text(
+                          'Erro: Nenhum lote encontrado. Crie um lote primeiro.',
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.error),
+                        );
+                      } else {
+                        // ATUALIZADO: Dropdown de Lote agora é obrigatório
+                        child = _buildDropdownField<String?>(
+                          label: 'Lote', // Não é mais opcional
+                          value: _selectedLoteId,
+                          items: lotes
+                              .map((lote) => DropdownMenuItem(
+                                    value: lote.id,
+                                    child: Text(lote.nome),
+                                  ))
+                              .toList(), // Opção "Nenhum" removida
+                          onChanged: (v) => setState(() => _selectedLoteId = v),
+                          validator: (v) => v == null
+                              ? 'Obrigatório'
+                              : null, // Validador adicionado
+                        );
+                      }
                     }
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: child,
-                    );
+                    // ATUALIZADO: Removido o padding extra que estava aqui
+                    return child;
                   },
                 ),
                 if (_isEditing) ...[

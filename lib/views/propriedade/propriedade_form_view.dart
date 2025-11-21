@@ -74,6 +74,7 @@ class _PropriedadeFormViewState extends State<PropriedadeFormView> {
     TextInputType keyboardType = TextInputType.text,
     int? maxLength,
   }) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: TextFormField(
@@ -81,15 +82,27 @@ class _PropriedadeFormViewState extends State<PropriedadeFormView> {
         decoration: InputDecoration(
           labelText: label,
           filled: true,
-          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          fillColor: theme.colorScheme.surfaceContainerHighest,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.0),
-            borderSide: BorderSide.none,
+            borderSide: BorderSide(
+              color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide(
+              color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+              width: 1,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.0),
-            borderSide:
-                BorderSide(color: Theme.of(context).colorScheme.primary),
+            borderSide: BorderSide(
+              color: theme.colorScheme.primary,
+              width: 2,
+            ),
           ),
           counterText: maxLength != null ? null : "",
         ),
@@ -115,11 +128,25 @@ class _PropriedadeFormViewState extends State<PropriedadeFormView> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? 'Editar Propriedade' : 'Nova Propriedade'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.primary.withOpacity(0.8),
+              ],
+            ),
+          ),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),

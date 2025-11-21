@@ -18,13 +18,13 @@ class AppIcons {
   static const IconData save = Icons.save_outlined;
   static const IconData history = Icons.history;
 
-  static const IconData summary = Icons.dashboard_outlined;
-  static const IconData weights = Icons.scale_outlined;
-  static const IconData health = Icons.healing_outlined;
-  static const IconData medication = Icons.vaccines_outlined;
-  static const IconData production = Icons.opacity_outlined;
-  static const IconData breeding = Icons.favorite_border;
-  static const IconData pet = Icons.pets;
+  static const IconData summary = Icons.summarize_outlined;
+  static const IconData weights = Icons.monitor_weight_outlined;
+  static const IconData health = Icons.medical_services_outlined;
+  static const IconData medication = Icons.medication_outlined;
+  static const IconData production = Icons.water_drop_outlined;
+  static const IconData breeding = Icons.eco_outlined;
+  static const IconData pet = Icons.agriculture_outlined; // Ícone de bovino/agricultura
 
   static const IconData theme = Icons.palette_outlined;
   static const IconData colors = Icons.color_lens_outlined;
