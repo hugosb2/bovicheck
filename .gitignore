@@ -45,7 +45,6 @@ app.*.map.json
 /android/app/release
 android
 /.idea
-assets
 ios
 linux
 macos
