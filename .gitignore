@@ -56,5 +56,4 @@ windows
 analysis_options.yaml
 pubspec.lock
 pubspec.yaml
-README.md
 .env

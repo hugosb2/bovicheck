@@ -8,7 +8,7 @@
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.2.3+-02569B?logo=flutter)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-3.2.3+-0175C2?logo=dart)](https://dart.dev)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/3License-MIT-green.svg)](LICENSE)
 
 </div>
 
@@ -23,7 +23,6 @@
 - [Instalação](#-instalação)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
 - [Como Usar](#-como-usar)
-- [Capturas de Tela](#-capturas-de-tela)
 - [Contribuindo](#-contribuindo)
 - [Licença](#-licença)
 
@@ -105,7 +104,7 @@ O **BoviCheck** é uma solução completa desenvolvida em Flutter para gestão d
 
 #### Banco de Dados
 - `sqflite` ^2.3.3+1 - Banco de dados SQLite local
-- `sqflite_common_ffi` ^2.3.3 - Suporte para desktop
+- `sqflite_common_ffi` ^2.3.3 - Suporte para desktop para testes
 
 #### Interface e Visualização
 - `fl_chart` ^0.68.0 - Gráficos e visualizações
@@ -135,7 +134,7 @@ O **BoviCheck** é uma solução completa desenvolvida em Flutter para gestão d
 - Git
 
 ### Para Execução
-- **Android**: API 21+ (Android 5.0+)
+- **Android**: Android 9.0+
 - **Windows**: Windows 10+
 
 ---
@@ -300,10 +299,6 @@ bovicheck/
 
 ---
 
-## 🎨 Capturas de Tela
-
-> **Nota**: Adicione capturas de tela do aplicativo aqui para melhor visualização.
-
 ### Dashboard
 - Visão geral com estatísticas e análises
 
@@ -339,15 +334,6 @@ Desenvolvido para produtores rurais
 
 Para dúvidas, sugestões ou problemas:
 
-- Abra uma [Issue](https://github.com/hugosb2)
 - Entre em contato através do email: [hugobs4987@gmail.com]
 
 ---
-
-<div align="center">
-
-**⭐ Se este projeto foi útil para você, considere dar uma estrela! ⭐**
-
-Feito com ❤️ usando Flutter
-
-</div>
