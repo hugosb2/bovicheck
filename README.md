@@ -337,11 +337,3 @@ Para dúvidas, sugestões ou problemas:
 - Entre em contato através do email: [hugobs4987@gmail.com]
 
 ---
-
-<div align="center">
-
-**⭐ Se este projeto foi útil para você, considere dar uma estrela! ⭐**
-
-Feito com ❤️ usando Flutter
-
-</div>
