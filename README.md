@@ -8,7 +8,7 @@
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.2.3+-02569B?logo=flutter)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-3.2.3+-0175C2?logo=dart)](https://dart.dev)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/3License-MIT-green.svg)](LICENSE)
 
 </div>
 
@@ -23,7 +23,6 @@
 - [Instalação](#-instalação)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
 - [Como Usar](#-como-usar)
-- [Capturas de Tela](#-capturas-de-tela)
 - [Contribuindo](#-contribuindo)
 - [Licença](#-licença)
 
@@ -299,10 +298,6 @@ bovicheck/
 - **PDF**: Gere relatórios completos em PDF
 
 ---
-
-## 🎨 Capturas de Tela
-
-> **Nota**: Adicione capturas de tela do aplicativo aqui para melhor visualização.
 
 ### Dashboard
 - Visão geral com estatísticas e análises
