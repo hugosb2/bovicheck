@@ -1,25 +1,26 @@
-import 'package:bovicheck/views/herd_indicators_view.dart';
-import 'package:bovicheck/views/lotes/lotes_management_view.dart';
-import 'package:bovicheck/views/propriedade/propriedade_management_view.dart';
+import 'package:bovicheck/telas/herd_indicators_view.dart';
+import 'package:bovicheck/telas/lotes/lotes_management_view.dart';
+import 'package:bovicheck/telas/propriedade/propriedade_management_view.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'controllers/dashboard_controller.dart';
-import 'providers/theme_provider.dart';
-import 'services/database_service.dart';
-import 'styles/app_theme.dart';
-import 'views/about_view.dart';
-import 'views/animal/animal_list_view.dart';
-import 'views/dashboard_view.dart';
-import 'views/settings/backup_restore_view.dart';
-import 'views/settings/color_settings_view.dart';
-import 'views/settings/data_settings_view.dart';
-import 'views/settings/theme_settings_view.dart';
-import 'views/settings_view.dart';
-import 'views/splash_view.dart';
-import 'package:bovicheck/views/propriedade/propriedade_form_view.dart';
+import 'package:bovicheck/controladores/dashboard_controller.dart';
+import 'package:bovicheck/provedores/theme_provider.dart';
+import 'package:bovicheck/servicos/database_service.dart';
+import 'package:bovicheck/estilos/app_theme.dart';
+import 'package:bovicheck/telas/about_view.dart';
+import 'package:bovicheck/telas/animal/animal_list_view.dart';
+import 'package:bovicheck/telas/dashboard_view.dart';
+import 'package:bovicheck/telas/settings/backup_restore_view.dart';
+import 'package:bovicheck/telas/settings/color_settings_view.dart';
+import 'package:bovicheck/telas/settings/data_settings_view.dart';
+import 'package:bovicheck/telas/settings/spreadsheet_export_view.dart';
+import 'package:bovicheck/telas/settings/theme_settings_view.dart';
+import 'package:bovicheck/telas/settings_view.dart';
+import 'package:bovicheck/telas/splash_view.dart';
+import 'package:bovicheck/telas/propriedade/propriedade_form_view.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io';
 
@@ -49,8 +50,8 @@ Future<void> main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class Aplicacao extends StatelessWidget {
+  const Aplicacao({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -97,6 +98,8 @@ class MyApp extends StatelessWidget {
                 '/settings/colors': (context) => const ColorSettingsView(),
                 '/settings/data': (context) => const DataSettingsView(),
                 '/settings/backup': (context) => const BackupRestoreView(),
+                '/settings/spreadsheet-export': (context) =>
+                    const SpreadsheetExportView(),
                 '/settings/propriedades': (context) =>
                     const PropriedadeManagementView(),
                 '/propriedade/form': (context) => const PropriedadeFormView(),
@@ -111,4 +114,8 @@ class MyApp extends StatelessWidget {
       },
     );
   }
+}
+
+class MyApp extends Aplicacao {
+  const MyApp({super.key}) : super();
 }
