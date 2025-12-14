@@ -16,6 +16,7 @@ import 'package:bovicheck/telas/dashboard_view.dart';
 import 'package:bovicheck/telas/settings/backup_restore_view.dart';
 import 'package:bovicheck/telas/settings/color_settings_view.dart';
 import 'package:bovicheck/telas/settings/data_settings_view.dart';
+import 'package:bovicheck/telas/settings/pdf_export_view.dart';
 import 'package:bovicheck/telas/settings/spreadsheet_export_view.dart';
 import 'package:bovicheck/telas/settings/theme_settings_view.dart';
 import 'package:bovicheck/telas/settings_view.dart';
@@ -100,6 +101,7 @@ class Aplicacao extends StatelessWidget {
                 '/settings/backup': (context) => const BackupRestoreView(),
                 '/settings/spreadsheet-export': (context) =>
                     const SpreadsheetExportView(),
+                '/settings/pdf-export': (context) => const PdfExportView(),
                 '/settings/propriedades': (context) =>
                     const PropriedadeManagementView(),
                 '/propriedade/form': (context) => const PropriedadeFormView(),

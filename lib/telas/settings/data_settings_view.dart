@@ -1,5 +1,4 @@
 import 'package:bovicheck/servicos/database_service.dart';
-import 'package:bovicheck/servicos/pdf_export_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -15,19 +14,6 @@ class TelaConfiguracaoDados extends StatefulWidget {
 }
 
 class _TelaConfiguracaoDadosState extends State<TelaConfiguracaoDados> {
-  bool _isGeneratingPdf = false;
-
-  Future<void> _exportHerdReportToPdf() async {
-    setState(() => _isGeneratingPdf = true);
-
-    final pdfService = PdfExportService();
-    await pdfService.generateAndShareHerdReport();
-
-    if (mounted) {
-      setState(() => _isGeneratingPdf = false);
-    }
-  }
-
   // JSON export removed per request.
 
   @override
@@ -79,9 +65,8 @@ class _TelaConfiguracaoDadosState extends State<TelaConfiguracaoDados> {
             context,
             icon: Icons.picture_as_pdf_outlined,
             title: 'Exportar Relatório em PDF',
-            subtitle: 'Gera um relatório completo do rebanho em PDF.',
-            onTap: _isGeneratingPdf ? null : _exportHerdReportToPdf,
-            isLoading: _isGeneratingPdf,
+            subtitle: 'Escolha quais dados exportar em um arquivo PDF.',
+            onTap: () => Navigator.pushNamed(context, '/settings/pdf-export'),
             index: 2,
           ),
           const SizedBox(height: 24),

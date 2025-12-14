@@ -18,7 +18,17 @@ class PdfExportService {
     final areasPastagem = await DatabaseService.instance.getAllAreaPastagens();
     final indicators = await DatabaseService.instance.getAllHerdIndicators();
     final pdf = await _generatePdf(
-        animals, lotes, propriedades, areasPastagem, indicators);
+      animals,
+      lotes,
+      propriedades,
+      areasPastagem,
+      indicators,
+      exportAnimals: true,
+      exportPropriedades: true,
+      exportAreasPastagem: true,
+      exportLotes: true,
+      exportIndicators: true,
+    );
 
     await Printing.sharePdf(
       bytes: pdf,
@@ -27,13 +37,54 @@ class PdfExportService {
     );
   }
 
+  Future<Uint8List> generateSelectedPdf({
+    bool exportAnimals = true,
+    bool exportPropriedades = true,
+    bool exportAreasPastagem = true,
+    bool exportLotes = true,
+    bool exportIndicators = true,
+  }) async {
+    final animals = exportAnimals
+        ? await DatabaseService.instance.getAllAnimals()
+        : <Animal>[];
+    final lotes =
+        exportLotes ? await DatabaseService.instance.getAllLotes() : <Lote>[];
+    final propriedades = exportPropriedades
+        ? await DatabaseService.instance.getAllPropriedades()
+        : <Propriedade>[];
+    final areasPastagem = exportAreasPastagem
+        ? await DatabaseService.instance.getAllAreaPastagens()
+        : <AreaPastagem>[];
+    final indicators = exportIndicators
+        ? await DatabaseService.instance.getAllHerdIndicators()
+        : <HerdIndicator>[];
+
+    return _generatePdf(
+      animals,
+      lotes,
+      propriedades,
+      areasPastagem,
+      indicators,
+      exportAnimals: exportAnimals,
+      exportPropriedades: exportPropriedades,
+      exportAreasPastagem: exportAreasPastagem,
+      exportLotes: exportLotes,
+      exportIndicators: exportIndicators,
+    );
+  }
+
   Future<Uint8List> _generatePdf(
     List<Animal> animals,
     List<Lote> lotes,
     List<Propriedade> propriedades,
     List<AreaPastagem> areasPastagem,
-    List<HerdIndicator> indicators,
-  ) async {
+    List<HerdIndicator> indicators, {
+    bool exportAnimals = true,
+    bool exportPropriedades = true,
+    bool exportAreasPastagem = true,
+    bool exportLotes = true,
+    bool exportIndicators = true,
+  }) async {
     final doc = pw.Document();
     final dateFormat = DateFormat('dd/MM/yyyy');
     final font = await PdfGoogleFonts.robotoRegular();
