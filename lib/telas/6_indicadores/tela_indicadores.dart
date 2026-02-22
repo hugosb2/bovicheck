@@ -1,0 +1,936 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../../estilos/cores.dart';
+import '../../estilos/icones.dart';
+import '../../provedores/provedor_fazenda.dart';
+import '../../modelos/animal.dart';
+import '../../modelos/lote.dart';
+import '../../modelos/eventos/pesagem.dart';
+import '../../modelos/eventos/evento_reprodutivo.dart';
+import '../../modelos/eventos/producao_leite.dart';
+import '../../servicos/banco_dados_servico.dart';
+
+class TelaIndicadores extends StatefulWidget {
+  const TelaIndicadores({super.key});
+
+  @override
+  State<TelaIndicadores> createState() => _TelaIndicadoresState();
+}
+
+class _TelaIndicadoresState extends State<TelaIndicadores> {
+  // Controle de Scroll para animação da AppBar
+  late ScrollController _scrollController;
+  bool _isCollapsed = false;
+
+  DateTimeRange _periodoSelecionado = DateTimeRange(
+    start: DateTime.now().subtract(const Duration(days: 365)),
+    end: DateTime.now(),
+  );
+  String? _loteSelecionadoId;
+  bool _carregando = true;
+
+  // Cache de dados brutos
+  List<Animal> _todosAnimais = [];
+  List<Pesagem> _todasPesagens = [];
+  List<EventoReprodutivo> _todosEventosReprodutivos = [];
+  List<ProducaoLeite> _todaProducaoLeite = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_scrollListener);
+
+    // Carrega dados após o build inicial
+    WidgetsBinding.instance.addPostFrameCallback((_) => _carregarDados());
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    // Detecta se a AppBar colapsou para trocar as cores
+    // 140 é a expandedHeight definida na AppBar
+    if (_scrollController.hasClients &&
+        _scrollController.offset > (140 - kToolbarHeight)) {
+      if (!_isCollapsed) {
+        setState(() => _isCollapsed = true);
+      }
+    } else {
+      if (_isCollapsed) {
+        setState(() => _isCollapsed = false);
+      }
+    }
+  }
+
+  Future<void> _carregarDados() async {
+    final provedor = context.read<ProvedorFazenda>();
+    if (provedor.propriedadeAtiva == null) return;
+
+    setState(() => _carregando = true);
+    final db = BancoDadosServico.instancia;
+    await provedor.carregarPropriedades();
+
+    final animais = provedor.animais;
+    List<Pesagem> pesagens = [];
+    List<EventoReprodutivo> reprodutivos = [];
+    List<ProducaoLeite> leite = [];
+
+    // Carrega histórico completo para permitir filtragem local rápida
+    for (var animal in animais) {
+      pesagens.addAll(await db.getPesagensPorAnimal(animal.id));
+      reprodutivos.addAll(await db.getEventosReprodutivosPorAnimal(animal.id));
+      leite.addAll(await db.getProducaoLeitePorAnimal(animal.id));
+    }
+
+    if (mounted) {
+      setState(() {
+        _todosAnimais = animais;
+        _todasPesagens = pesagens;
+        _todosEventosReprodutivos = reprodutivos;
+        _todaProducaoLeite = leite;
+        _carregando = false;
+      });
+    }
+  }
+
+  void _atualizarPeriodo(int dias) {
+    setState(() {
+      _periodoSelecionado = DateTimeRange(
+        start: DateTime.now().subtract(Duration(days: dias)),
+        end: DateTime.now(),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final provedor = context.watch<ProvedorFazenda>();
+
+    // --- LÓGICA DE FILTRAGEM ---
+    final animaisFiltrados = _loteSelecionadoId == null
+        ? _todosAnimais
+        : _todosAnimais.where((a) => a.loteId == _loteSelecionadoId).toList();
+
+    final idsAnimais = animaisFiltrados.map((a) => a.id).toSet();
+
+    // Filtra eventos baseados nos animais selecionados
+    final calc = _CalculadoraAvancada(
+      animais: animaisFiltrados,
+      pesagens:
+          _todasPesagens.where((e) => idsAnimais.contains(e.animalId)).toList(),
+      reprodutivos: _todosEventosReprodutivos
+          .where((e) => idsAnimais.contains(e.animalId))
+          .toList(),
+      leite: _todaProducaoLeite
+          .where((e) => idsAnimais.contains(e.animalId))
+          .toList(),
+      inicio: _periodoSelecionado.start,
+      fim: _periodoSelecionado.end,
+    );
+
+    // --- LÓGICA DE APARÊNCIA DINÂMICA ---
+    final Color corAppBarBg =
+        _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
+    final Color corElementos =
+        _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
+
+    // Padding Dinâmico:
+    // Quando colapsado (pequeno), empurra o texto para direita (60) para não bater na seta.
+    // Quando expandido (grande), alinha o texto com a margem normal (16).
+    final EdgeInsets paddingTitulo = _isCollapsed
+        ? const EdgeInsets.only(left: 60, bottom: 16)
+        : const EdgeInsets.only(left: 16, bottom: 16);
+
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      body: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          // 1. App Bar Moderno e Dinâmico
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 140,
+            backgroundColor: corAppBarBg,
+
+            // Define cor da seta de voltar
+            iconTheme: IconThemeData(color: corElementos),
+            surfaceTintColor: Colors.transparent,
+            actions: const [],
+
+            flexibleSpace: FlexibleSpaceBar(
+              centerTitle: false, // Alinha à esquerda
+              titlePadding: paddingTitulo, // Padding dinâmico aplicado
+              expandedTitleScale: 1.6,
+
+              title: Text(
+                'Performance',
+                style: TextStyle(
+                  color: corElementos,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              background: Container(
+                color: theme.colorScheme.surface,
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // 2. Filtros (Sliver)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Dropdown Lote Estilizado
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String?>(
+                        value: _loteSelecionadoId,
+                        hint: const Text("Todos os Lotes"),
+                        isExpanded: true,
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                        items: [
+                          const DropdownMenuItem(
+                              value: null, child: Text("Rebanho Geral")),
+                          ...provedor.lotes.map((l) => DropdownMenuItem(
+                              value: l.id, child: Text(l.nome))),
+                        ],
+                        onChanged: (v) =>
+                            setState(() => _loteSelecionadoId = v),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Chips de Data
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _PeriodoChip('30 Dias', 30, _periodoSelecionado,
+                            (d) => _atualizarPeriodo(d)),
+                        _PeriodoChip('6 Meses', 180, _periodoSelecionado,
+                            (d) => _atualizarPeriodo(d)),
+                        _PeriodoChip('1 Ano', 365, _periodoSelecionado,
+                            (d) => _atualizarPeriodo(d)),
+                        _PeriodoChip('Tudo', 3650, _periodoSelecionado,
+                            (d) => _atualizarPeriodo(d)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          if (_carregando)
+            const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()))
+          else
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // --- SEÇÃO 1: DESTAQUES REPRODUTIVOS (GRÁFICOS) ---
+                  const _TituloSecao('Eficiência Reprodutiva'),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _CardCircular(
+                          titulo: 'Natalidade',
+                          porcentagem: calc.taxaNatalidade,
+                          meta: 80,
+                          cor: Colors.pink,
+                          tooltip: 'Nascimentos / Fêmeas Aptas',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _CardCircular(
+                          titulo: 'Prenhez',
+                          porcentagem: calc.taxaPrenhez,
+                          meta: 85,
+                          cor: Colors.purple,
+                          tooltip: 'Diagnósticos Positivos',
+                        ),
+                      ),
+                    ],
+                  ).animate().scale(duration: 400.ms),
+
+                  const SizedBox(height: 12),
+
+                  // Dados Secundários de Reprodução
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _CardMetricaSimples(
+                          label: 'IEP (Meses)',
+                          valor: calc.iepMeses.toStringAsFixed(1),
+                          meta: 'Meta: 12-14',
+                          status: calc.getStatusIEP(),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _CardMetricaSimples(
+                          label: '1º Parto (Meses)',
+                          valor:
+                              calc.idadePrimeiroPartoMeses.toStringAsFixed(1),
+                          meta: 'Meta: < 30',
+                          status: calc.getStatusIdadeParto(),
+                        ),
+                      ),
+                    ],
+                  ).animate().fadeIn(delay: 200.ms),
+
+                  const SizedBox(height: 32),
+
+                  // --- SEÇÃO 2: PRODUÇÃO (CARDS GRANDES) ---
+                  const _TituloSecao('Produção & Ganho'),
+
+                  _CardProducaoDetalhado(
+                    titulo: 'GMD (Nascimento-Desmame)',
+                    valor: '${calc.gmdNascDesmame.toStringAsFixed(3)} kg/dia',
+                    icone: Icons.show_chart_rounded,
+                    cor: Colors.blue,
+                    status: calc.getStatusGMD(),
+                    subtitulo: 'Ganho de peso diário dos bezerros',
+                  ),
+                  const SizedBox(height: 12),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _CardMetricaSimples(
+                          label: 'Taxa Desmame',
+                          valor: '${calc.taxaDesmame.toStringAsFixed(1)}%',
+                          meta: '> 85%',
+                          status: calc.getStatusDesmame(),
+                          icone: Icons.child_care,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _CardMetricaSimples(
+                          label: 'Leite / Dia',
+                          valor: '${calc.mediaLeiteDia.toStringAsFixed(1)} L',
+                          meta: 'Média Vaca',
+                          status: _Status.neutro,
+                          icone: Icons.water_drop,
+                        ),
+                      ),
+                    ],
+                  ).animate().fadeIn(delay: 300.ms),
+
+                  const SizedBox(height: 32),
+
+                  // --- SEÇÃO 3: SANIDADE (ALERTAS) ---
+                  const _TituloSecao('Saúde do Rebanho'),
+
+                  _CardSanidade(
+                    taxaMortalidade: calc.taxaMortalidade,
+                    status: calc.getStatusMortalidade(),
+                  ).animate().slideY(begin: 0.2, end: 0, delay: 400.ms),
+
+                  const SizedBox(height: 40),
+
+                  Center(
+                    child: Text(
+                      'Dados baseados em ${animaisFiltrados.length} animais filtrados.',
+                      style: TextStyle(
+                          color: theme.colorScheme.outline, fontSize: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 80),
+                ]),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// WIDGETS DE UI
+// ============================================================================
+
+class _TituloSecao extends StatelessWidget {
+  final String text;
+  const _TituloSecao(this.text);
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16, left: 4),
+      child: Text(
+        text.toUpperCase(),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+    );
+  }
+}
+
+class _CardCircular extends StatelessWidget {
+  final String titulo;
+  final double porcentagem;
+  final double meta;
+  final Color cor;
+  final String tooltip;
+
+  const _CardCircular({
+    required this.titulo,
+    required this.porcentagem,
+    required this.meta,
+    required this.cor,
+    required this.tooltip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final percentNormalizado = (porcentagem / 100).clamp(0.0, 1.0);
+    final atingiuMeta = porcentagem >= meta;
+
+    return Tooltip(
+      message: tooltip,
+      triggerMode: TooltipTriggerMode.tap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(titulo,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                if (atingiuMeta)
+                  const Icon(Icons.star, size: 16, color: Colors.amber)
+              ],
+            ),
+            const SizedBox(height: 16),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  height: 100,
+                  width: 100,
+                  child: CircularProgressIndicator(
+                    value: percentNormalizado,
+                    strokeWidth: 12,
+                    backgroundColor: cor.withValues(alpha: 0.1),
+                    color: cor,
+                    strokeCap: StrokeCap.round,
+                  ),
+                ),
+                Column(
+                  children: [
+                    Text(
+                      '${porcentagem.toStringAsFixed(1)}%',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    Text('Meta: ${meta.toInt()}%',
+                        style: TextStyle(
+                            fontSize: 10, color: theme.colorScheme.outline)),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CardMetricaSimples extends StatelessWidget {
+  final String label;
+  final String valor;
+  final String meta;
+  final _Status status;
+  final IconData? icone;
+
+  const _CardMetricaSimples({
+    required this.label,
+    required this.valor,
+    required this.meta,
+    required this.status,
+    this.icone,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    Color corStatus = _getCorStatus(status);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (icone != null) ...[
+                Icon(icone, size: 16, color: Colors.grey),
+                const SizedBox(width: 6)
+              ],
+              Expanded(
+                  child: Text(label,
+                      style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 12),
+                      overflow: TextOverflow.ellipsis)),
+              Icon(Icons.circle, size: 8, color: corStatus),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(valor,
+              style:
+                  const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(meta,
+              style: TextStyle(
+                  fontSize: 11, color: corStatus, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+}
+
+class _CardProducaoDetalhado extends StatelessWidget {
+  final String titulo;
+  final String valor;
+  final IconData icone;
+  final Color cor;
+  final _Status status;
+  final String subtitulo;
+
+  const _CardProducaoDetalhado({
+    required this.titulo,
+    required this.valor,
+    required this.icone,
+    required this.cor,
+    required this.status,
+    required this.subtitulo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [cor.withValues(alpha: 0.1), theme.colorScheme.surface],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: cor.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icone, color: cor, size: 32),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(titulo,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(subtitulo,
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurfaceVariant)),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text(valor,
+                        style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onSurface)),
+                    const SizedBox(width: 8),
+                    _ChipStatus(status: status),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CardSanidade extends StatelessWidget {
+  final double taxaMortalidade;
+  final _Status status;
+
+  const _CardSanidade({required this.taxaMortalidade, required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isRuim = status == _Status.ruim;
+    final color = isRuim ? theme.colorScheme.error : theme.colorScheme.primary;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isRuim
+            ? theme.colorScheme.errorContainer
+            : theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          Icon(isRuim ? Icons.warning_amber_rounded : Icons.health_and_safety,
+              color:
+                  isRuim ? theme.colorScheme.error : theme.colorScheme.primary,
+              size: 32),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Taxa de Mortalidade',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isRuim
+                            ? theme.colorScheme.onErrorContainer
+                            : theme.colorScheme.onPrimaryContainer)),
+                Text(
+                    isRuim
+                        ? 'Atenção! Taxa acima do aceitável.'
+                        : 'Dentro dos padrões esperados.',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: (isRuim
+                                ? theme.colorScheme.onErrorContainer
+                                : theme.colorScheme.onPrimaryContainer)
+                            .withValues(alpha: 0.8))),
+              ],
+            ),
+          ),
+          Text(
+            '${taxaMortalidade.toStringAsFixed(1)}%',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color:
+                  isRuim ? theme.colorScheme.error : theme.colorScheme.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChipStatus extends StatelessWidget {
+  final _Status status;
+  const _ChipStatus({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    IconData icon;
+    Color color;
+    switch (status) {
+      case _Status.bom:
+        icon = Icons.arrow_upward;
+        color = Colors.green;
+        break;
+      case _Status.atencao:
+        icon = Icons.remove;
+        color = Colors.orange;
+        break;
+      case _Status.ruim:
+        icon = Icons.arrow_downward;
+        color = Colors.red;
+        break;
+      case _Status.neutro:
+        icon = Icons.horizontal_rule;
+        color = Colors.grey;
+        break;
+    }
+    return Icon(icon, color: color, size: 18);
+  }
+}
+
+class _PeriodoChip extends StatelessWidget {
+  final String label;
+  final int dias;
+  final DateTimeRange atual;
+  final Function(int) onSelected;
+
+  const _PeriodoChip(this.label, this.dias, this.atual, this.onSelected);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final diff = atual.end.difference(atual.start).inDays;
+    final isSelected = (diff - dias).abs() <= 1;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: isSelected,
+        onSelected: (_) => onSelected(dias),
+        selectedColor: theme.colorScheme.primary,
+        labelStyle: TextStyle(
+          color: isSelected
+              ? theme.colorScheme.onPrimary
+              : theme.colorScheme.onSurface,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+        checkmarkColor: theme.colorScheme.onPrimary,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20), side: BorderSide.none),
+        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+      ),
+    );
+  }
+}
+
+Color _getCorStatus(_Status s) {
+  switch (s) {
+    case _Status.bom:
+      return CoresApp.sucesso;
+    case _Status.atencao:
+      return CoresApp.atencao;
+    case _Status.ruim:
+      return CoresApp.erro;
+    case _Status.neutro:
+      return Colors.grey;
+  }
+}
+
+// ============================================================================
+// LÓGICA DE NEGÓCIO (CALCULADORA)
+// ============================================================================
+
+enum _Status { bom, atencao, ruim, neutro }
+
+class _CalculadoraAvancada {
+  final List<Animal> animais;
+  final List<Pesagem> pesagens;
+  final List<EventoReprodutivo> reprodutivos;
+  final List<ProducaoLeite> leite;
+  final DateTime inicio;
+  final DateTime fim;
+
+  _CalculadoraAvancada({
+    required this.animais,
+    required this.pesagens,
+    required this.reprodutivos,
+    required this.leite,
+    required this.inicio,
+    required this.fim,
+  });
+
+  double get taxaNatalidade {
+    final nascimentos = reprodutivos
+        .where((e) =>
+            e.tipo == 'Parto' && e.data.isAfter(inicio) && e.data.isBefore(fim))
+        .length;
+    final femeasAptas =
+        animais.where((a) => a.sexo == 'F' && a.idadeMeses >= 24).length;
+    if (femeasAptas == 0) return 0.0;
+    return (nascimentos / femeasAptas) * 100;
+  }
+
+  double get taxaPrenhez {
+    final diagnosticos = reprodutivos
+        .where((e) =>
+            e.tipo.contains('Diagnóstico') &&
+            e.data.isAfter(inicio) &&
+            e.data.isBefore(fim))
+        .toList();
+    if (diagnosticos.isEmpty) return 0.0;
+    final positivos = diagnosticos
+        .where((e) =>
+            (e.resultado?.toLowerCase().contains('prenhe') ?? false) ||
+            (e.resultado?.toLowerCase().contains('positivo') ?? false))
+        .length;
+    return (positivos / diagnosticos.length) * 100;
+  }
+
+  double get iepMeses {
+    Map<String, List<DateTime>> partosPorVaca = {};
+    for (var evento in reprodutivos) {
+      if (evento.tipo == 'Parto') {
+        if (!partosPorVaca.containsKey(evento.animalId))
+          partosPorVaca[evento.animalId] = [];
+        partosPorVaca[evento.animalId]!.add(evento.data);
+      }
+    }
+    List<int> intervalosDias = [];
+    partosPorVaca.forEach((id, datas) {
+      if (datas.length >= 2) {
+        datas.sort();
+        for (int i = 0; i < datas.length - 1; i++) {
+          final diff = datas[i + 1].difference(datas[i]).inDays;
+          if (diff > 250) intervalosDias.add(diff);
+        }
+      }
+    });
+    if (intervalosDias.isEmpty) return 0.0;
+    return (intervalosDias.reduce((a, b) => a + b) / intervalosDias.length) /
+        30.44;
+  }
+
+  double get idadePrimeiroPartoMeses {
+    List<double> idadesMeses = [];
+    for (var animal in animais.where((a) => a.sexo == 'F')) {
+      final partos = reprodutivos
+          .where((e) => e.animalId == animal.id && e.tipo == 'Parto')
+          .toList()
+        ..sort((a, b) => a.data.compareTo(b.data));
+      if (partos.isNotEmpty) {
+        final idadeDias =
+            partos.first.data.difference(animal.dataNascimento).inDays;
+        if (idadeDias > 500) idadesMeses.add(idadeDias / 30.44);
+      }
+    }
+    if (idadesMeses.isEmpty) return 0.0;
+    return idadesMeses.reduce((a, b) => a + b) / idadesMeses.length;
+  }
+
+  double get gmdNascDesmame {
+    Map<String, Map<String, Pesagem>> mapaPesos = {};
+    for (var p in pesagens) {
+      if (p.etapa == 'Nascimento' || p.etapa == 'Desmame') {
+        if (!mapaPesos.containsKey(p.animalId)) mapaPesos[p.animalId] = {};
+        mapaPesos[p.animalId]![p.etapa] = p;
+      }
+    }
+    List<double> gmds = [];
+    mapaPesos.forEach((id, etapas) {
+      if (etapas.containsKey('Nascimento') && etapas.containsKey('Desmame')) {
+        final nasc = etapas['Nascimento']!;
+        final desm = etapas['Desmame']!;
+        final dias = desm.data.difference(nasc.data).inDays;
+        final ganho = desm.pesoKg - nasc.pesoKg;
+        if (dias > 60 && ganho > 0) gmds.add(ganho / dias);
+      }
+    });
+    if (gmds.isEmpty) return 0.0;
+    return gmds.reduce((a, b) => a + b) / gmds.length;
+  }
+
+  double get taxaDesmame {
+    final nascidos = reprodutivos
+        .where((e) =>
+            e.tipo == 'Parto' && e.data.isAfter(inicio) && e.data.isBefore(fim))
+        .length;
+    final desmamados = pesagens
+        .where((e) =>
+            e.etapa == 'Desmame' &&
+            e.data.isAfter(inicio) &&
+            e.data.isBefore(fim))
+        .length;
+    if (nascidos == 0) return 0.0;
+    return (desmamados / nascidos) * 100 > 100
+        ? 100.0
+        : (desmamados / nascidos) * 100;
+  }
+
+  double get taxaMortalidade {
+    final obitos = animais
+        .where((a) =>
+            !a.isAtivo &&
+            a.dataObito != null &&
+            a.dataObito!.isAfter(inicio) &&
+            a.dataObito!.isBefore(fim))
+        .length;
+    final total = animais.length;
+    if (total == 0) return 0.0;
+    return (obitos / (total + obitos)) * 100;
+  }
+
+  double get mediaLeiteDia {
+    final registros = leite
+        .where((l) => l.data.isAfter(inicio) && l.data.isBefore(fim))
+        .toList();
+    if (registros.isEmpty) return 0.0;
+    return registros.fold(0.0, (sum, item) => sum + item.litros) /
+        registros.length;
+  }
+
+  _Status getStatusNatalidade() => taxaNatalidade >= 80
+      ? _Status.bom
+      : (taxaNatalidade >= 60 ? _Status.atencao : _Status.ruim);
+  _Status getStatusPrenhez() => taxaPrenhez >= 85
+      ? _Status.bom
+      : (taxaPrenhez >= 70 ? _Status.atencao : _Status.ruim);
+  _Status getStatusIEP() => (iepMeses > 0 && iepMeses <= 14)
+      ? _Status.bom
+      : (iepMeses <= 16 ? _Status.atencao : _Status.ruim);
+  _Status getStatusIdadeParto() =>
+      (idadePrimeiroPartoMeses > 0 && idadePrimeiroPartoMeses <= 30)
+          ? _Status.bom
+          : (idadePrimeiroPartoMeses <= 36 ? _Status.atencao : _Status.ruim);
+  _Status getStatusGMD() => gmdNascDesmame >= 0.700
+      ? _Status.bom
+      : (gmdNascDesmame >= 0.500 ? _Status.atencao : _Status.ruim);
+  _Status getStatusDesmame() =>
+      taxaDesmame >= 85 ? _Status.bom : _Status.atencao;
+  _Status getStatusMortalidade() => taxaMortalidade <= 3
+      ? _Status.bom
+      : (taxaMortalidade <= 5 ? _Status.atencao : _Status.ruim);
+}

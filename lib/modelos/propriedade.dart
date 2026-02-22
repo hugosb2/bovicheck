@@ -1,63 +1,53 @@
 import 'package:uuid/uuid.dart';
 
 class Propriedade {
-  final String dbId;
-  String identificador;
-  String nome;
-  String proprietario;
-  String municipio;
-  String estado;
-  double areaTotal;
-
-  String get id => dbId;
+  final String id;
+  final String nomeFazenda;
+  final String nomeProprietario;
+  final String cidade;
+  final String estado;
+  final double? gpsLat;
+  final double? gpsLong;
+  final String sistemaProducao;
+  final double areaTotalHectares;
 
   Propriedade({
-    required this.dbId,
-    required this.identificador,
-    required this.nome,
-    required this.proprietario,
-    required this.municipio,
+    String? id,
+    required this.nomeFazenda,
+    required this.nomeProprietario,
+    required this.cidade,
     required this.estado,
-    this.areaTotal = 0.0,
-  });
+    required this.sistemaProducao,
+    this.gpsLat,
+    this.gpsLong,
+    this.areaTotalHectares = 0.0,
+  }) : id = id ?? const Uuid().v4();
 
-  Map<String, dynamic> toMap() => {
-        'dbId': dbId,
-        'identificador': identificador,
-        'nome': nome,
-        'proprietario': proprietario,
-        'municipio': municipio,
-        'estado': estado,
-        'areaTotal': areaTotal,
-      };
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'nomeFazenda': nomeFazenda,
+      'nomeProprietario': nomeProprietario,
+      'cidade': cidade,
+      'estado': estado,
+      'gpsLat': gpsLat,
+      'gpsLong': gpsLong,
+      'sistemaProducao': sistemaProducao,
+      'areaTotalHectares': areaTotalHectares,
+    };
+  }
 
-  factory Propriedade.fromMap(Map<String, dynamic> map) => Propriedade(
-        dbId: map['dbId'] ?? map['id'],
-        identificador: map['identificador'] ?? map['id'] ?? '',
-        nome: map['nome'],
-        proprietario: map['proprietario'],
-        municipio: map['municipio'] ?? map['cidade'] ?? '',
-        estado: map['estado'],
-        areaTotal: map['areaTotal'] != null
-            ? (map['areaTotal'] is double
-                ? map['areaTotal'] as double
-                : (map['areaTotal'] as num).toDouble())
-            : 0.0,
-      );
-
-  Map<String, dynamic> toJson() => toMap();
-
-  factory Propriedade.fromJson(Map<String, dynamic> json) => Propriedade(
-        dbId: json['dbId'] ?? json['id'] ?? const Uuid().v4(),
-        identificador: json['identificador'] ?? json['id'] ?? '',
-        nome: json['nome'] ?? '',
-        proprietario: json['proprietario'] ?? '',
-        municipio: json['municipio'] ?? json['cidade'] ?? '',
-        estado: json['estado'] ?? '',
-        areaTotal: json['areaTotal'] != null
-            ? (json['areaTotal'] is double
-                ? json['areaTotal'] as double
-                : (json['areaTotal'] as num).toDouble())
-            : 0.0,
-      );
+  factory Propriedade.fromMap(Map<String, dynamic> map) {
+    return Propriedade(
+      id: map['id'],
+      nomeFazenda: map['nomeFazenda'] ?? '',
+      nomeProprietario: map['nomeProprietario'] ?? '',
+      cidade: map['cidade'] ?? '',
+      estado: map['estado'] ?? '',
+      sistemaProducao: map['sistemaProducao'] ?? 'Extensivo',
+      gpsLat: map['gpsLat'],
+      gpsLong: map['gpsLong'],
+      areaTotalHectares: (map['areaTotalHectares'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
 }
