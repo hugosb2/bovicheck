@@ -21,6 +21,9 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
   final _resultadoController = TextEditingController();
   final _obsController = TextEditingController();
   final _dataController = TextEditingController();
+  
+  late ScrollController _scrollController;
+  bool _isCollapsed = false;
 
   late DateTime _dataSelecionada;
   String? _animalIdSelecionado;
@@ -39,11 +42,33 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_scrollListener);
+    
     _dataSelecionada = DateTime.now();
     _dataController.text = DateFormat('dd/MM/yyyy').format(_dataSelecionada);
 
     if (widget.animalPreSelecionado != null) {
       _animalIdSelecionado = widget.animalPreSelecionado!.id;
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    _resultadoController.dispose();
+    _obsController.dispose();
+    _dataController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.hasClients) {
+      bool deveColapsar = _scrollController.offset > 90;
+      if (deveColapsar != _isCollapsed) {
+        setState(() => _isCollapsed = deveColapsar);
+      }
     }
   }
 
@@ -65,9 +90,9 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
     if (_animalIdSelecionado == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Selecione um animal')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione uma fêmea'))
+      );
       return;
     }
 
@@ -75,12 +100,11 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
 
     try {
       final evento = EventoReprodutivo(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
         animalId: _animalIdSelecionado!,
         data: _dataSelecionada,
         tipo: _tipoSelecionado,
-        resultado: _resultadoController.text.isEmpty
-            ? null
-            : _resultadoController.text,
+        resultado: _resultadoController.text.isEmpty ? null : _resultadoController.text,
         observacao: _obsController.text.isEmpty ? null : _obsController.text,
       );
 
@@ -90,7 +114,7 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
         context.read<ProvedorFazenda>().carregarPropriedades();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Evento reprodutivo salvo!'),
+            content: Text('Evento salvo com sucesso!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -99,10 +123,7 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao salvar: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -116,27 +137,38 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
     final provedor = context.watch<ProvedorFazenda>();
     final femeas = provedor.animais.where((a) => a.sexo == 'F').toList();
 
+    final Color corAppBarBg =
+        _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
+    final Color corElementos =
+        _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
+    final EdgeInsets paddingTitulo = _isCollapsed
+        ? const EdgeInsets.only(left: 72, bottom: 16)
+        : const EdgeInsets.only(left: 16, bottom: 16);
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           SliverAppBar(
             pinned: true,
             expandedHeight: 140,
-            backgroundColor: theme.colorScheme.primary,
-            foregroundColor: theme.colorScheme.onPrimary,
+            backgroundColor: corAppBarBg,
+            foregroundColor: corElementos,
+            iconTheme: IconThemeData(color: corElementos),
             surfaceTintColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
-              titlePadding: const EdgeInsets.only(left: 60, bottom: 16),
+              titlePadding: paddingTitulo,
               expandedTitleScale: 1.6,
-              title: Text(
-                'Reprodução',
+              title: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
                 style: TextStyle(
-                  color: theme.colorScheme.onPrimary,
+                  color: corElementos,
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                 ),
+                child: const Text('Reprodução'),
               ),
               background: Container(
                 color: theme.colorScheme.surface,
@@ -168,11 +200,9 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
                       TextFormField(
                         controller: _dataController,
                         readOnly: true,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Data do Evento',
-                          prefixIcon: const Icon(Icons.calendar_today),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(Icons.calendar_today),
                         ),
                         onTap: _selecionarData,
                       ),
@@ -184,11 +214,9 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
                       if (widget.animalPreSelecionado == null)
                         DropdownButtonFormField<String>(
                           value: _animalIdSelecionado,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: 'Fêmea',
-                            prefixIcon: const Icon(IconesApp.animal),
-                            filled: true,
-                            fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            prefixIcon: Icon(IconesApp.animal),
                           ),
                           items: femeas
                               .map((a) => DropdownMenuItem(value: a.id, child: Text(a.brinco)))
@@ -202,7 +230,6 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
                           decoration: BoxDecoration(
                             color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
@@ -210,7 +237,7 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
                               const SizedBox(width: 12),
                               Text(
                                 widget.animalPreSelecionado!.brinco,
-                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                style: theme.textTheme.titleMedium,
                               ),
                             ],
                           ),
@@ -222,11 +249,9 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
 
                       DropdownButtonFormField<String>(
                         value: _tipoSelecionado,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Tipo de Evento',
-                          prefixIcon: const Icon(IconesApp.reproducao),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(IconesApp.reproducao),
                         ),
                         items: _tipos
                             .map((e) => DropdownMenuItem(value: e, child: Text(e)))
@@ -237,23 +262,18 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
 
                       TextFormField(
                         controller: _resultadoController,
-                        decoration: InputDecoration(
-                          labelText: _getLabelResultado(),
-                          prefixIcon: const Icon(Icons.info_outline),
-                          hintText: _getHintResultado(),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        decoration: const InputDecoration(
+                          labelText: 'Resultado',
+                          prefixIcon: Icon(Icons.info_outline),
                         ),
                       ),
                       const SizedBox(height: 16),
 
                       TextFormField(
                         controller: _obsController,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Observação',
-                          prefixIcon: const Icon(Icons.notes),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(Icons.notes),
                         ),
                         maxLines: 2,
                       ),
@@ -300,18 +320,5 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
         letterSpacing: 1.2,
       ),
     );
-  }
-
-  String _getLabelResultado() {
-    if (_tipoSelecionado.contains('Inseminação')) return 'Touro / Sêmen';
-    if (_tipoSelecionado.contains('Diagnóstico'))
-      return 'Resultado (Prenhe/Vazia)';
-    if (_tipoSelecionado.contains('Parto')) return 'Sexo da Cria';
-    return 'Resultado / Detalhe';
-  }
-
-  String _getHintResultado() {
-    if (_tipoSelecionado.contains('Parto')) return 'Ex: Macho vivo';
-    return '';
   }
 }

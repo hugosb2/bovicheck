@@ -17,6 +17,9 @@ class _FormLoteState extends State<FormLote> {
   final _formKey = GlobalKey<FormState>();
   final _nomeController = TextEditingController();
   final _descController = TextEditingController();
+  
+  late ScrollController _scrollController;
+  bool _isCollapsed = false;
 
   String _tipoSelecionado = 'Pasto';
   bool _salvando = false;
@@ -32,11 +35,32 @@ class _FormLoteState extends State<FormLote> {
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_scrollListener);
+    
     if (widget.loteExistente != null) {
       _nomeController.text = widget.loteExistente!.nome;
       _descController.text = widget.loteExistente!.descricao;
       if (_tipos.contains(widget.loteExistente!.tipo)) {
         _tipoSelecionado = widget.loteExistente!.tipo;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    _nomeController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.hasClients) {
+      bool deveColapsar = _scrollController.offset > 90;
+      if (deveColapsar != _isCollapsed) {
+        setState(() => _isCollapsed = deveColapsar);
       }
     }
   }
@@ -49,21 +73,22 @@ class _FormLoteState extends State<FormLote> {
 
     try {
       final novoLote = Lote(
-        id: widget.loteExistente?.id, // Se for edição, mantém o ID
-        propriedadeId: provedor.propriedadeAtiva!.id,
+        id: widget.loteExistente?.id,
+        fazendaId: provedor.propriedadeAtiva!.id,
         nome: _nomeController.text.trim(),
         descricao: _descController.text.trim(),
         tipo: _tipoSelecionado,
       );
 
-      await provedor.adicionarLote(
-          novoLote); // O método no provedor deve lidar com Insert ou Update (ajustaremos se necessário)
+      await provedor.adicionarLote(novoLote);
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Lote salvo com sucesso!'),
+          SnackBar(
+              content: Text(widget.loteExistente != null 
+                  ? 'Lote atualizado com sucesso!' 
+                  : 'Lote criado com sucesso!'),
               backgroundColor: Colors.green),
         );
       }
@@ -82,27 +107,38 @@ class _FormLoteState extends State<FormLote> {
     final theme = Theme.of(context);
     final isEdicao = widget.loteExistente != null;
 
+    final Color corAppBarBg =
+        _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
+    final Color corElementos =
+        _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
+    final EdgeInsets paddingTitulo = _isCollapsed
+        ? const EdgeInsets.only(left: 72, bottom: 16)
+        : const EdgeInsets.only(left: 16, bottom: 16);
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           SliverAppBar(
             pinned: true,
             expandedHeight: 140,
-            backgroundColor: theme.colorScheme.primary,
-            foregroundColor: theme.colorScheme.onPrimary,
+            backgroundColor: corAppBarBg,
+            foregroundColor: corElementos,
+            iconTheme: IconThemeData(color: corElementos),
             surfaceTintColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
-              titlePadding: const EdgeInsets.only(left: 60, bottom: 16),
+              titlePadding: paddingTitulo,
               expandedTitleScale: 1.6,
-              title: Text(
-                isEdicao ? 'Editar Lote' : 'Novo Lote',
+              title: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
                 style: TextStyle(
-                  color: theme.colorScheme.onPrimary,
+                  color: corElementos,
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                 ),
+                child: Text(isEdicao ? 'Editar Lote' : 'Novo Lote'),
               ),
               background: Container(
                 color: theme.colorScheme.surface,
@@ -137,8 +173,6 @@ class _FormLoteState extends State<FormLote> {
                           labelText: 'Nome do Lote/Pasto',
                           hintText: 'Ex: Pasto do Fundo, Piquete 1',
                           prefixIcon: const Icon(IconesApp.lote),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                         ),
                         validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
                         textInputAction: TextInputAction.next,
@@ -147,11 +181,9 @@ class _FormLoteState extends State<FormLote> {
                       
                       DropdownButtonFormField<String>(
                         value: _tipoSelecionado,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Tipo de Instalação',
-                          prefixIcon: const Icon(Icons.category_outlined),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(Icons.category_outlined),
                         ),
                         items: _tipos
                             .map((t) => DropdownMenuItem(value: t, child: Text(t)))
@@ -162,12 +194,10 @@ class _FormLoteState extends State<FormLote> {
                       
                       TextFormField(
                         controller: _descController,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Descrição (Opcional)',
                           hintText: 'Ex: Capacidade para 50 cabeças, capim Braquiária',
-                          prefixIcon: const Icon(Icons.notes),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(Icons.notes),
                         ),
                         maxLines: 3,
                       ),

@@ -146,6 +146,14 @@ class BancoDadosServico {
         .update('propriedades', p.toMap(), where: 'id = ?', whereArgs: [p.id]);
   }
 
+  Future<void> deletePropriedade(String id) async {
+    final db = await database;
+    await db.delete('animais', where: 'fazendaId = ?', whereArgs: [id]);
+    await db.delete('lotes', where: 'fazendaId = ?', whereArgs: [id]);
+    await db.delete('pesagens', where: 'animalId IN (SELECT id FROM animais WHERE fazendaId = ?)', whereArgs: [id]);
+    await db.delete('propriedades', where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<List<Propriedade>> getPropriedades() async {
     final db = await database;
     final result = await db.query('propriedades');

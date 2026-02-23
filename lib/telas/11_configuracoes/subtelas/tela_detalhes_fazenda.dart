@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../estilos/icones.dart';
+import '../../../modelos/propriedade.dart';
 import '../../../provedores/provedor_fazenda.dart';
+import '../../../servicos/banco_dados_servico.dart';
 
 // Importando o arquivo original do formulário
 import '../../2_configuracao_inicial/form_dados_fazenda.dart';
@@ -226,6 +228,10 @@ class _TelaDetalhesFazendaState extends State<TelaDetalhesFazenda> {
                   ),
                 ),
 
+                const SizedBox(height: 24),
+
+                _botaoDanger(theme, fazenda),
+
                 // Espaço extra grande para garantir rolagem em telas altas
                 SizedBox(height: MediaQuery.of(context).size.height * 0.4),
               ]),
@@ -246,6 +252,98 @@ class _TelaDetalhesFazendaState extends State<TelaDetalhesFazenda> {
         icon: const Icon(Icons.edit),
         label: const Text("EDITAR DADOS"),
       ),
+    );
+  }
+
+  Widget _botaoDanger(ThemeData theme, Propriedade fazenda) {
+    return Card(
+      elevation: 0,
+      color: Colors.red.withValues(alpha: 0.05),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.red.withValues(alpha: 0.3)),
+      ),
+      child: InkWell(
+        onTap: () => _confirmarDelecao(context, fazenda),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.delete_forever, color: Colors.red, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'DELETAR FAZENDA',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Remover esta fazenda e todos os dados',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.red.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.red),
+            ],
+          ),
+        ),
+      ),
+    ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1, end: 0);
+  }
+
+  void _confirmarDelecao(BuildContext context, Propriedade fazenda) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Deletar fazenda?'),
+        content: Text(
+          'Tem certeza que deseja deletar "${fazenda.nomeFazenda}"? '
+          'Todos os dados serão perdidos permanentemente.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('CANCELAR'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('DELETAR'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true || !mounted) return;
+
+    await BancoDadosServico.instancia.deletePropriedade(fazenda.id);
+    
+    if (!mounted) return;
+    
+    final provedor = context.read<ProvedorFazenda>();
+    await provedor.carregarPropriedades();
+    
+    if (!mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('"${fazenda.nomeFazenda}" deletada')),
     );
   }
 }

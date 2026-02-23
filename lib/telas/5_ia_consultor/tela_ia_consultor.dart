@@ -30,10 +30,10 @@ class _TelaIAConsultorState extends State<TelaIAConsultor> {
   Future<void> _gerarAnalise() async {
     final provedor = context.read<ProvedorFazenda>();
 
-    if (provedor.propriedadeAtiva == null || provedor.animais.isEmpty) {
+    if (provedor.propriedadeAtiva == null) {
       setState(() {
         _analiseResultado =
-            "Para realizar a análise, é necessário ter uma fazenda selecionada e animais cadastrados.";
+            "Nenhuma fazenda selecionada. Volte para a tela inicial e selecione uma fazenda.";
       });
       return;
     }
@@ -83,13 +83,6 @@ class _TelaIAConsultorState extends State<TelaIAConsultor> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Consultor IA'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Nova Análise',
-            onPressed: _carregando ? null : _gerarAnalise,
-          ),
-        ],
       ),
       body: Column(
         children: [

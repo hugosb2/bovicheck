@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
-import 'package:flutter_svg/flutter_svg.dart'; // Import necessário para o SVG
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../estilos/icones.dart';
 import '../../modelos/animal.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../servicos/banco_dados_servico.dart';
 
-// Modelo Local (para garantir funcionamento isolado)
 class EventoSanitario {
   final String id;
   final String animalId;
@@ -50,6 +49,9 @@ class _FormSanitarioState extends State<FormSanitario> {
   final _formKey = GlobalKey<FormState>();
   final _medicamentoController = TextEditingController();
   final _obsController = TextEditingController();
+  
+  late ScrollController _scrollController;
+  bool _isCollapsed = false;
 
   DateTime _dataSelecionada = DateTime.now();
   String _tipoSelecionado = 'Vacina';
@@ -60,24 +62,48 @@ class _FormSanitarioState extends State<FormSanitario> {
     'Vacina',
     'Vermífugo',
     'Antibiótico',
-    'Vitamina',
-    'Outros'
+    'Anti-inflamatório',
+    'Anti-parasitário',
+    'Vitaminas',
+    'Castração',
+    'Descarte',
+    'Outro'
   ];
 
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_scrollListener);
+    
     if (widget.animal != null) {
       _animalIdSelecionado = widget.animal!.id;
     }
   }
 
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    _medicamentoController.dispose();
+    _obsController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.hasClients) {
+      bool deveColapsar = _scrollController.offset > 90;
+      if (deveColapsar != _isCollapsed) {
+        setState(() => _isCollapsed = deveColapsar);
+      }
+    }
+  }
+
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
-
     if (_animalIdSelecionado == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecione um animal!')),
+        const SnackBar(content: Text('Selecione um animal'))
       );
       return;
     }
@@ -90,44 +116,31 @@ class _FormSanitarioState extends State<FormSanitario> {
         animalId: _animalIdSelecionado!,
         data: _dataSelecionada,
         tipo: _tipoSelecionado,
-        nomeMedicamento: _medicamentoController.text,
-        observacao: _obsController.text,
+        nomeMedicamento: _medicamentoController.text.isEmpty ? null : _medicamentoController.text,
+        observacao: _obsController.text.isEmpty ? null : _obsController.text,
       );
 
       await BancoDadosServico.instancia.salvarEventoSanitario(evento.toMap());
 
       if (mounted) {
-        Navigator.pop(context);
+        context.read<ProvedorFazenda>().carregarPropriedades();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Evento sanitário registrado!'),
-              backgroundColor: Colors.green),
+            content: Text('Registro salvo com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
         );
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red));
+          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+        );
       }
     } finally {
       if (mounted) setState(() => _salvando = false);
     }
-  }
-
-  // Estilo "Caixa" (Outline) que você prefere
-  InputDecoration _inputDecor(String label,
-      {IconData? icon, Widget? customIcon}) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: customIcon ?? (icon != null ? Icon(icon) : null),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.grey),
-      ),
-      filled: true,
-      fillColor: Colors.grey.shade50,
-    );
   }
 
   @override
@@ -136,27 +149,38 @@ class _FormSanitarioState extends State<FormSanitario> {
     final provedor = context.watch<ProvedorFazenda>();
     final listaAnimais = provedor.animais;
 
+    final Color corAppBarBg =
+        _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
+    final Color corElementos =
+        _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
+    final EdgeInsets paddingTitulo = _isCollapsed
+        ? const EdgeInsets.only(left: 72, bottom: 16)
+        : const EdgeInsets.only(left: 16, bottom: 16);
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           SliverAppBar(
             pinned: true,
             expandedHeight: 140,
-            backgroundColor: theme.colorScheme.primary,
-            foregroundColor: theme.colorScheme.onPrimary,
+            backgroundColor: corAppBarBg,
+            foregroundColor: corElementos,
+            iconTheme: IconThemeData(color: corElementos),
             surfaceTintColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
-              titlePadding: const EdgeInsets.only(left: 60, bottom: 16),
+              titlePadding: paddingTitulo,
               expandedTitleScale: 1.6,
-              title: Text(
-                'Sanidade',
+              title: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
                 style: TextStyle(
-                  color: theme.colorScheme.onPrimary,
+                  color: corElementos,
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                 ),
+                child: const Text('Sanidade'),
               ),
               background: Container(
                 color: theme.colorScheme.surface,
@@ -191,21 +215,20 @@ class _FormSanitarioState extends State<FormSanitario> {
                           decoration: BoxDecoration(
                             color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
-                              SvgPicture.asset(IconesApp.iconAnimalSvg,
-                                width: 32, height: 32,
-                                colorFilter: ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn)),
+                              SvgPicture.asset(
+                                IconesApp.iconAnimalSvg,
+                                width: 32,
+                                colorFilter: ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn),
+                              ),
                               const SizedBox(width: 12),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(widget.animal!.brinco,
-                                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                                  Text(widget.animal!.nome ?? 'Sem nome',
-                                      style: theme.textTheme.bodyMedium),
+                                  Text(widget.animal!.brinco, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                                  Text(widget.animal!.nome ?? 'Sem nome', style: theme.textTheme.bodyMedium),
                                 ],
                               ),
                             ],
@@ -214,13 +237,9 @@ class _FormSanitarioState extends State<FormSanitario> {
                       else
                         DropdownButtonFormField<String>(
                           value: _animalIdSelecionado,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: 'Selecione o Animal',
-                            prefixIcon: SvgPicture.asset(IconesApp.iconAnimalSvg,
-                              width: 24, height: 24,
-                              colorFilter: ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn)),
-                            filled: true,
-                            fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            prefixIcon: Icon(IconesApp.animal),
                           ),
                           items: listaAnimais
                               .map((a) => DropdownMenuItem(
@@ -247,11 +266,9 @@ class _FormSanitarioState extends State<FormSanitario> {
                           if (d != null) setState(() => _dataSelecionada = d);
                         },
                         child: InputDecorator(
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: 'Data do Evento',
-                            prefixIcon: const Icon(Icons.calendar_today),
-                            filled: true,
-                            fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            prefixIcon: Icon(Icons.calendar_today),
                           ),
                           child: Text(DateFormat('dd/MM/yyyy').format(_dataSelecionada)),
                         ),
@@ -263,11 +280,9 @@ class _FormSanitarioState extends State<FormSanitario> {
 
                       DropdownButtonFormField<String>(
                         value: _tipoSelecionado,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Tipo de Evento',
-                          prefixIcon: const Icon(IconesApp.vacina),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(IconesApp.vacina),
                         ),
                         items: _tipos
                             .map((t) => DropdownMenuItem(value: t, child: Text(t)))
@@ -278,11 +293,9 @@ class _FormSanitarioState extends State<FormSanitario> {
 
                       TextFormField(
                         controller: _medicamentoController,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Nome do Medicamento/Vacina',
-                          prefixIcon: const Icon(Icons.medication),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(Icons.medication),
                         ),
                         validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
                       ),
@@ -290,11 +303,9 @@ class _FormSanitarioState extends State<FormSanitario> {
 
                       TextFormField(
                         controller: _obsController,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Observações',
-                          prefixIcon: const Icon(Icons.note),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(Icons.note),
                         ),
                         maxLines: 2,
                       ),

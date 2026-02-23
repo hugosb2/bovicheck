@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../estilos/icones.dart';
 import '../../modelos/animal.dart';
-import '../../modelos/lote.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../servicos/banco_dados_servico.dart';
 
@@ -18,12 +17,13 @@ class FormAnimal extends StatefulWidget {
 
 class _FormAnimalState extends State<FormAnimal> {
   final _formKey = GlobalKey<FormState>();
-
-  // Controllers
   final _brincoController = TextEditingController();
   final _nomeController = TextEditingController();
   final _racaController = TextEditingController();
   final _pesoController = TextEditingController();
+  
+  late ScrollController _scrollController;
+  bool _isCollapsed = false;
 
   String? _loteSelecionadoId;
   String _sexo = 'M';
@@ -31,9 +31,14 @@ class _FormAnimalState extends State<FormAnimal> {
   DateTime _dataNascimento = DateTime.now();
   bool _salvando = false;
 
+  final List<String> _categorias = ['Bezerro', 'Bezerra', 'Novilho', 'Novilha', 'Boi', 'Vaca', 'Touro', 'Outro'];
+
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_scrollListener);
+    
     if (widget.animalExistente != null) {
       final a = widget.animalExistente!;
       _brincoController.text = a.brinco;
@@ -44,6 +49,26 @@ class _FormAnimalState extends State<FormAnimal> {
       _sexo = a.sexo;
       _categoria = a.categoria;
       _dataNascimento = a.dataNascimento;
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    _brincoController.dispose();
+    _nomeController.dispose();
+    _racaController.dispose();
+    _pesoController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.hasClients) {
+      bool deveColapsar = _scrollController.offset > 90;
+      if (deveColapsar != _isCollapsed) {
+        setState(() => _isCollapsed = deveColapsar);
+      }
     }
   }
 
@@ -82,11 +107,18 @@ class _FormAnimalState extends State<FormAnimal> {
         await db.adicionarAnimal(novoAnimal);
       }
 
-      // Atualiza lista no provedor
       await provedor.carregarAnimais(provedor.propriedadeAtiva!.id);
 
       if (mounted) {
         Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(widget.animalExistente != null 
+                ? 'Animal atualizado com sucesso!' 
+                : 'Animal criado com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -104,27 +136,38 @@ class _FormAnimalState extends State<FormAnimal> {
     final lotes = context.watch<ProvedorFazenda>().lotes;
     final isEdicao = widget.animalExistente != null;
 
+    final Color corAppBarBg =
+        _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
+    final Color corElementos =
+        _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
+    final EdgeInsets paddingTitulo = _isCollapsed
+        ? const EdgeInsets.only(left: 72, bottom: 16)
+        : const EdgeInsets.only(left: 16, bottom: 16);
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           SliverAppBar(
             pinned: true,
             expandedHeight: 140,
-            backgroundColor: theme.colorScheme.primary,
-            foregroundColor: theme.colorScheme.onPrimary,
+            backgroundColor: corAppBarBg,
+            foregroundColor: corElementos,
+            iconTheme: IconThemeData(color: corElementos),
             surfaceTintColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
-              titlePadding: const EdgeInsets.only(left: 60, bottom: 16),
+              titlePadding: paddingTitulo,
               expandedTitleScale: 1.6,
-              title: Text(
-                isEdicao ? 'Editar Animal' : 'Novo Animal',
+              title: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
                 style: TextStyle(
-                  color: theme.colorScheme.onPrimary,
+                  color: corElementos,
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                 ),
+                child: Text(isEdicao ? 'Editar Animal' : 'Novo Animal'),
               ),
               background: Container(
                 color: theme.colorScheme.surface,
@@ -155,11 +198,9 @@ class _FormAnimalState extends State<FormAnimal> {
                       
                       TextFormField(
                         controller: _brincoController,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Brinco (Identificação)',
-                          prefixIcon: const Icon(Icons.tag),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(Icons.tag),
                         ),
                         validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
                       ),
@@ -167,22 +208,18 @@ class _FormAnimalState extends State<FormAnimal> {
 
                       TextFormField(
                         controller: _nomeController,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Nome (Opcional)',
-                          prefixIcon: const Icon(Icons.text_fields),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(Icons.text_fields),
                         ),
                       ),
                       const SizedBox(height: 16),
 
                       DropdownButtonFormField<String>(
                         value: _loteSelecionadoId,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Lote / Pasto',
-                          prefixIcon: const Icon(IconesApp.lote),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(IconesApp.lote),
                         ),
                         items: lotes
                             .map((l) => DropdownMenuItem(value: l.id, child: Text(l.nome)))
@@ -200,7 +237,7 @@ class _FormAnimalState extends State<FormAnimal> {
                         color: theme.colorScheme.surfaceContainerLow,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                          side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4)),
                         ),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -225,6 +262,42 @@ class _FormAnimalState extends State<FormAnimal> {
                             ],
                           ),
                         ),
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      TextFormField(
+                        controller: _racaController,
+                        decoration: const InputDecoration(
+                          labelText: 'Raça',
+                          prefixIcon: Icon(Icons.pets),
+                        ),
+                        validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      DropdownButtonFormField<String>(
+                        value: _categoria,
+                        decoration: const InputDecoration(
+                          labelText: 'Categoria',
+                          prefixIcon: Icon(Icons.category_outlined),
+                        ),
+                        items: _categorias
+                            .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                            .toList(),
+                        onChanged: (v) => setState(() => _categoria = v!),
+                      ),
+                      
+                      const SizedBox(height: 16),
+
+                      TextFormField(
+                        controller: _pesoController,
+                        decoration: const InputDecoration(
+                          labelText: 'Peso (Kg)',
+                          prefixIcon: Icon(IconesApp.peso),
+                          suffixText: 'kg',
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       ),
                       
                       const SizedBox(height: 32),

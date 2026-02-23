@@ -45,24 +45,136 @@ class _TelaConfigDadosState extends State<TelaConfigDados> {
   Future<void> _realizarBackup(BuildContext context) async {
     try {
       final bytes = await BancoDadosServico.instancia.exportarBancoDados();
-      final dataStr = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-      final nomeArquivo = 'BoviCheck_Backup_$dataStr.db';
+      final dataStr = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final nomeArquivo = 'BoviCheck_Backup_$dataStr.bvk';
 
-      final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/$nomeArquivo');
-      await file.writeAsBytes(bytes);
-
-      if (context.mounted) {
-        final xFile = XFile(file.path);
-        await Share.shareXFiles([xFile],
-            text: 'Backup do BoviCheck realizado em $dataStr');
-      }
+      showModalBottomSheet(
+        context: context,
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(ctx).colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Salvar Backup',
+                  style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Theme.of(ctx).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.folder,
+                      color: Theme.of(ctx).colorScheme.primary,
+                    ),
+                  ),
+                  title: const Text('Salvar no dispositivo'),
+                  subtitle: const Text('Escolher pasta para salvar o arquivo'),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await _salvarBackupInterno(context, bytes, nomeArquivo);
+                  },
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Theme.of(ctx).colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.share,
+                      color: Theme.of(ctx).colorScheme.secondary,
+                    ),
+                  ),
+                  title: const Text('Compartilhar'),
+                  subtitle: const Text('Enviar arquivo para outro app'),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await _compartilharBackup(context, bytes, nomeArquivo);
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      );
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text('Erro ao criar backup: $e'),
               backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _salvarBackupInterno(BuildContext context, List<int> bytes, String nomeArquivo) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/$nomeArquivo');
+      await file.writeAsBytes(bytes);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Backup salvo em: ${file.path}'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao salvar: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _compartilharBackup(BuildContext context, List<int> bytes, String nomeArquivo) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/$nomeArquivo');
+      await file.writeAsBytes(bytes);
+
+      if (context.mounted) {
+        final xFile = XFile(file.path);
+        await Share.shareXFiles(
+          [xFile],
+          text: 'Backup do BoviCheck - $nomeArquivo',
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao compartilhar: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -156,7 +268,7 @@ class _TelaConfigDadosState extends State<TelaConfigDados> {
                 // Card Exportar
                 _CardAcaoDados(
                   titulo: 'Criar Backup',
-                  descricao: 'Exportar todos os dados para um arquivo .db',
+                  descricao: 'Exportar dados da fazenda atual para .bvk',
                   icone: IconesApp.backup,
                   cor: Colors.blue,
                   textoBotao: 'GERAR ARQUIVO',
@@ -167,8 +279,8 @@ class _TelaConfigDadosState extends State<TelaConfigDados> {
 
                 // Card Importar
                 _CardAcaoDados(
-                  titulo: 'Restaurar Dados',
-                  descricao: 'Substituir dados atuais por um backup antigo.',
+                  titulo: 'Restaurar Backup',
+                  descricao: 'Restaurar dados de um arquivo .bvk salvo anteriormente',
                   icone: IconesApp.restaurar,
                   cor: Colors.orange,
                   textoBotao: 'SELECIONAR ARQUIVO',

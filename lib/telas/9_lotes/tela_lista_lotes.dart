@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/icones.dart';
+import '../../estilos/tema.dart';
 import '../../provedores/provedor_fazenda.dart';
 import 'form_lote.dart';
+import 'tela_detalhes_lote.dart';
 
 class TelaListaLotes extends StatefulWidget {
   const TelaListaLotes({super.key});
@@ -50,7 +52,7 @@ class _TelaListaLotesState extends State<TelaListaLotes> {
     final Color corElementos =
         _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
     final EdgeInsets paddingTitulo = _isCollapsed
-        ? const EdgeInsets.only(left: 60, bottom: 16)
+        ? const EdgeInsets.only(left: 72, bottom: 16)
         : const EdgeInsets.only(left: 16, bottom: 16);
 
     return Scaffold(
@@ -62,6 +64,7 @@ class _TelaListaLotesState extends State<TelaListaLotes> {
             pinned: true,
             expandedHeight: 140,
             backgroundColor: corAppBarBg,
+            foregroundColor: corElementos,
             iconTheme: IconThemeData(color: corElementos),
             surfaceTintColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
@@ -94,21 +97,17 @@ class _TelaListaLotesState extends State<TelaListaLotes> {
           ),
           if (lotes.isEmpty)
             SliverFillRemaining(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(IconesApp.lote,
-                        size: 64,
-                        color:
-                            theme.colorScheme.outline.withValues(alpha: 0.5)),
-                    const SizedBox(height: 16),
-                    const Text('Nenhum lote cadastrado.'),
-                    const SizedBox(height: 8),
-                    const Text('Crie um lote para organizar seus animais.',
-                        style: TextStyle(color: Colors.grey)),
-                  ],
-                ),
+              child: EstadoVazioPadrao(
+                icone: IconesApp.lote,
+                titulo: 'Nenhum lote cadastrado',
+                mensagem: 'Crie um lote para organizar seus animais',
+                textoBotao: 'CRIAR LOTE',
+                onPressedBotao: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const FormLote()),
+                  );
+                },
               ),
             )
           else
@@ -122,58 +121,76 @@ class _TelaListaLotesState extends State<TelaListaLotes> {
                         .where((a) => a.loteId == lote.id)
                         .length;
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                            color: theme.colorScheme.outlineVariant
-                                .withValues(alpha: 0.4)),
-                      ),
-                      color: theme.colorScheme.surfaceContainerLow,
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(IconesApp.lote,
-                              color: theme.colorScheme.primary),
-                        ),
-                        title: Text(lote.nome,
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(lote.descricao.isNotEmpty
-                            ? lote.descricao
-                            : lote.tipo),
-                        trailing: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.secondaryContainer,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            '$qtdAnimais animais',
-                            style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.onSecondaryContainer),
-                          ),
-                        ),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: CartaoPadrao(
                         onTap: () {
                           Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      FormLote(loteExistente: lote)));
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TelaDetalhesLote(lote: lote),
+                            ),
+                          );
                         },
-                      ),
-                    ).animate().fadeIn(delay: (index * 50).ms).slideX();
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                IconesApp.lote,
+                                color: theme.colorScheme.primary,
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    lote.nome,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    lote.descricao.isNotEmpty
+                                        ? lote.descricao
+                                        : lote.tipo,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.secondaryContainer,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '$qtdAnimais',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onSecondaryContainer,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ).animate().fadeIn(delay: (index * 50).ms).slideX(),
+                    );
                   },
                   childCount: lotes.length,
                 ),
@@ -185,7 +202,9 @@ class _TelaListaLotesState extends State<TelaListaLotes> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
-              context, MaterialPageRoute(builder: (_) => const FormLote()));
+            context,
+            MaterialPageRoute(builder: (_) => const FormLote()),
+          );
         },
         icon: const Icon(IconesApp.adicionar),
         label: const Text('NOVO LOTE'),

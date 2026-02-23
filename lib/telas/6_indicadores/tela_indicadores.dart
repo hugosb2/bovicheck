@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/cores.dart';
-import '../../estilos/icones.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../modelos/animal.dart';
-import '../../modelos/lote.dart';
 import '../../modelos/eventos/pesagem.dart';
 import '../../modelos/eventos/evento_reprodutivo.dart';
 import '../../modelos/eventos/producao_leite.dart';
 import '../../servicos/banco_dados_servico.dart';
+import 'historico_reproducao.dart';
+import 'historico_leite.dart';
+import 'historico_pesagem.dart';
+import 'historico_gmd.dart';
+import 'historico_iep.dart';
+import 'historico_mortalidade.dart';
 
 class TelaIndicadores extends StatefulWidget {
   const TelaIndicadores({super.key});
@@ -268,6 +271,7 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
                           meta: 80,
                           cor: Colors.pink,
                           tooltip: 'Nascimentos / Fêmeas Aptas',
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoReproducao())),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -278,6 +282,7 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
                           meta: 85,
                           cor: Colors.purple,
                           tooltip: 'Diagnósticos Positivos',
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoReproducao())),
                         ),
                       ),
                     ],
@@ -294,6 +299,7 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
                           valor: calc.iepMeses.toStringAsFixed(1),
                           meta: 'Meta: 12-14',
                           status: calc.getStatusIEP(),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoIEP())),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -304,6 +310,7 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
                               calc.idadePrimeiroPartoMeses.toStringAsFixed(1),
                           meta: 'Meta: < 30',
                           status: calc.getStatusIdadeParto(),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoReproducao())),
                         ),
                       ),
                     ],
@@ -321,6 +328,7 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
                     cor: Colors.blue,
                     status: calc.getStatusGMD(),
                     subtitulo: 'Ganho de peso diário dos bezerros',
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoGMD())),
                   ),
                   const SizedBox(height: 12),
 
@@ -333,6 +341,7 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
                           meta: '> 85%',
                           status: calc.getStatusDesmame(),
                           icone: Icons.child_care,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoReproducao())),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -343,6 +352,7 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
                           meta: 'Média Vaca',
                           status: _Status.neutro,
                           icone: Icons.water_drop,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoLeite())),
                         ),
                       ),
                     ],
@@ -356,7 +366,37 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
                   _CardSanidade(
                     taxaMortalidade: calc.taxaMortalidade,
                     status: calc.getStatusMortalidade(),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoMortalidade())),
                   ).animate().slideY(begin: 0.2, end: 0, delay: 400.ms),
+
+                  const SizedBox(height: 12),
+
+                  // --- SEÇÃO 4: PRODUÇÃO DE LEITE E PESAGENS ---
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _CardMetricaSimples(
+                          label: 'Pesagens',
+                          valor: '${provedor.animais.length} registros',
+                          meta: 'Total cadastrado',
+                          status: _Status.neutro,
+                          icone: Icons.monitor_weight,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoPesagem())),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _CardMetricaSimples(
+                          label: 'Leite / Dia',
+                          valor: '${calc.mediaLeiteDia.toStringAsFixed(1)} L',
+                          meta: 'Média Vaca',
+                          status: _Status.neutro,
+                          icone: Icons.water_drop,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoLeite())),
+                        ),
+                      ),
+                    ],
+                  ).animate().fadeIn(delay: 300.ms),
 
                   const SizedBox(height: 40),
 
@@ -407,6 +447,7 @@ class _CardCircular extends StatelessWidget {
   final double meta;
   final Color cor;
   final String tooltip;
+  final VoidCallback? onTap;
 
   const _CardCircular({
     required this.titulo,
@@ -414,6 +455,7 @@ class _CardCircular extends StatelessWidget {
     required this.meta,
     required this.cor,
     required this.tooltip,
+    this.onTap,
   });
 
   @override
@@ -422,9 +464,9 @@ class _CardCircular extends StatelessWidget {
     final percentNormalizado = (porcentagem / 100).clamp(0.0, 1.0);
     final atingiuMeta = porcentagem >= meta;
 
-    return Tooltip(
+    Widget card = Tooltip(
       message: tooltip,
-      triggerMode: TooltipTriggerMode.tap,
+      triggerMode: TooltipTriggerMode.longPress,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -480,6 +522,15 @@ class _CardCircular extends StatelessWidget {
         ),
       ),
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: card,
+      );
+    }
+    return card;
   }
 }
 
@@ -489,6 +540,7 @@ class _CardMetricaSimples extends StatelessWidget {
   final String meta;
   final _Status status;
   final IconData? icone;
+  final VoidCallback? onTap;
 
   const _CardMetricaSimples({
     required this.label,
@@ -496,6 +548,7 @@ class _CardMetricaSimples extends StatelessWidget {
     required this.meta,
     required this.status,
     this.icone,
+    this.onTap,
   });
 
   @override
@@ -503,7 +556,7 @@ class _CardMetricaSimples extends StatelessWidget {
     final theme = Theme.of(context);
     Color corStatus = _getCorStatus(status);
 
-    return Container(
+    Widget card = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
@@ -540,6 +593,15 @@ class _CardMetricaSimples extends StatelessWidget {
         ],
       ),
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: card,
+      );
+    }
+    return card;
   }
 }
 
@@ -550,6 +612,7 @@ class _CardProducaoDetalhado extends StatelessWidget {
   final Color cor;
   final _Status status;
   final String subtitulo;
+  final VoidCallback? onTap;
 
   const _CardProducaoDetalhado({
     required this.titulo,
@@ -558,12 +621,13 @@ class _CardProducaoDetalhado extends StatelessWidget {
     required this.cor,
     required this.status,
     required this.subtitulo,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
+    Widget card = Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -613,14 +677,24 @@ class _CardProducaoDetalhado extends StatelessWidget {
         ],
       ),
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: card,
+      );
+    }
+    return card;
   }
 }
 
 class _CardSanidade extends StatelessWidget {
   final double taxaMortalidade;
   final _Status status;
+  final VoidCallback? onTap;
 
-  const _CardSanidade({required this.taxaMortalidade, required this.status});
+  const _CardSanidade({required this.taxaMortalidade, required this.status, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -628,7 +702,7 @@ class _CardSanidade extends StatelessWidget {
     final isRuim = status == _Status.ruim;
     final color = isRuim ? theme.colorScheme.error : theme.colorScheme.primary;
 
-    return Container(
+    Widget card = Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isRuim
@@ -678,6 +752,15 @@ class _CardSanidade extends StatelessWidget {
         ],
       ),
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: card,
+      );
+    }
+    return card;
   }
 }
 
@@ -744,6 +827,88 @@ class _PeriodoChip extends StatelessWidget {
         backgroundColor: theme.colorScheme.surfaceContainerHighest,
       ),
     );
+  }
+}
+
+class _CardNavegacao extends StatelessWidget {
+  final String titulo;
+  final String? descricao;
+  final String? valor;
+  final IconData icone;
+  final Color cor;
+  final VoidCallback onTap;
+
+  const _CardNavegacao({
+    required this.titulo,
+    this.descricao,
+    this.valor,
+    required this.icone,
+    required this.cor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: cor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icone, color: cor, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titulo,
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    if (descricao != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        descricao!,
+                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (valor != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: cor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    valor!,
+                    style: TextStyle(color: cor, fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                ),
+              Icon(Icons.chevron_right, color: theme.colorScheme.outline),
+            ],
+          ),
+        ),
+      ),
+    ).animate().fadeIn().slideX(begin: 0.1, end: 0);
   }
 }
 

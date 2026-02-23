@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/icones.dart';
 import '../../servicos/banco_dados_servico.dart';
+import '../../provedores/provedor_fazenda.dart';
 import '../4_dashboard/tela_dashboard.dart';
 
 class TelaRestaurar extends StatefulWidget {
@@ -18,12 +20,23 @@ class _TelaRestaurarState extends State<TelaRestaurar> {
   bool _isCollapsed = false;
   bool _restaurando = false;
   String? _caminhoArquivo;
+  String _nomeFazenda = '';
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_scrollListener);
+    _carregarNomeFazenda();
+  }
+
+  Future<void> _carregarNomeFazenda() async {
+    final provedor = context.read<ProvedorFazenda>();
+    if (provedor.propriedadeAtiva != null) {
+      setState(() {
+        _nomeFazenda = provedor.propriedadeAtiva!.nomeFazenda;
+      });
+    }
   }
 
   @override
@@ -45,7 +58,8 @@ class _TelaRestaurarState extends State<TelaRestaurar> {
   Future<void> _selecionarArquivo() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
+        type: FileType.custom,
+        allowedExtensions: ['bvk', 'db'],
       );
 
       if (result != null && result.files.single.path != null) {
@@ -158,10 +172,26 @@ class _TelaRestaurarState extends State<TelaRestaurar> {
                     .scale(duration: 400.ms, curve: Curves.easeOutBack),
                 const SizedBox(height: 24),
                 Text(
-                  'Selecione o arquivo de backup (.db) para recuperar seus dados.',
+                  'Restaurar backup para $_nomeFazenda',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    'Os dados atuais desta fazenda serão substituídos pelos dados do backup.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.orange.shade700,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 32),

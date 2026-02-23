@@ -44,7 +44,9 @@ class _TelaSobreState extends State<TelaSobre> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Sobre')),
+      appBar: AppBar(
+        title: const Text('Sobre'),
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),

@@ -10,7 +10,7 @@ import '../../8_rebanho/tela_lista_animais.dart';
 import '../../9_lotes/tela_lista_lotes.dart';
 import '../../5_ia_consultor/tela_ia_consultor.dart';
 import '../../11_configuracoes/tela_configuracoes.dart';
-import '../../2_configuracao_inicial/tela_decisao.dart';
+import '../../2_configuracao_inicial/tela_selecionar_fazenda.dart';
 
 class GavetaMenu extends StatelessWidget {
   const GavetaMenu({super.key});
@@ -92,6 +92,37 @@ class GavetaMenu extends StatelessWidget {
                     color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
                   ),
                 ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () => _trocarFazenda(context),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onPrimary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.swap_horiz,
+                          size: 16,
+                          color: theme.colorScheme.onPrimary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Trocar / Gerenciar',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: theme.colorScheme.onPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -154,10 +185,10 @@ class GavetaMenu extends StatelessWidget {
                   delay: 250,
                 ),
                 _ItemMenu(
-                  iconeWidget: Icon(Icons.swap_horiz,
+                  iconeWidget: Icon(Icons.logout,
                       color: theme.colorScheme.onSurfaceVariant),
                   titulo: 'Trocar Fazenda',
-                  onTap: () => _navegar(context, const TelaDecisao()),
+                  onTap: () => _trocarFazenda(context),
                   delay: 300,
                 ),
               ],
@@ -190,6 +221,19 @@ class GavetaMenu extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => tela),
+    );
+  }
+
+  void _trocarFazenda(BuildContext context) async {
+    final provedor = context.read<ProvedorFazenda>();
+    provedor.limparEstado();
+    
+    if (!context.mounted) return;
+    
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const TelaSelecionarFazenda()),
     );
   }
 }

@@ -21,6 +21,9 @@ class _FormPesagemState extends State<FormPesagem> {
   final _pesoController = TextEditingController();
   final _obsController = TextEditingController();
   final _dataController = TextEditingController();
+  
+  late ScrollController _scrollController;
+  bool _isCollapsed = false;
 
   late DateTime _dataSelecionada;
   String? _animalIdSelecionado;
@@ -39,11 +42,33 @@ class _FormPesagemState extends State<FormPesagem> {
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_scrollListener);
+    
     _dataSelecionada = DateTime.now();
     _dataController.text = DateFormat('dd/MM/yyyy').format(_dataSelecionada);
 
     if (widget.animalPreSelecionado != null) {
       _animalIdSelecionado = widget.animalPreSelecionado!.id;
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    _pesoController.dispose();
+    _obsController.dispose();
+    _dataController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.hasClients) {
+      bool deveColapsar = _scrollController.offset > 90;
+      if (deveColapsar != _isCollapsed) {
+        setState(() => _isCollapsed = deveColapsar);
+      }
     }
   }
 
@@ -65,9 +90,9 @@ class _FormPesagemState extends State<FormPesagem> {
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
     if (_animalIdSelecionado == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Selecione um animal')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione um animal'))
+      );
       return;
     }
 
@@ -87,10 +112,7 @@ class _FormPesagemState extends State<FormPesagem> {
       await BancoDadosServico.instancia.salvarPesagem(novaPesagem);
 
       if (mounted) {
-        // Atualiza provedor para refletir mudanças no Dashboard
-        // (Em app real, idealmente só atualizaríamos o necessário)
         context.read<ProvedorFazenda>().carregarPropriedades();
-
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Pesagem salva com sucesso!'),
@@ -119,27 +141,38 @@ class _FormPesagemState extends State<FormPesagem> {
     final provedor = context.watch<ProvedorFazenda>();
     final animais = provedor.animais;
 
+    final Color corAppBarBg =
+        _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
+    final Color corElementos =
+        _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
+    final EdgeInsets paddingTitulo = _isCollapsed
+        ? const EdgeInsets.only(left: 72, bottom: 16)
+        : const EdgeInsets.only(left: 16, bottom: 16);
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           SliverAppBar(
             pinned: true,
             expandedHeight: 140,
-            backgroundColor: theme.colorScheme.primary,
-            foregroundColor: theme.colorScheme.onPrimary,
+            backgroundColor: corAppBarBg,
+            foregroundColor: corElementos,
+            iconTheme: IconThemeData(color: corElementos),
             surfaceTintColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
-              titlePadding: const EdgeInsets.only(left: 60, bottom: 16),
+              titlePadding: paddingTitulo,
               expandedTitleScale: 1.6,
-              title: Text(
-                'Registrar Pesagem',
+              title: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
                 style: TextStyle(
-                  color: theme.colorScheme.onPrimary,
+                  color: corElementos,
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                 ),
+                child: const Text('Registrar Pesagem'),
               ),
               background: Container(
                 color: theme.colorScheme.surface,
@@ -171,12 +204,9 @@ class _FormPesagemState extends State<FormPesagem> {
                       TextFormField(
                         controller: _dataController,
                         readOnly: true,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Data da Pesagem',
-                          prefixIcon: const Icon(Icons.calendar_today),
-                          suffixIcon: const Icon(Icons.arrow_drop_down),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(Icons.calendar_today),
                         ),
                         onTap: _selecionarData,
                       ),
@@ -188,11 +218,9 @@ class _FormPesagemState extends State<FormPesagem> {
                       if (widget.animalPreSelecionado == null)
                         DropdownButtonFormField<String>(
                           value: _animalIdSelecionado,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: 'Selecione o Animal',
-                            prefixIcon: const Icon(IconesApp.animal),
-                            filled: true,
-                            fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            prefixIcon: Icon(IconesApp.animal),
                           ),
                           items: animais.map((a) {
                             return DropdownMenuItem(
@@ -209,7 +237,6 @@ class _FormPesagemState extends State<FormPesagem> {
                           decoration: BoxDecoration(
                             color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
@@ -217,7 +244,7 @@ class _FormPesagemState extends State<FormPesagem> {
                               const SizedBox(width: 12),
                               Text(
                                 '${widget.animalPreSelecionado!.brinco} - ${widget.animalPreSelecionado!.nome ?? ""}',
-                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                style: theme.textTheme.titleMedium,
                               ),
                             ],
                           ),
@@ -229,12 +256,10 @@ class _FormPesagemState extends State<FormPesagem> {
 
                       TextFormField(
                         controller: _pesoController,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Peso (Kg)',
-                          prefixIcon: const Icon(IconesApp.peso),
+                          prefixIcon: Icon(IconesApp.peso),
                           suffixText: 'kg',
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                         ),
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         validator: (v) {
@@ -247,11 +272,9 @@ class _FormPesagemState extends State<FormPesagem> {
 
                       DropdownButtonFormField<String>(
                         value: _etapaSelecionada,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Etapa / Motivo',
-                          prefixIcon: const Icon(Icons.flag_outlined),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(Icons.flag_outlined),
                         ),
                         items: _etapas
                             .map((e) => DropdownMenuItem(value: e, child: Text(e)))
@@ -262,11 +285,9 @@ class _FormPesagemState extends State<FormPesagem> {
 
                       TextFormField(
                         controller: _obsController,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Observações (Opcional)',
-                          prefixIcon: const Icon(Icons.notes),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(Icons.notes),
                         ),
                         maxLines: 2,
                       ),

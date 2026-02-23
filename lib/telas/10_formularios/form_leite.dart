@@ -21,6 +21,9 @@ class _FormLeiteState extends State<FormLeite> {
   final _litrosController = TextEditingController();
   final _obsController = TextEditingController();
   final _dataController = TextEditingController();
+  
+  late ScrollController _scrollController;
+  bool _isCollapsed = false;
 
   late DateTime _dataSelecionada;
   String? _animalIdSelecionado;
@@ -29,11 +32,33 @@ class _FormLeiteState extends State<FormLeite> {
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_scrollListener);
+    
     _dataSelecionada = DateTime.now();
     _dataController.text = DateFormat('dd/MM/yyyy').format(_dataSelecionada);
 
     if (widget.animalPreSelecionado != null) {
       _animalIdSelecionado = widget.animalPreSelecionado!.id;
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    _litrosController.dispose();
+    _obsController.dispose();
+    _dataController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.hasClients) {
+      bool deveColapsar = _scrollController.offset > 90;
+      if (deveColapsar != _isCollapsed) {
+        setState(() => _isCollapsed = deveColapsar);
+      }
     }
   }
 
@@ -55,9 +80,9 @@ class _FormLeiteState extends State<FormLeite> {
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
     if (_animalIdSelecionado == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Selecione um animal')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione um animal'))
+      );
       return;
     }
 
@@ -105,27 +130,38 @@ class _FormLeiteState extends State<FormLeite> {
     final provedor = context.watch<ProvedorFazenda>();
     final femeas = provedor.animais.where((a) => a.sexo == 'F').toList();
 
+    final Color corAppBarBg =
+        _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
+    final Color corElementos =
+        _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
+    final EdgeInsets paddingTitulo = _isCollapsed
+        ? const EdgeInsets.only(left: 72, bottom: 16)
+        : const EdgeInsets.only(left: 16, bottom: 16);
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           SliverAppBar(
             pinned: true,
             expandedHeight: 140,
-            backgroundColor: theme.colorScheme.primary,
-            foregroundColor: theme.colorScheme.onPrimary,
+            backgroundColor: corAppBarBg,
+            foregroundColor: corElementos,
+            iconTheme: IconThemeData(color: corElementos),
             surfaceTintColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
-              titlePadding: const EdgeInsets.only(left: 60, bottom: 16),
+              titlePadding: paddingTitulo,
               expandedTitleScale: 1.6,
-              title: Text(
-                'Produção de Leite',
+              title: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
                 style: TextStyle(
-                  color: theme.colorScheme.onPrimary,
+                  color: corElementos,
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                 ),
+                child: const Text('Produção de Leite'),
               ),
               background: Container(
                 color: theme.colorScheme.surface,
@@ -157,11 +193,9 @@ class _FormLeiteState extends State<FormLeite> {
                       TextFormField(
                         controller: _dataController,
                         readOnly: true,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Data da Ordenha',
-                          prefixIcon: const Icon(Icons.calendar_today),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(Icons.calendar_today),
                         ),
                         onTap: _selecionarData,
                       ),
@@ -173,11 +207,9 @@ class _FormLeiteState extends State<FormLeite> {
                       if (widget.animalPreSelecionado == null)
                         DropdownButtonFormField<String>(
                           value: _animalIdSelecionado,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: 'Vaca',
-                            prefixIcon: const Icon(IconesApp.animal),
-                            filled: true,
-                            fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            prefixIcon: Icon(IconesApp.animal),
                           ),
                           items: femeas
                               .map((a) => DropdownMenuItem(value: a.id, child: Text(a.brinco)))
@@ -191,7 +223,6 @@ class _FormLeiteState extends State<FormLeite> {
                           decoration: BoxDecoration(
                             color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
@@ -199,7 +230,7 @@ class _FormLeiteState extends State<FormLeite> {
                               const SizedBox(width: 12),
                               Text(
                                 widget.animalPreSelecionado!.brinco,
-                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                style: theme.textTheme.titleMedium,
                               ),
                             ],
                           ),
@@ -211,12 +242,10 @@ class _FormLeiteState extends State<FormLeite> {
 
                       TextFormField(
                         controller: _litrosController,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Litros',
-                          prefixIcon: const Icon(IconesApp.leite),
+                          prefixIcon: Icon(IconesApp.leite),
                           suffixText: 'L',
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                         ),
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         validator: (v) {
@@ -229,11 +258,9 @@ class _FormLeiteState extends State<FormLeite> {
 
                       TextFormField(
                         controller: _obsController,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Observação (Ex: Ordenha manhã)',
-                          prefixIcon: const Icon(Icons.notes),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          prefixIcon: Icon(Icons.notes),
                         ),
                         maxLines: 2,
                       ),
@@ -281,3 +308,4 @@ class _FormLeiteState extends State<FormLeite> {
       ),
     );
   }
+}

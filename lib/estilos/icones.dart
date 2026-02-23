@@ -6,15 +6,14 @@ class IconesApp {
   // LOGO DO APP (PNG)
   static const String logoApp = 'assets/icon.png';
 
-  // ÍCONE DE ANIMAL (SVG) - Antigo "pet"
+  // ÍCONE DE ANIMAL (SVG) - Boi/Vaca
   static const String iconAnimalSvg = 'assets/icons/boicon.svg';
 
   // --- Ícones de Fonte (Material Icons) ---
-  // Mantemos este como fallback para inputs pequenos para não quebrar layout
-  static const IconData animal = Icons.pets;
-
+  static const IconData animal = Icons.grass; // Ícone de pasto/gado
+  
   static const IconData dashboard = Icons.dashboard_outlined;
-  static const IconData rebanho = Icons.pets;
+  static const IconData rebanho = Icons.grass;
   static const IconData lote = Icons.fence_outlined;
   static const IconData indicadores = Icons.bar_chart_rounded;
   static const IconData iaConsultor = Icons.auto_awesome;
