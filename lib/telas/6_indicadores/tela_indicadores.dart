@@ -954,7 +954,7 @@ class _CalculadoraAvancada {
             e.tipo == 'Parto' && e.data.isAfter(inicio) && e.data.isBefore(fim))
         .length;
     final femeasAptas =
-        animais.where((a) => a.sexo == 'F' && a.idadeMeses >= 24).length;
+        animais.where((a) => a.sexo == 'F' && a.calcularIdadeMeses() >= 24).length;
     if (femeasAptas == 0) return 0.0;
     return (nascimentos / femeasAptas) * 100;
   }

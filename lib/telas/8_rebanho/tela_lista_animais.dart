@@ -263,7 +263,7 @@ class _TelaListaAnimaisState extends State<TelaListaAnimais> {
                             style:
                                 const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text(
-                            "${animal.nome ?? 'Sem nome'} • $nomeLote\n${animal.idadeMeses} meses",
+                            "${animal.nome ?? 'Sem nome'} • $nomeLote\n${animal.calcularIdadeMeses()} meses",
                             style: theme.textTheme.bodySmall),
                         trailing: Icon(IconesApp.setaDireita,
                             color: theme.colorScheme.outline),

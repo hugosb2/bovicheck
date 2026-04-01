@@ -216,7 +216,7 @@ class _TelaDetalhesAnimalState extends State<TelaDetalhesAnimal> {
                         theme: theme,
                         icon: Icons.cake_outlined,
                         titulo: 'Idade',
-                        valor: '${animalAtual.idadeMeses} meses',
+                        valor: '${animalAtual.calcularIdadeMeses()} meses',
                       ).animate().fadeIn(delay: 250.ms).slideX(begin: 0.1, end: 0),
                     ),
                   ],

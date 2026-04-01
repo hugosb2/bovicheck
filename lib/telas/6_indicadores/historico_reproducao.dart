@@ -78,7 +78,7 @@ class _TelaHistoricoReproducaoState extends State<TelaHistoricoReproducao> {
       meses[chave] = 0;
     }
 
-    final totalFemeas = _animais.where((a) => a.sexo == 'F' && a.idadeMeses >= 24).length;
+    final totalFemeas = _animais.where((a) => a.sexo == 'F' && a.calcularIdadeMeses() >= 24).length;
 
     for (var evento in _eventos) {
       if (evento.tipo == 'Parto') {
