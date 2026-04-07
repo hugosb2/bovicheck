@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../estilos/cores.dart';
 import '../../estilos/icones.dart';
+import '../../estilos/tema.dart';
 
 class TelaSobre extends StatefulWidget {
   const TelaSobre({super.key});
@@ -44,9 +45,7 @@ class _TelaSobreState extends State<TelaSobre> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sobre'),
-      ),
+      appBar: const AppBarPadrao(titulo: 'Sobre'),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),

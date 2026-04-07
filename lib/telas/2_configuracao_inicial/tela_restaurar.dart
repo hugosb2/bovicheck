@@ -58,17 +58,39 @@ class _TelaRestaurarState extends State<TelaRestaurar> {
   Future<void> _selecionarArquivo() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['bvk', 'db'],
+        type: FileType.any,
       );
 
       if (result != null && result.files.single.path != null) {
+        final path = result.files.single.path!;
+        final pathLower = path.toLowerCase();
+        
+        if (!pathLower.endsWith('.bvk') && !pathLower.endsWith('.db')) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Formato inválido. Selecione um arquivo .bvk ou .db'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
         setState(() {
-          _caminhoArquivo = result.files.single.path;
+          _caminhoArquivo = path;
         });
       }
     } catch (e) {
       debugPrint('Erro ao selecionar: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao abrir o seletor de arquivos: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

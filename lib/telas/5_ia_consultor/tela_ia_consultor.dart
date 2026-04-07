@@ -6,6 +6,7 @@ import '../../estilos/icones.dart';
 import '../../estilos/cores.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../servicos/ia_gemini_cliente.dart';
+import '../../estilos/tema.dart';
 
 class TelaIAConsultor extends StatefulWidget {
   const TelaIAConsultor({super.key});
@@ -81,9 +82,7 @@ class _TelaIAConsultorState extends State<TelaIAConsultor> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Consultor IA'),
-      ),
+      appBar: const AppBarPadrao(titulo: 'Consultor IA'),
       body: Column(
         children: [
           Container(

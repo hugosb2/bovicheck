@@ -36,7 +36,7 @@ class BancoDadosServico {
   Future<void> _createDB(Database db, int version) async {
     // 1. Propriedades
     await db.execute('''
-      CREATE TABLE propriedades (
+      CREATE TABLE IF NOT EXISTS propriedades (
         id TEXT PRIMARY KEY,
         nomeFazenda TEXT NOT NULL,
         nomeProprietario TEXT NOT NULL,
@@ -54,7 +54,7 @@ class BancoDadosServico {
 
     // 2. Lotes
     await db.execute('''
-      CREATE TABLE lotes (
+      CREATE TABLE IF NOT EXISTS lotes (
         id TEXT PRIMARY KEY,
         fazendaId TEXT NOT NULL,
         nome TEXT NOT NULL,
@@ -69,7 +69,7 @@ class BancoDadosServico {
 
     // 3. Animais
     await db.execute('''
-      CREATE TABLE animais (
+      CREATE TABLE IF NOT EXISTS animais (
         id TEXT PRIMARY KEY,
         fazendaId TEXT NOT NULL,
         loteId TEXT NOT NULL,
@@ -89,7 +89,7 @@ class BancoDadosServico {
 
     // 4. Pesagens
     await db.execute('''
-      CREATE TABLE pesagens (
+      CREATE TABLE IF NOT EXISTS pesagens (
         id TEXT PRIMARY KEY,
         animalId TEXT NOT NULL,
         data TEXT NOT NULL,
@@ -101,7 +101,7 @@ class BancoDadosServico {
 
     // 5. Eventos Reprodutivos
     await db.execute('''
-      CREATE TABLE eventos_reprodutivos (
+      CREATE TABLE IF NOT EXISTS eventos_reprodutivos (
         id TEXT PRIMARY KEY,
         animalId TEXT NOT NULL,
         data TEXT NOT NULL,
@@ -117,7 +117,7 @@ class BancoDadosServico {
 
     // 6. Produção de Leite
     await db.execute('''
-      CREATE TABLE producao_leite (
+      CREATE TABLE IF NOT EXISTS producao_leite (
         id TEXT PRIMARY KEY,
         animalId TEXT NOT NULL,
         data TEXT NOT NULL,
@@ -129,7 +129,7 @@ class BancoDadosServico {
 
     // 7. Eventos Sanitários
     await db.execute('''
-      CREATE TABLE eventos_sanitarios (
+      CREATE TABLE IF NOT EXISTS eventos_sanitarios (
         id TEXT PRIMARY KEY,
         animalId TEXT NOT NULL,
         data TEXT NOT NULL,
@@ -142,7 +142,7 @@ class BancoDadosServico {
 
     // 8. Abates
     await db.execute('''
-      CREATE TABLE abates (
+      CREATE TABLE IF NOT EXISTS abates (
         id TEXT PRIMARY KEY,
         animalId TEXT NOT NULL,
         data TEXT NOT NULL,
@@ -350,6 +350,16 @@ class BancoDadosServico {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getEventosSanitariosPorAnimal(String animalId) async {
+    final db = await database;
+    return await db.query('eventos_sanitarios', where: 'animalId = ?', whereArgs: [animalId], orderBy: 'data DESC');
+  }
+
+  Future<List<Map<String, dynamic>>> getAbatesPorAnimal(String animalId) async {
+    final db = await database;
+    return await db.query('abates', where: 'animalId = ?', whereArgs: [animalId], orderBy: 'data DESC');
+  }
+
   // --- Utils ---
 
   Future<void> limparTudo() async {
@@ -376,7 +386,17 @@ class BancoDadosServico {
       await _database!.close();
       _database = null;
     }
+    
+    // Tenta fechar de fato as conexões do sqflite e esquecer a instancia do bd velh
+    if (await databaseExists(path)) {
+      await deleteDatabase(path);
+    }
+    
     await File(caminhoNovoArquivo).copy(path);
-    await database;
+    
+    // Força a reabertura do banco
+    _database = await _initDB('bovicheck.db');
+    // Para garantir a versão, atualiza ela assim que for copiato
+    await _database!.setVersion(3);
   }
 }

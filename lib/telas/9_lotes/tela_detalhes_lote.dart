@@ -32,91 +32,116 @@ class _TelaDetalhesLoteState extends State<TelaDetalhesLote> {
         slivers: [
           SliverAppBar(
             pinned: true,
-            expandedHeight: 200,
+            expandedHeight: 250,
             backgroundColor: theme.colorScheme.primary,
             foregroundColor: theme.colorScheme.onPrimary,
             surfaceTintColor: Colors.transparent,
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: false,
-              titlePadding: const EdgeInsets.only(left: 60, bottom: 16),
-              expandedTitleScale: 1.4,
-              title: Text(
-                loteAtual.nome,
-                style: TextStyle(
-                  color: theme.colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      theme.colorScheme.primary,
-                      theme.colorScheme.primary.withValues(alpha: 0.8),
-                    ],
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      top: 50,
-                      right: 24,
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.onPrimary.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          IconesApp.lote,
-                          size: 44,
-                          color: theme.colorScheme.onPrimary,
-                        ),
-                      ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+            flexibleSpace: LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                var top = constraints.biggest.height;
+                var isCollapsed = top <= kToolbarHeight + MediaQuery.of(context).padding.top + 20;
+
+                return FlexibleSpaceBar(
+                  centerTitle: true,
+                  titlePadding: const EdgeInsets.only(bottom: 16),
+                  expandedTitleScale: 1.0,
+                  title: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: isCollapsed ? 1.0 : 0.0,
+                    child: Text(
+                      loteAtual.nome,
+                      style: TextStyle(
+                        color: theme.colorScheme.onPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
                     ),
-                    Positioned(
-                      bottom: 30,
-                      left: 20,
-                      right: 80,
+                  ),
+                  background: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          theme.colorScheme.primary,
+                          theme.colorScheme.primary.withValues(alpha: 0.8),
+                        ],
+                      ),
+                    ),
+                    child: SafeArea(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          const SizedBox(height: 10),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.onPrimary.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              loteAtual.tipo,
-                              style: TextStyle(
-                                color: theme.colorScheme.onPrimary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
+                              color: theme.colorScheme.onPrimary.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: theme.colorScheme.onPrimary.withValues(alpha: 0.5),
+                                width: 2,
                               ),
                             ),
-                          ),
+                            child: Icon(
+                              IconesApp.lote,
+                              size: 48,
+                              color: theme.colorScheme.onPrimary,
+                            ),
+                          ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+                          const SizedBox(height: 16),
+                          Text(
+                            loteAtual.nome,
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onPrimary,
+                            ),
+                          ).animate().fadeIn(delay: 200.ms),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+                                ),
+                                child: Text(
+                                  loteAtual.tipo,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ).animate().fadeIn(delay: 300.ms),
                           if (loteAtual.descricao.isNotEmpty) ...[
                             const SizedBox(height: 8),
-                            Text(
-                              loteAtual.descricao,
-                              style: TextStyle(
-                                color: theme.colorScheme.onPrimary.withValues(alpha: 0.9),
-                                fontSize: 14,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 32),
+                              child: Text(
+                                loteAtual.descricao,
+                                style: TextStyle(
+                                  color: theme.colorScheme.onPrimary.withValues(alpha: 0.9),
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            ).animate().fadeIn(delay: 350.ms),
                           ],
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           ),
           SliverPadding(

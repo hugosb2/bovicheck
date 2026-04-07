@@ -108,6 +108,7 @@ class _TelaDashboardState extends State<TelaDashboard> {
               pinned: true,
               expandedHeight: 140,
               backgroundColor: corAppBarBg,
+              foregroundColor: corElementos,
               iconTheme: IconThemeData(color: corElementos),
               surfaceTintColor: Colors.transparent,
               flexibleSpace: FlexibleSpaceBar(

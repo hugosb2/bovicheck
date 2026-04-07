@@ -377,8 +377,8 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
                       Expanded(
                         child: _CardMetricaSimples(
                           label: 'Pesagens',
-                          valor: '${provedor.animais.length} registros',
-                          meta: 'Total cadastrado',
+                          valor: '${_todasPesagens.length} registros',
+                          meta: 'Total registrado',
                           status: _Status.neutro,
                           icone: Icons.monitor_weight,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoPesagem())),
@@ -387,12 +387,12 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: _CardMetricaSimples(
-                          label: 'Leite / Dia',
-                          valor: '${calc.mediaLeiteDia.toStringAsFixed(1)} L',
-                          meta: 'Média Vaca',
+                          label: 'Eventos Reprod.',
+                          valor: '${_todosEventosReprodutivos.length} eventos',
+                          meta: 'Total registrado',
                           status: _Status.neutro,
-                          icone: Icons.water_drop,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoLeite())),
+                          icone: Icons.favorite_border,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoReproducao())),
                         ),
                       ),
                     ],

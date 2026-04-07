@@ -7,6 +7,7 @@ import '../../modelos/propriedade.dart';
 import '../../servicos/banco_dados_servico.dart';
 import '../4_dashboard/tela_dashboard.dart';
 import 'form_dados_fazenda.dart';
+import '../../estilos/tema.dart';
 
 class TelaGerenciarFazendas extends StatelessWidget {
   const TelaGerenciarFazendas({super.key});
@@ -20,10 +21,7 @@ class TelaGerenciarFazendas extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Minhas Fazendas'),
-        centerTitle: false,
-      ),
+      appBar: const AppBarPadrao(titulo: 'Minhas Fazendas'),
       body: fazendas.isEmpty
           ? _estadoVazio(context, theme)
           : ListView.builder(

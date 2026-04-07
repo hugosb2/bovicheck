@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-
+import 'tema.dart';
 class TelaPadrao extends StatefulWidget {
   final String titulo;
   final Widget corpo;
@@ -32,15 +32,9 @@ class _TelaPadraoState extends State<TelaPadrao> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: Text(
-          widget.titulo,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
+      appBar: AppBarPadrao(
+        titulo: widget.titulo,
+        corFundo: corPrimaria,
         actions: widget.actions,
       ),
       body: SingleChildScrollView(
@@ -52,13 +46,16 @@ class _TelaPadraoState extends State<TelaPadrao> {
   }
 }
 
-class CartaoPadrao extends StatelessWidget {
+// NOTE: Este arquivo é legado. Os componentes abaixo existem também em tema.dart.
+// Para novos usos, importe tema.dart. As classes aqui foram renomeadas para evitar ambiguidade.
+
+class _CartaoPadraoLegado extends StatelessWidget {
   final Widget child;
   final EdgeInsets? padding;
   final Color? corFundo;
   final VoidCallback? onTap;
 
-  const CartaoPadrao({
+  const _CartaoPadraoLegado({
     super.key,
     required this.child,
     this.padding,
@@ -91,12 +88,12 @@ class CartaoPadrao extends StatelessWidget {
   }
 }
 
-class SecaoTitulo extends StatelessWidget {
+class _SecaoTituloLegado extends StatelessWidget {
   final String texto;
   final IconData? icone;
   final Color? cor;
 
-  const SecaoTitulo({super.key, required this.texto, this.icone, this.cor});
+  const _SecaoTituloLegado({super.key, required this.texto, this.icone, this.cor});
 
   @override
   Widget build(BuildContext context) {
@@ -427,14 +424,14 @@ class SecaoCard extends StatelessWidget {
 // APPBAR PADRÃO (Simples)
 // ============================================================================
 
-class AppBarPadrao extends StatelessWidget implements PreferredSizeWidget {
+class _AppBarPadraoLegado extends StatelessWidget implements PreferredSizeWidget {
   final String titulo;
   final List<Widget>? actions;
   final bool centerTitle;
   final Widget? leading;
   final double elevation;
 
-  const AppBarPadrao({
+  const _AppBarPadraoLegado({
     super.key,
     required this.titulo,
     this.actions,

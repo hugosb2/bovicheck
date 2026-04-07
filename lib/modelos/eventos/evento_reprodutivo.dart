@@ -33,7 +33,7 @@ class EventoReprodutivo {
       'observacao': observacao,
       'progenieId': progenieId,
       'dataPrevistaParto': dataPrevistaParto?.toIso8601String(),
-      'isPrimeiroParto': isPrimeiroParto,
+      'isPrimeiroParto': isPrimeiroParto ? 1 : 0,
     };
   }
 
@@ -49,7 +49,7 @@ class EventoReprodutivo {
       dataPrevistaParto: map['dataPrevistaParto'] != null
           ? DateTime.parse(map['dataPrevistaParto'])
           : null,
-      isPrimeiroParto: map['isPrimeiroParto'] ?? false,
+      isPrimeiroParto: map['isPrimeiroParto'] == 1 || map['isPrimeiroParto'] == true,
     );
   }
 }
