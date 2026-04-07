@@ -23,7 +23,6 @@
 - [Requisitos](#-requisitos)
 - [Instalação](#-instalação)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
-- [Testes](#-testes)
 - [Licença](#-licença)
 
 ---
@@ -50,7 +49,6 @@ O **BoviCheck** é uma solução completa desenvolvida em Flutter para gestão d
 - Análise inteligente com IA (Powered by Gemini)
 - Indicadores globais e por lote
 - Gráficos de evolução temporal
-- Ações rápidas para navegação
 
 ### 🐄 Gestão de Animais
 - **Cadastro completo** de animais com dados básicos
@@ -58,7 +56,7 @@ O **BoviCheck** é uma solução completa desenvolvida em Flutter para gestão d
 - **Registros de saúde** (vacinas, medicamentos)
 - **Controle reprodutivo** (cios, inseminações, partos)
 - **Produção de leite** (registro diário com período)
-- **Análise individual** de desempenho por animal
+- **Análise individual** de desempenho
 
 ### 📊 Indicadores Zootécnicos
 - Taxa de Natalidade
@@ -74,7 +72,6 @@ O **BoviCheck** é uma solução completa desenvolvida em Flutter para gestão d
 - Criação e gerenciamento de lotes
 - Associação de animais a lotes
 - Capacidade e área do lote
-- Sistema de produção
 
 ### 📝 Formulários de Registro
 - Pesagem
@@ -85,9 +82,8 @@ O **BoviCheck** é uma solução completa desenvolvida em Flutter para gestão d
 
 ### ⚙️ Configurações
 - **Temas**: Claro, Escuro ou Sistema
-- **Cores dinâmicas**: Adaptação automática (Android 12+)
+- **Cores dinâmicas**: Adaptação automática
 - **Backup e Restauração**: Proteção dos dados
-- **Dados da propriedade**
 
 ---
 
@@ -107,12 +103,9 @@ O **BoviCheck** é uma solução completa desenvolvida em Flutter para gestão d
 | Animações | `flutter_animate` | ^4.5.2 |
 | Arquivos | `file_picker` | ^8.1.7 |
 | Compartilhamento | `share_plus` | ^10.1.4 |
-| Localização | `url_launcher` | ^6.3.1 |
-| Autenticação | `local_auth` | ^2.3.0 |
 | UUID | `uuid` | ^4.5.1 |
 | Preferências | `shared_preferences` | ^2.5.2 |
 | Internacionalização | `intl` | ^0.20.2 |
-| Markdown | `flutter_markdown` | ^0.7.5 |
 
 ---
 
@@ -151,13 +144,12 @@ Para habilitar o recurso de IA Consultant, edite o arquivo `lib/servicos/configu
 ```dart
 class Configuracao {
   static const String geminiApiKey = 'SUA_CHAVE_AQUI';
-  // ...
 }
 ```
 
 Obtenha sua chave em: https://aistudio.google.com/app/apikey
 
-### 4. Build/release
+### 4. Build
 
 ```bash
 # Debug APK
@@ -191,9 +183,8 @@ bovicheck/
 │   │   └── provedor_tema.dart
 │   ├── servicos/                    # Serviços
 │   │   ├── banco_dados_servico.dart
-│   │   ├── preferencias_usuario.dart
-│   │   ├── ia_gemini_cliente.dart
-│   │   └── dados_teste_servico.dart
+│   │   ├── configuracao.dart
+│   │   └── ia_gemini_cliente.dart
 │   ├── estilos/                     # Estilos e temas
 │   │   ├── tema.dart
 │   │   ├── cores.dart
@@ -211,34 +202,9 @@ bovicheck/
 │       └── 11_configuracoes/
 ├── assets/
 │   └── icons/
-├── test/                           # Testes automatizados
 ├── pubspec.yaml
 └── README.md
 ```
-
----
-
-## 🧪 Testes
-
-O projeto possui testes automatizados para validação dos modelos de dados e compatibilidade com o banco de dados.
-
-```bash
-# Executar todos os testes
-flutter test
-
-# Executar testes específicos
-flutter test test/modelos_test.dart
-flutter test test/consistencia_test.dart
-flutter test test/compatibilidade_test.dart
-```
-
-### Testes Disponíveis
-
-| Arquivo | Descrição |
-|---------|-----------|
-| `modelos_test.dart` | Testes unitários dos modelos (Animal, Pesagem, ProducaoLeite, Abate, EventoReprodutivo) |
-| `consistencia_test.dart` | Validação de consistência entre modelos e banco de dados |
-| `compatibilidade_test.dart` | Testes de compatibilidade de tipos de dados |
 
 ---
 
@@ -247,8 +213,8 @@ flutter test test/compatibilidade_test.dart
 ### Primeiros Passos
 
 1. **Abrir o aplicativo**
-   - Na primeira execução, dados de teste são inseridos automaticamente
-   - Você pode explorar todas as funcionalidades imediatamente
+   - Na primeira execução, configure uma nova fazenda
+   - Comece a cadastrar seus animais e lotes
 
 2. **Dashboard**
    - Visualize estatísticas gerais do rebanho
@@ -275,15 +241,6 @@ flutter test test/compatibilidade_test.dart
    - Visualização de índices zootécnicos
    - Histórico de indicadores
    - Gráficos de evolução
-
-### Dados de Teste
-
-Na primeira execução, o app insere automaticamente:
-
-- 1 fazenda (Fazenda Boa Vista)
-- 2 lotes (Cria, Recria)
-- 10 animais (7 fêmeas, 3 machos)
-- Registros de pesagem, produção de leite, eventos reprodutivos e sanitários
 
 ---
 
