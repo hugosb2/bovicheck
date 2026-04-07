@@ -5,7 +5,7 @@ class EventoSanitario {
   final String animalId;
   final DateTime data;
   final String tipo;
-  final String nomeProduto;
+  final String? nomeMedicamento;
   final String? observacao;
 
   EventoSanitario({
@@ -13,7 +13,7 @@ class EventoSanitario {
     required this.animalId,
     required this.data,
     required this.tipo,
-    required this.nomeProduto,
+    this.nomeMedicamento,
     this.observacao,
   }) : id = id ?? const Uuid().v4();
 
@@ -23,7 +23,7 @@ class EventoSanitario {
       'animalId': animalId,
       'data': data.toIso8601String(),
       'tipo': tipo,
-      'nomeProduto': nomeProduto,
+      'nomeMedicamento': nomeMedicamento,
       'observacao': observacao,
     };
   }
@@ -34,7 +34,7 @@ class EventoSanitario {
       animalId: map['animalId'] ?? '',
       data: DateTime.parse(map['data']),
       tipo: map['tipo'] ?? 'Outro',
-      nomeProduto: map['nomeProduto'] ?? '',
+      nomeMedicamento: map['nomeMedicamento'] ?? '',
       observacao: map['observacao'],
     );
   }

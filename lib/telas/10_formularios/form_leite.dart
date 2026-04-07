@@ -21,20 +21,23 @@ class _FormLeiteState extends State<FormLeite> {
   final _litrosController = TextEditingController();
   final _obsController = TextEditingController();
   final _dataController = TextEditingController();
-  
+
   late ScrollController _scrollController;
   bool _isCollapsed = false;
 
   late DateTime _dataSelecionada;
   String? _animalIdSelecionado;
+  String _periodoSelecionado = 'Manhã';
   bool _salvando = false;
+
+  final List<String> _periodos = ['Manhã', 'Tarde', 'Noite'];
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_scrollListener);
-    
+
     _dataSelecionada = DateTime.now();
     _dataController.text = DateFormat('dd/MM/yyyy').format(_dataSelecionada);
 
@@ -80,9 +83,9 @@ class _FormLeiteState extends State<FormLeite> {
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
     if (_animalIdSelecionado == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecione um animal'))
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Selecione um animal')));
       return;
     }
 
@@ -95,6 +98,7 @@ class _FormLeiteState extends State<FormLeite> {
         animalId: _animalIdSelecionado!,
         data: _dataSelecionada,
         litros: litros,
+        periodo: _periodoSelecionado,
         observacao: _obsController.text.isEmpty ? null : _obsController.text,
       );
 
@@ -130,10 +134,12 @@ class _FormLeiteState extends State<FormLeite> {
     final provedor = context.watch<ProvedorFazenda>();
     final femeas = provedor.animais.where((a) => a.sexo == 'F').toList();
 
-    final Color corAppBarBg =
-        _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
-    final Color corElementos =
-        _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
+    final Color corAppBarBg = _isCollapsed
+        ? theme.colorScheme.primary
+        : theme.colorScheme.surface;
+    final Color corElementos = _isCollapsed
+        ? theme.colorScheme.onPrimary
+        : theme.colorScheme.primary;
     final EdgeInsets paddingTitulo = _isCollapsed
         ? const EdgeInsets.only(left: 72, bottom: 16)
         : const EdgeInsets.only(left: 16, bottom: 16);
@@ -171,7 +177,9 @@ class _FormLeiteState extends State<FormLeite> {
                     height: 20,
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surface,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
                     ),
                   ),
                 ),
@@ -189,7 +197,7 @@ class _FormLeiteState extends State<FormLeite> {
                     children: [
                       _secaoTitulo('Data'),
                       const SizedBox(height: 12),
-                      
+
                       TextFormField(
                         controller: _dataController,
                         readOnly: true,
@@ -199,7 +207,7 @@ class _FormLeiteState extends State<FormLeite> {
                         ),
                         onTap: _selecionarData,
                       ),
-                      
+
                       const SizedBox(height: 24),
                       _secaoTitulo('Animal'),
                       const SizedBox(height: 12),
@@ -212,21 +220,31 @@ class _FormLeiteState extends State<FormLeite> {
                             prefixIcon: Icon(IconesApp.animal),
                           ),
                           items: femeas
-                              .map((a) => DropdownMenuItem(value: a.id, child: Text(a.brinco)))
+                              .map(
+                                (a) => DropdownMenuItem(
+                                  value: a.id,
+                                  child: Text(a.brinco),
+                                ),
+                              )
                               .toList(),
-                          onChanged: (v) => setState(() => _animalIdSelecionado = v),
+                          onChanged: (v) =>
+                              setState(() => _animalIdSelecionado = v),
                           validator: (v) => v == null ? 'Obrigatório' : null,
                         )
                       else
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                            color: theme.colorScheme.primaryContainer
+                                .withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             children: [
-                              Icon(IconesApp.animal, color: theme.colorScheme.primary),
+                              Icon(
+                                IconesApp.animal,
+                                color: theme.colorScheme.primary,
+                              ),
                               const SizedBox(width: 12),
                               Text(
                                 widget.animalPreSelecionado!.brinco,
@@ -247,12 +265,31 @@ class _FormLeiteState extends State<FormLeite> {
                           prefixIcon: Icon(IconesApp.leite),
                           suffixText: 'L',
                         ),
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         validator: (v) {
                           if (v!.isEmpty) return 'Obrigatório';
-                          if (double.tryParse(v.replaceAll(',', '.')) == null) return 'Inválido';
+                          if (double.tryParse(v.replaceAll(',', '.')) == null)
+                            return 'Inválido';
                           return null;
                         },
+                      ),
+                      const SizedBox(height: 16),
+
+                      DropdownButtonFormField<String>(
+                        value: _periodoSelecionado,
+                        decoration: const InputDecoration(
+                          labelText: 'Período',
+                          prefixIcon: Icon(Icons.schedule),
+                        ),
+                        items: _periodos
+                            .map(
+                              (p) => DropdownMenuItem(value: p, child: Text(p)),
+                            )
+                            .toList(),
+                        onChanged: (v) =>
+                            setState(() => _periodoSelecionado = v!),
                       ),
                       const SizedBox(height: 16),
 
@@ -273,7 +310,9 @@ class _FormLeiteState extends State<FormLeite> {
                         child: FilledButton(
                           onPressed: _salvando ? null : _salvar,
                           child: _salvando
-                              ? const CircularProgressIndicator(color: Colors.white)
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
                               : Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -284,7 +323,7 @@ class _FormLeiteState extends State<FormLeite> {
                                 ),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 50),
                     ],
                   ),

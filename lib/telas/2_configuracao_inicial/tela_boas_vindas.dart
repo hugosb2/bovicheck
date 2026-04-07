@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'tela_selecionar_fazenda.dart';
+import 'tela_restaurar.dart';
 
 class TelaBoasVindas extends StatefulWidget {
   const TelaBoasVindas({super.key});
@@ -68,36 +69,38 @@ class _TelaBoasVindasState extends State<TelaBoasVindas>
                 const Spacer(flex: 2),
 
                 Container(
-                  width: 180,
-                  height: 180,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(45),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF4CAF50).withValues(alpha: 0.3 + (_gradientController.value * 0.4)),
-                        blurRadius: 30 + (_gradientController.value * 20),
-                        spreadRadius: 5,
+                      width: 180,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(45),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF4CAF50).withValues(
+                              alpha: 0.3 + (_gradientController.value * 0.4),
+                            ),
+                            blurRadius: 30 + (_gradientController.value * 20),
+                            spreadRadius: 5,
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 40,
+                            offset: const Offset(0, 20),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          width: 2,
+                        ),
                       ),
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 40,
-                        offset: const Offset(0, 20),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(43),
+                        child: Image.asset(
+                          'assets/icon.png',
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    ],
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      width: 2,
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(43),
-                    child: Image.asset(
-                      'assets/icon.png',
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                )
+                    )
                     .animate(onPlay: (c) => c.repeat())
                     .scale(duration: 1000.ms, curve: Curves.elasticOut)
                     .then()
@@ -173,11 +176,42 @@ class _TelaBoasVindasState extends State<TelaBoasVindas>
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.arrow_forward, color: Color(0xFF2E7D32)),
+                        const Icon(
+                          Icons.arrow_forward,
+                          color: Color(0xFF2E7D32),
+                        ),
                       ],
                     ),
                   ),
                 ).animate().fadeIn(delay: 800.ms).slideY(begin: 0.3, end: 0),
+
+                const SizedBox(height: 16),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const TelaRestaurar(),
+                        ),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.5),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    icon: const Icon(Icons.cloud_download_outlined),
+                    label: const Text('RESTAURAR BACKUP'),
+                  ),
+                ).animate().fadeIn(delay: 900.ms),
 
                 const Spacer(),
               ],

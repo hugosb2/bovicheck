@@ -1,35 +1,14 @@
-import 'dart:convert';
-// import 'package:google_generative_ai/google_generative_ai.dart';
-// OBS: Descomentar acima se adicionar o package 'google_generative_ai'
+import 'configuracao.dart';
 
 class IAGeminiCliente {
-  static const String _apiKey = "SUA_API_KEY_AQUI";
-  static const String _modeloId = "gemini-2.5-flash";
-
-  // --- Métodos do Diagrama de Classes ---
-
   /// Analisa os dados gerais do rebanho e retorna insights em Markdown.
   Future<String> analisarRebanho(Map<String, dynamic> dadosRebanho) async {
     try {
-      if (_apiKey == "SUA_API_KEY_AQUI") {
-        return "⚠️ Configuração Pendente: Adicione sua API Key do Google Gemini no arquivo `ia_gemini_cliente.dart`.";
+      if (!Configuracao.temApiKey) {
+        return "⚠️ Configuração Pendente: Adicione sua API Key do Google Gemini no arquivo `configuracao.dart`.";
       }
 
       await Future.delayed(const Duration(seconds: 2));
-
-      final jsonDados = jsonEncode(dadosRebanho);
-      final prompt = '''
-        Atue como um veterinário e consultor zootécnico especialista.
-        Analise os seguintes dados brutos de uma fazenda de gado:
-        $jsonDados
-        
-        Forneça um relatório conciso em Markdown com:
-        1. **Diagnóstico Geral**: Situação atual do rebanho.
-        2. **Pontos de Atenção**: Índices que estão ruins (ex: alta mortalidade, baixo ganho de peso).
-        3. **Recomendações Práticas**: 3 ações imediatas para o produtor.
-        
-        Seja direto e use emojis para facilitar a leitura.
-      ''';
 
       return '''
 ### 🩺 Diagnóstico Veterinário IA
@@ -53,7 +32,7 @@ Baseado nos dados fornecidos (${dadosRebanho['totalAnimais']} animais), o rebanh
   /// Gera insights específicos sobre pesagens de um animal.
   Future<String> gerarInsightsPesagem(Map<String, dynamic> dadosAnimal) async {
     try {
-      if (_apiKey == "SUA_API_KEY_AQUI") {
+      if (!Configuracao.temApiKey) {
         return "⚠️ Configuração Pendente: Adicione sua API Key do Google Gemini.";
       }
 
@@ -67,7 +46,8 @@ Baseado nos dados fornecidos (${dadosRebanho['totalAnimais']} animais), o rebanh
 * **GMD atual**: ${gmd.toStringAsFixed(3)} kg/dia
 * **Avaliação**: ${gmd >= 0.6 ? '✅ Ganho satisfatório.' : '⚠️ Ganho abaixo do esperado.'}
 * **Recomendação**: ${gmd < 0.6 ? 'Revisar dieta e suplementação.' : 'Manter manejo atual.'}
-      '''.trim();
+      '''
+          .trim();
     } catch (e) {
       return "Erro ao gerar insights: $e";
     }
@@ -75,9 +55,11 @@ Baseado nos dados fornecidos (${dadosRebanho['totalAnimais']} animais), o rebanh
 
   /// Responde a uma mensagem de chat no contexto de consultoria zootécnica.
   Future<String> chatConsultor(
-      String mensagem, Map<String, dynamic> contexto) async {
+    String mensagem,
+    Map<String, dynamic> contexto,
+  ) async {
     try {
-      if (_apiKey == "SUA_API_KEY_AQUI") {
+      if (!Configuracao.temApiKey) {
         return "⚠️ Configuração Pendente: Adicione sua API Key do Google Gemini.";
       }
 
@@ -89,10 +71,10 @@ Baseado nos dados fornecidos (${dadosRebanho['totalAnimais']} animais), o rebanh
 Com base nos dados da fazenda (${contexto['nomeFazenda'] ?? 'informada'}), avaliando ${contexto['totalAnimais'] ?? 0} animais:
 
 > Esta é uma resposta simulada. Integre a API Key real do Gemini para obter respostas precisas.
-      '''.trim();
+      '''
+          .trim();
     } catch (e) {
       return "Erro no chat: $e";
     }
   }
 }
-

@@ -48,7 +48,7 @@ class Propriedade {
     );
   }
 
-  /// Gera um sumário textual do relatório geral (substitui PDF nativo do Dart).
+  /// Gera um sumário textual do relatório geral .
   String gerarRelatorioGeral(List<Animal> animais, List<Lote> lotes) {
     final total = getTotalAnimais(animais);
     final natal = calcularNatalidadeGlobal(animais);
@@ -60,7 +60,8 @@ Total de Animais: $total
 Lotes: ${lotes.length}
 Natalidade Global: ${natal.toStringAsFixed(1)}%
 Mortalidade Global: ${mort.toStringAsFixed(1)}%
-    '''.trim();
+    '''
+        .trim();
   }
 
   /// Retorna o total de animais ativos.
@@ -73,10 +74,12 @@ Mortalidade Global: ${mort.toStringAsFixed(1)}%
     final femeas = animais.where((a) => a.sexo == 'F' && a.isAtivo).length;
     if (femeas == 0) return 0.0;
     final bezerros = animais
-        .where((a) =>
-            a.isAtivo &&
-            (a.categoria.toLowerCase() == 'bezerro' ||
-                a.categoria.toLowerCase() == 'bezerra'))
+        .where(
+          (a) =>
+              a.isAtivo &&
+              (a.categoria.toLowerCase() == 'bezerro' ||
+                  a.categoria.toLowerCase() == 'bezerra'),
+        )
         .length;
     return (bezerros / femeas) * 100;
   }
@@ -96,10 +99,12 @@ Mortalidade Global: ${mort.toStringAsFixed(1)}%
       alertas.add('⚠️ Alta mortalidade: ${mortalidade.toStringAsFixed(1)}%');
     }
     final bezerros = animais
-        .where((a) =>
-            a.isAtivo &&
-            (a.categoria.toLowerCase() == 'bezerro' ||
-                a.categoria.toLowerCase() == 'bezerra'))
+        .where(
+          (a) =>
+              a.isAtivo &&
+              (a.categoria.toLowerCase() == 'bezerro' ||
+                  a.categoria.toLowerCase() == 'bezerra'),
+        )
         .length;
     if (bezerros > 0) {
       alertas.add('💉 Verifique vacinação dos $bezerros bezerros(as).');
@@ -146,4 +151,3 @@ Mortalidade Global: ${mort.toStringAsFixed(1)}%
     );
   }
 }
-

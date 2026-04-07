@@ -48,7 +48,8 @@ class Animal {
   /// Retorna a idade do animal em meses completos.
   int calcularIdadeMeses() {
     final hoje = DateTime.now();
-    final meses = (hoje.year - dataNascimento.year) * 12 +
+    final meses =
+        (hoje.year - dataNascimento.year) * 12 +
         (hoje.month - dataNascimento.month);
     return meses > 0 ? meses : 0;
   }
@@ -66,18 +67,42 @@ class Animal {
     return pesoAtualKg / dias;
   }
 
-  /// Calcula o Intervalo Entre Partos (IEP) em dias.
-  /// Retorna 0 se o animal não for fêmea ou não tiver dados reprodutivos.
-  int calcularIEP() {
-    // Lógica base; o valor real depende dos eventos reprodutivos do animal.
-    return 0;
+  /// Calcula o Intervalo Médio Entre Partos (IEP) em meses para esta fêmea.
+  /// Recebe a lista completa de eventos reprodutivos do rebanho e filtra
+  /// apenas os partos deste animal. Requer pelo menos 2 partos.
+  double calcularIEP(List<dynamic> eventosReprodutivos) {
+    if (sexo != 'F') return 0.0;
+    final partos =
+        eventosReprodutivos
+            .where((e) => e.animalId == id && e.tipo == 'Parto')
+            .toList()
+          ..sort((a, b) => a.data.compareTo(b.data));
+    if (partos.length < 2) return 0.0;
+
+    List<int> intervalosDias = [];
+    for (int i = 0; i < partos.length - 1; i++) {
+      final diff = partos[i + 1].data.difference(partos[i].data).inDays;
+      if (diff > 250) intervalosDias.add(diff);
+    }
+    if (intervalosDias.isEmpty) return 0.0;
+    return (intervalosDias.reduce((a, b) => a + b) / intervalosDias.length) /
+        30.44;
   }
 
-  /// Estima a idade do primeiro parto em meses para fêmeas.
-  /// Padrão de referência para bovinos de corte: ~24 meses.
-  int estimarIdadePrimeiroParto() {
-    if (sexo != 'F') return 0;
-    return 24; // média padrão em meses
+  /// Calcula a idade do primeiro parto em meses para fêmeas,
+  /// baseado nos eventos reprodutivos reais. Retorna 0 se não houver partos.
+  double estimarIdadePrimeiroParto(List<dynamic> eventosReprodutivos) {
+    if (sexo != 'F') return 0.0;
+    final partos =
+        eventosReprodutivos
+            .where((e) => e.animalId == id && e.tipo == 'Parto')
+            .toList()
+          ..sort((a, b) => a.data.compareTo(b.data));
+    if (partos.isEmpty) return 0.0;
+
+    final idadeDias = partos.first.data.difference(dataNascimento).inDays;
+    if (idadeDias <= 0) return 0.0;
+    return idadeDias / 30.44;
   }
 
   /// Registra o óbito do animal, retornando uma cópia atualizada.
@@ -120,9 +145,15 @@ class Animal {
   /// Retorna o peso atual do animal (último registrado).
   double getUltimoPeso() => pesoAtualKg;
 
-  /// Retorna a última produção de leite registrada.
-  /// Requer integração com o banco de dados; retorna 0.0 por padrão.
-  double getUltimaProducao() => 0.0;
+  /// Retorna a última produção de leite registrada (em litros).
+  /// Recebe a lista de registros de produção e filtra pelo animal.
+  double getUltimaProducao(List<dynamic> producoes) {
+    if (producoes.isEmpty) return 0.0;
+    final minhas = producoes.where((p) => p.animalId == id).toList()
+      ..sort((a, b) => b.data.compareTo(a.data));
+    if (minhas.isEmpty) return 0.0;
+    return minhas.first.litros;
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -161,15 +192,17 @@ class Animal {
       categoria: map['categoria'] ?? 'Indefinido',
       dataNascimento: DateTime.parse(map['dataNascimento']),
       pesoAtualKg: (map['pesoAtualKg'] as num?)?.toDouble() ?? 0.0,
-      dataObito:
-          map['dataObito'] != null ? DateTime.parse(map['dataObito']) : null,
+      dataObito: map['dataObito'] != null
+          ? DateTime.parse(map['dataObito'])
+          : null,
       isAtivo: map['isAtivo'] == 1,
       status: map['status'] ?? 'Ativo',
       causaObito: map['causaObito'],
       paiId: map['paiId'],
       maeId: map['maeId'],
-      dataSaida:
-          map['dataSaida'] != null ? DateTime.parse(map['dataSaida']) : null,
+      dataSaida: map['dataSaida'] != null
+          ? DateTime.parse(map['dataSaida'])
+          : null,
       motivoSaida: map['motivoSaida'],
       pesoVendaKg: (map['pesoVendaKg'] as num?)?.toDouble(),
       valorVenda: (map['valorVenda'] as num?)?.toDouble(),

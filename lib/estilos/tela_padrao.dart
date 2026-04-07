@@ -24,97 +24,29 @@ class TelaPadrao extends StatefulWidget {
 }
 
 class _TelaPadraoState extends State<TelaPadrao> {
-  late ScrollController _scrollController;
-  bool _isCollapsed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_scrollListener);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_scrollListener);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _scrollListener() {
-    if (widget.usaScrollAnimado && _scrollController.hasClients) {
-      bool deveColapsar = _scrollController.offset > 90;
-      if (deveColapsar != _isCollapsed) {
-        setState(() => _isCollapsed = deveColapsar);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final corPrimaria = widget.corPrimariaPersonalizada ?? theme.colorScheme.primary;
-
-    final Color corAppBarBg = _isCollapsed ? corPrimaria : theme.colorScheme.surface;
-    final Color corElementos = _isCollapsed ? theme.colorScheme.onPrimary : corPrimaria;
-    
-    final EdgeInsets paddingTitulo = _isCollapsed
-        ? const EdgeInsets.only(left: 72, bottom: 16)
-        : const EdgeInsets.only(left: 16, bottom: 16);
+    final corPrimaria =
+        widget.corPrimariaPersonalizada ?? theme.colorScheme.primary;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      body: widget.usaScrollAnimado
-          ? CustomScrollView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverAppBar(
-                  pinned: true,
-                  expandedHeight: 140,
-                  backgroundColor: corAppBarBg,
-                  foregroundColor: corElementos,
-                  iconTheme: IconThemeData(color: corElementos),
-                  surfaceTintColor: Colors.transparent,
-                  actions: widget.actions,
-                  flexibleSpace: FlexibleSpaceBar(
-                    centerTitle: false,
-                    titlePadding: paddingTitulo,
-                    expandedTitleScale: 1.6,
-                    title: AnimatedDefaultTextStyle(
-                      duration: const Duration(milliseconds: 200),
-                      style: TextStyle(
-                        color: corElementos,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        fontFamily: 'Roboto',
-                      ),
-                      child: Text(widget.titulo),
-                    ),
-                    background: Container(
-                      color: theme.colorScheme.surface,
-                      child: Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Container(
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.all(16),
-                  sliver: SliverToBoxAdapter(child: widget.corpo),
-                ),
-                if (widget.floatingActionButton != null)
-                  const SliverToBoxAdapter(child: SizedBox(height: 80)),
-              ],
-            )
-          : widget.corpo,
+      appBar: AppBar(
+        title: Text(
+          widget.titulo,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        backgroundColor: Colors.green,
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: widget.actions,
+      ),
+      body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Padding(padding: const EdgeInsets.all(16), child: widget.corpo),
+      ),
       floatingActionButton: widget.floatingActionButton,
     );
   }
@@ -137,7 +69,7 @@ class CartaoPadrao extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       elevation: 0,
       color: corFundo ?? theme.colorScheme.surfaceContainerLow,
@@ -164,18 +96,13 @@ class SecaoTitulo extends StatelessWidget {
   final IconData? icone;
   final Color? cor;
 
-  const SecaoTitulo({
-    super.key,
-    required this.texto,
-    this.icone,
-    this.cor,
-  });
+  const SecaoTitulo({super.key, required this.texto, this.icone, this.cor});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final corSecao = cor ?? theme.colorScheme.primary;
-    
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, left: 4, top: 8),
       child: Row(
@@ -220,24 +147,24 @@ class CampoFormulario extends StatelessWidget {
         children: [
           Text(
             label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w500,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 8),
           child,
         ],
       );
     }
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.w500,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
         child,
@@ -314,15 +241,12 @@ class ItemLista extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return CartaoPadrao(
       onTap: onTap,
       child: Row(
         children: [
-          if (leading != null) ...[
-            leading!,
-            const SizedBox(width: 16),
-          ],
+          if (leading != null) ...[leading!, const SizedBox(width: 16)],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,7 +319,7 @@ class BadgeContador extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -431,7 +355,7 @@ class EstadoVazio extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -461,10 +385,7 @@ class EstadoVazio extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ],
-            if (botao != null) ...[
-              const SizedBox(height: 24),
-              botao!,
-            ],
+            if (botao != null) ...[const SizedBox(height: 24), botao!],
           ],
         ),
       ),
@@ -491,11 +412,55 @@ class SecaoCard extends StatelessWidget {
       children: [
         SecaoTitulo(texto: titulo),
         const SizedBox(height: 8),
-        ...filhos.map((filho) => Padding(
-          padding: padding ?? const EdgeInsets.only(bottom: 12),
-          child: filho,
-        )),
+        ...filhos.map(
+          (filho) => Padding(
+            padding: padding ?? const EdgeInsets.only(bottom: 12),
+            child: filho,
+          ),
+        ),
       ],
+    );
+  }
+}
+
+// ============================================================================
+// APPBAR PADRÃO (Simples)
+// ============================================================================
+
+class AppBarPadrao extends StatelessWidget implements PreferredSizeWidget {
+  final String titulo;
+  final List<Widget>? actions;
+  final bool centerTitle;
+  final Widget? leading;
+  final double elevation;
+
+  const AppBarPadrao({
+    super.key,
+    required this.titulo,
+    this.actions,
+    this.centerTitle = false,
+    this.leading,
+    this.elevation = 0,
+  });
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return AppBar(
+      title: Text(
+        titulo,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      ),
+      centerTitle: centerTitle,
+      backgroundColor: theme.colorScheme.primary,
+      foregroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      elevation: elevation,
+      actions: actions,
+      leading: leading,
     );
   }
 }

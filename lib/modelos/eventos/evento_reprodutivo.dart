@@ -7,6 +7,9 @@ class EventoReprodutivo {
   final String tipo;
   final String? resultado;
   final String? observacao;
+  final String? progenieId;
+  final DateTime? dataPrevistaParto;
+  final bool isPrimeiroParto;
 
   EventoReprodutivo({
     String? id,
@@ -15,6 +18,9 @@ class EventoReprodutivo {
     required this.tipo,
     this.resultado,
     this.observacao,
+    this.progenieId,
+    this.dataPrevistaParto,
+    this.isPrimeiroParto = false,
   }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toMap() {
@@ -25,6 +31,9 @@ class EventoReprodutivo {
       'tipo': tipo,
       'resultado': resultado,
       'observacao': observacao,
+      'progenieId': progenieId,
+      'dataPrevistaParto': dataPrevistaParto?.toIso8601String(),
+      'isPrimeiroParto': isPrimeiroParto,
     };
   }
 
@@ -36,6 +45,11 @@ class EventoReprodutivo {
       tipo: map['tipo'] ?? 'Desconhecido',
       resultado: map['resultado'],
       observacao: map['observacao'],
+      progenieId: map['progenieId'],
+      dataPrevistaParto: map['dataPrevistaParto'] != null
+          ? DateTime.parse(map['dataPrevistaParto'])
+          : null,
+      isPrimeiroParto: map['isPrimeiroParto'] ?? false,
     );
   }
 }

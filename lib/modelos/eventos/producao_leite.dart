@@ -6,6 +6,7 @@ class ProducaoLeite {
   final DateTime data;
   final double litros;
   final String? observacao;
+  final String periodo;
 
   ProducaoLeite({
     String? id,
@@ -13,6 +14,7 @@ class ProducaoLeite {
     required this.data,
     required this.litros,
     this.observacao,
+    this.periodo = 'Manhã',
   }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toMap() {
@@ -21,6 +23,7 @@ class ProducaoLeite {
       'animalId': animalId,
       'data': data.toIso8601String(),
       'litros': litros,
+      'periodo': periodo,
       'observacao': observacao,
     };
   }
@@ -31,6 +34,7 @@ class ProducaoLeite {
       animalId: map['animalId'] ?? '',
       data: DateTime.parse(map['data']),
       litros: (map['litros'] as num).toDouble(),
+      periodo: map['periodo'] ?? 'Manhã',
       observacao: map['observacao'],
     );
   }

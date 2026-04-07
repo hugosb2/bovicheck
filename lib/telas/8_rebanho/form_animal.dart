@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:intl/intl.dart';
 import '../../estilos/icones.dart';
 import '../../modelos/animal.dart';
 import '../../provedores/provedor_fazenda.dart';
@@ -16,14 +17,14 @@ class FormAnimal extends StatefulWidget {
 }
 
 class _FormAnimalState extends State<FormAnimal> {
-  final _formKey = GlobalKey<FormState>();
+  final _pageController = PageController();
+  int _etapaAtual = 0;
+  final int _totalEtapas = 3;
+
   final _brincoController = TextEditingController();
   final _nomeController = TextEditingController();
   final _racaController = TextEditingController();
   final _pesoController = TextEditingController();
-  
-  late ScrollController _scrollController;
-  bool _isCollapsed = false;
 
   String? _loteSelecionadoId;
   String _sexo = 'M';
@@ -31,14 +32,21 @@ class _FormAnimalState extends State<FormAnimal> {
   DateTime _dataNascimento = DateTime.now();
   bool _salvando = false;
 
-  final List<String> _categorias = ['Bezerro', 'Bezerra', 'Novilho', 'Novilha', 'Boi', 'Vaca', 'Touro', 'Outro'];
+  final List<String> _categorias = [
+    'Bezerro',
+    'Bezerra',
+    'Novilho',
+    'Novilha',
+    'Boi',
+    'Vaca',
+    'Touro',
+    'Outro',
+  ];
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_scrollListener);
-    
+
     if (widget.animalExistente != null) {
       final a = widget.animalExistente!;
       _brincoController.text = a.brinco;
@@ -54,8 +62,7 @@ class _FormAnimalState extends State<FormAnimal> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_scrollListener);
-    _scrollController.dispose();
+    _pageController.dispose();
     _brincoController.dispose();
     _nomeController.dispose();
     _racaController.dispose();
@@ -63,23 +70,60 @@ class _FormAnimalState extends State<FormAnimal> {
     super.dispose();
   }
 
-  void _scrollListener() {
-    if (_scrollController.hasClients) {
-      bool deveColapsar = _scrollController.offset > 90;
-      if (deveColapsar != _isCollapsed) {
-        setState(() => _isCollapsed = deveColapsar);
-      }
+  void _irParaEtapa(int etapa) {
+    setState(() => _etapaAtual = etapa);
+    _pageController.animateToPage(
+      etapa,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  bool _validarEtapaIdentificacao() {
+    if (_brincoController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preencha o número do brinco')),
+      );
+      return false;
+    }
+    if (_loteSelecionadoId == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Selecione um lote/pasto')));
+      return false;
+    }
+    return true;
+  }
+
+  bool _validarEtapaCaracteristicas() {
+    if (_racaController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preencha a raça do animal')),
+      );
+      return false;
+    }
+    return true;
+  }
+
+  void _proximaEtapa() {
+    if (_etapaAtual == 0 && !_validarEtapaIdentificacao()) return;
+    if (_etapaAtual == 1 && !_validarEtapaCaracteristicas()) return;
+    if (_etapaAtual < _totalEtapas - 1) {
+      _irParaEtapa(_etapaAtual + 1);
+    } else {
+      _salvar();
+    }
+  }
+
+  void _etapaAnterior() {
+    if (_etapaAtual > 0) {
+      _irParaEtapa(_etapaAtual - 1);
+    } else {
+      Navigator.pop(context);
     }
   }
 
   Future<void> _salvar() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_loteSelecionadoId == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Selecione um lote')));
-      return;
-    }
-
     setState(() => _salvando = true);
     final provedor = context.read<ProvedorFazenda>();
 
@@ -113,218 +157,681 @@ class _FormAnimalState extends State<FormAnimal> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(widget.animalExistente != null 
-                ? 'Animal atualizado com sucesso!' 
-                : 'Animal criado com sucesso!'),
+            content: Text(
+              widget.animalExistente != null
+                  ? 'Animal atualizado com sucesso!'
+                  : 'Animal criado com sucesso!',
+            ),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Erro: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro: $e')));
       }
     } finally {
       if (mounted) setState(() => _salvando = false);
     }
   }
 
+  Future<void> _selecionarData() async {
+    final data = await showDatePicker(
+      context: context,
+      initialDate: _dataNascimento,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (data != null) {
+      setState(() => _dataNascimento = data);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final lotes = context.watch<ProvedorFazenda>().lotes;
     final isEdicao = widget.animalExistente != null;
 
-    final Color corAppBarBg =
-        _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
-    final Color corElementos =
-        _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
-    final EdgeInsets paddingTitulo = _isCollapsed
-        ? const EdgeInsets.only(left: 72, bottom: 16)
-        : const EdgeInsets.only(left: 16, bottom: 16);
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _etapaAnterior();
+      },
+      child: Scaffold(
+        backgroundColor: theme.colorScheme.surface,
+        appBar: AppBar(
+          backgroundColor: theme.colorScheme.surface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              _etapaAtual == 0 ? Icons.close : Icons.arrow_back,
+              color: theme.colorScheme.onSurface,
+            ),
+            onPressed: _etapaAnterior,
+          ),
+          title: Text(
+            isEdicao ? 'Editar Animal' : 'Novo Animal',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          centerTitle: true,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(80),
+            child: _buildBarraProgresso(theme),
+          ),
+        ),
+        body: PageView(
+          controller: _pageController,
+          physics: const NeverScrollableScrollPhysics(),
+          children: [
+            _PaginaIdentificacao(
+              brincoController: _brincoController,
+              nomeController: _nomeController,
+              loteSelecionadoId: _loteSelecionadoId,
+              onLoteChanged: (v) => setState(() => _loteSelecionadoId = v),
+              onChanged: () => setState(() {}),
+            ),
+            _PaginaCaracteristicas(
+              racaController: _racaController,
+              sexo: _sexo,
+              categoria: _categoria,
+              categorias: _categorias,
+              dataNascimento: _dataNascimento,
+              onSexoChanged: (v) => setState(() => _sexo = v),
+              onCategoriaChanged: (v) => setState(() => _categoria = v),
+              onDataNascimentoTap: _selecionarData,
+            ),
+            _PaginaConfirmacao(
+              pesoController: _pesoController,
+              brinco: _brincoController.text,
+              nome: _nomeController.text,
+              sexo: _sexo,
+              raca: _racaController.text,
+              categoria: _categoria,
+              dataNascimento: _dataNascimento,
+              loteSelecionadoId: _loteSelecionadoId,
+            ),
+          ],
+        ),
+        bottomNavigationBar: _buildBotoes(theme, isEdicao),
+      ),
+    );
+  }
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 140,
-            backgroundColor: corAppBarBg,
-            foregroundColor: corElementos,
-            iconTheme: IconThemeData(color: corElementos),
-            surfaceTintColor: Colors.transparent,
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: false,
-              titlePadding: paddingTitulo,
-              expandedTitleScale: 1.6,
-              title: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  color: corElementos,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
+  Widget _buildBarraProgresso(ThemeData theme) {
+    final titulos = ['Identificação', 'Características', 'Confirmação'];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+      child: Column(
+        children: [
+          Row(
+            children: List.generate(_totalEtapas, (i) {
+              final bool ativo = i <= _etapaAtual;
+              return Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        height: 4,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(2),
+                          color: ativo
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.outlineVariant,
+                        ),
+                      ),
+                    ),
+                    if (i < _totalEtapas - 1) const SizedBox(width: 6),
+                  ],
                 ),
-                child: Text(isEdicao ? 'Editar Animal' : 'Novo Animal'),
-              ),
-              background: Container(
-                color: theme.colorScheme.surface,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              );
+            }),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(_totalEtapas, (i) {
+              final bool ativo = i <= _etapaAtual;
+              final bool atual = i == _etapaAtual;
+              return GestureDetector(
+                onTap: () {
+                  if (i < _etapaAtual) {
+                    _irParaEtapa(i);
+                  }
+                },
+                child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: atual ? FontWeight.bold : FontWeight.normal,
+                    color: atual
+                        ? theme.colorScheme.primary
+                        : ativo
+                        ? theme.colorScheme.onSurface
+                        : theme.colorScheme.outline,
+                  ),
+                  child: Text(titulos[i]),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBotoes(ThemeData theme, bool isEdicao) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        child: Row(
+          children: [
+            if (_etapaAtual > 0)
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: OutlinedButton.icon(
+                  onPressed: _etapaAnterior,
+                  icon: const Icon(Icons.arrow_back, size: 20),
+                  label: const Text('VOLTAR'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 56),
+                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                 ),
               ),
+            Expanded(
+              child: SizedBox(
+                height: 56,
+                child: FilledButton(
+                  onPressed: _salvando ? null : _proximaEtapa,
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: _salvando
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _etapaAtual == _totalEtapas - 1
+                                  ? IconesApp.salvar
+                                  : Icons.arrow_forward,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _etapaAtual == _totalEtapas - 1
+                                  ? (isEdicao
+                                        ? 'SALVAR ALTERAÇÕES'
+                                        : 'CADASTRAR ANIMAL')
+                                  : 'PRÓXIMO',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// PÁGINA 1 — IDENTIFICAÇÃO
+// ============================================================================
+
+class _PaginaIdentificacao extends StatelessWidget {
+  final TextEditingController brincoController;
+  final TextEditingController nomeController;
+  final String? loteSelecionadoId;
+  final ValueChanged<String?> onLoteChanged;
+  final VoidCallback onChanged;
+
+  const _PaginaIdentificacao({
+    required this.brincoController,
+    required this.nomeController,
+    required this.loteSelecionadoId,
+    required this.onLoteChanged,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final lotes = context.watch<ProvedorFazenda>().lotes;
+    final completo =
+        brincoController.text.isNotEmpty && loteSelecionadoId != null;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Identificação do Animal',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
             ),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.all(20),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _secaoTitulo('Identificação'),
-                      const SizedBox(height: 12),
-                      
-                      TextFormField(
-                        controller: _brincoController,
-                        decoration: const InputDecoration(
-                          labelText: 'Brinco (Identificação)',
-                          prefixIcon: Icon(Icons.tag),
-                        ),
-                        validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
-                      ),
-                      const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          Text(
+            'Preencha os dados básicos de identificação',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 32),
 
-                      TextFormField(
-                        controller: _nomeController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nome (Opcional)',
-                          prefixIcon: Icon(Icons.text_fields),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+          TextFormField(
+            controller: brincoController,
+            onChanged: (_) => onChanged(),
+            decoration: InputDecoration(
+              labelText: 'Brinco (Identificação) *',
+              prefixIcon: const Icon(Icons.tag),
+              hintText: 'Ex: 001, A-123',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
 
-                      DropdownButtonFormField<String>(
-                        value: _loteSelecionadoId,
-                        decoration: const InputDecoration(
-                          labelText: 'Lote / Pasto',
-                          prefixIcon: Icon(IconesApp.lote),
-                        ),
-                        items: lotes
-                            .map((l) => DropdownMenuItem(value: l.id, child: Text(l.nome)))
-                            .toList(),
-                        onChanged: (v) => setState(() => _loteSelecionadoId = v),
-                        validator: (v) => v == null ? 'Selecione um lote' : null,
-                      ),
-                      
-                      const SizedBox(height: 24),
-                      _secaoTitulo('Informações'),
-                      const SizedBox(height: 12),
+          TextFormField(
+            controller: nomeController,
+            decoration: InputDecoration(
+              labelText: 'Nome (Opcional)',
+              prefixIcon: const Icon(Icons.text_fields),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
 
-                      Card(
-                        elevation: 0,
-                        color: theme.colorScheme.surfaceContainerLow,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4)),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: RadioListTile<String>(
-                                  title: const Text('Macho'),
-                                  value: 'M',
-                                  groupValue: _sexo,
-                                  onChanged: (v) => setState(() => _sexo = v.toString()),
-                                ),
-                              ),
-                              Expanded(
-                                child: RadioListTile<String>(
-                                  title: const Text('Fêmea'),
-                                  value: 'F',
-                                  groupValue: _sexo,
-                                  onChanged: (v) => setState(() => _sexo = v.toString()),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      TextFormField(
-                        controller: _racaController,
-                        decoration: const InputDecoration(
-                          labelText: 'Raça',
-                          prefixIcon: Icon(Icons.pets),
-                        ),
-                        validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
-                      ),
-                      const SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            value: loteSelecionadoId,
+            decoration: InputDecoration(
+              labelText: 'Lote / Pasto *',
+              prefixIcon: const Icon(IconesApp.lote),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            items: lotes
+                .map((l) => DropdownMenuItem(value: l.id, child: Text(l.nome)))
+                .toList(),
+            onChanged: onLoteChanged,
+          ),
+          const SizedBox(height: 24),
 
-                      DropdownButtonFormField<String>(
-                        value: _categoria,
-                        decoration: const InputDecoration(
-                          labelText: 'Categoria',
-                          prefixIcon: Icon(Icons.category_outlined),
-                        ),
-                        items: _categorias
-                            .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                            .toList(),
-                        onChanged: (v) => setState(() => _categoria = v!),
-                      ),
-                      
-                      const SizedBox(height: 16),
-
-                      TextFormField(
-                        controller: _pesoController,
-                        decoration: const InputDecoration(
-                          labelText: 'Peso (Kg)',
-                          prefixIcon: Icon(IconesApp.peso),
-                          suffixText: 'kg',
-                        ),
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      ),
-                      
-                      const SizedBox(height: 32),
-
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: FilledButton(
-                          onPressed: _salvando ? null : _salvar,
-                          child: _salvando
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(IconesApp.salvar),
-                                    const SizedBox(width: 8),
-                                    Text(isEdicao ? 'SALVAR ALTERAÇÕES' : 'CADASTRAR ANIMAL'),
-                                  ],
-                                ),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 50),
-                    ],
+          if (completo)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.green.shade600,
+                    size: 20,
                   ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Identificação completa',
+                    style: TextStyle(
+                      color: Colors.green.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// PÁGINA 2 — CARACTERÍSTICAS
+// ============================================================================
+
+class _PaginaCaracteristicas extends StatelessWidget {
+  final TextEditingController racaController;
+  final String sexo;
+  final String categoria;
+  final List<String> categorias;
+  final DateTime dataNascimento;
+  final ValueChanged<String> onSexoChanged;
+  final ValueChanged<String> onCategoriaChanged;
+  final VoidCallback onDataNascimentoTap;
+
+  const _PaginaCaracteristicas({
+    required this.racaController,
+    required this.sexo,
+    required this.categoria,
+    required this.categorias,
+    required this.dataNascimento,
+    required this.onSexoChanged,
+    required this.onCategoriaChanged,
+    required this.onDataNascimentoTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Características',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Informe os detalhes do animal',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          Text(
+            'Sexo',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _OpcaoSexo(
+                  icone: Icons.male,
+                  rotulo: 'Macho',
+                  valor: 'M',
+                  selecionado: sexo == 'M',
+                  corAtiva: Colors.blue,
+                  onTap: () => onSexoChanged('M'),
                 ),
-              ]),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _OpcaoSexo(
+                  icone: Icons.female,
+                  rotulo: 'Fêmea',
+                  valor: 'F',
+                  selecionado: sexo == 'F',
+                  corAtiva: Colors.pink,
+                  onTap: () => onSexoChanged('F'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          TextFormField(
+            controller: racaController,
+            decoration: InputDecoration(
+              labelText: 'Raça *',
+              prefixIcon: const Icon(Icons.pets),
+              hintText: 'Ex: Nelore, Angus, Girolando',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          DropdownButtonFormField<String>(
+            value: categoria,
+            decoration: InputDecoration(
+              labelText: 'Categoria',
+              prefixIcon: const Icon(Icons.category_outlined),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            items: categorias
+                .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                .toList(),
+            onChanged: (v) => onCategoriaChanged(v!),
+          ),
+          const SizedBox(height: 20),
+
+          InkWell(
+            onTap: onDataNascimentoTap,
+            borderRadius: BorderRadius.circular(16),
+            child: InputDecorator(
+              decoration: InputDecoration(
+                labelText: 'Data de Nascimento',
+                prefixIcon: const Icon(Icons.calendar_today),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Text(DateFormat('dd/MM/yyyy').format(dataNascimento)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OpcaoSexo extends StatelessWidget {
+  final IconData icone;
+  final String rotulo;
+  final String valor;
+  final bool selecionado;
+  final Color corAtiva;
+  final VoidCallback onTap;
+
+  const _OpcaoSexo({
+    required this.icone,
+    required this.rotulo,
+    required this.valor,
+    required this.selecionado,
+    required this.corAtiva,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          color: selecionado
+              ? corAtiva.withValues(alpha: 0.1)
+              : theme.colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selecionado
+                ? corAtiva
+                : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+            width: selecionado ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icone,
+              size: 32,
+              color: selecionado ? corAtiva : theme.colorScheme.outline,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              rotulo,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: selecionado ? corAtiva : theme.colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// PÁGINA 3 — CONFIRMAÇÃO
+// ============================================================================
+
+class _PaginaConfirmacao extends StatelessWidget {
+  final TextEditingController pesoController;
+  final String brinco;
+  final String nome;
+  final String sexo;
+  final String raca;
+  final String categoria;
+  final DateTime dataNascimento;
+  final String? loteSelecionadoId;
+
+  const _PaginaConfirmacao({
+    required this.pesoController,
+    required this.brinco,
+    required this.nome,
+    required this.sexo,
+    required this.raca,
+    required this.categoria,
+    required this.dataNascimento,
+    required this.loteSelecionadoId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final lotes = context.watch<ProvedorFazenda>().lotes;
+    final nomeLote = lotes
+        .where((l) => l.id == loteSelecionadoId)
+        .map((l) => l.nome)
+        .firstOrNull;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Peso e Confirmação',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Informe o peso e revise os dados antes de salvar',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          TextFormField(
+            controller: pesoController,
+            decoration: InputDecoration(
+              labelText: 'Peso (Kg)',
+              prefixIcon: const Icon(IconesApp.peso),
+              suffixText: 'kg',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          const SizedBox(height: 32),
+
+          Text(
+            'RESUMO DOS DADOS',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Column(
+              children: [
+                _linhaResumo(context, Icons.tag, 'Brinco', brinco),
+                if (nome.isNotEmpty)
+                  _linhaResumo(context, Icons.text_fields, 'Nome', nome),
+                _linhaResumo(
+                  context,
+                  sexo == 'M' ? Icons.male : Icons.female,
+                  'Sexo',
+                  sexo == 'M' ? 'Macho' : 'Fêmea',
+                ),
+                _linhaResumo(context, Icons.pets, 'Raça', raca),
+                _linhaResumo(
+                  context,
+                  Icons.category_outlined,
+                  'Categoria',
+                  categoria,
+                ),
+                _linhaResumo(
+                  context,
+                  Icons.calendar_today,
+                  'Nascimento',
+                  DateFormat('dd/MM/yyyy').format(dataNascimento),
+                ),
+                _linhaResumo(
+                  context,
+                  IconesApp.lote,
+                  'Lote',
+                  nomeLote ?? 'Não selecionado',
+                ),
+                if (pesoController.text.isNotEmpty)
+                  _linhaResumo(
+                    context,
+                    IconesApp.peso,
+                    'Peso',
+                    '${pesoController.text} kg',
+                    isUltimo: true,
+                  ),
+              ],
             ),
           ),
         ],
@@ -332,15 +839,51 @@ class _FormAnimalState extends State<FormAnimal> {
     );
   }
 
-  Widget _secaoTitulo(String texto) {
+  Widget _linhaResumo(
+    BuildContext context,
+    IconData icone,
+    String rotulo,
+    String valor, {
+    bool isUltimo = false,
+  }) {
     final theme = Theme.of(context);
-    return Text(
-      texto.toUpperCase(),
-      style: theme.textTheme.labelLarge?.copyWith(
-        color: theme.colorScheme.primary,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 1.2,
-      ),
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(icone, size: 20, color: theme.colorScheme.primary),
+              const SizedBox(width: 12),
+              Text(
+                rotulo,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const Spacer(),
+              Flexible(
+                child: Text(
+                  valor,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.end,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (!isUltimo)
+          Divider(
+            height: 1,
+            indent: 48,
+            endIndent: 16,
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+      ],
     );
   }
 }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/icones.dart';
@@ -43,7 +43,7 @@ class _TelaSelecionarFazendaState extends State<TelaSelecionarFazenda> {
           SliverAppBar(
             expandedHeight: 140,
             pinned: true,
-            backgroundColor: theme.colorScheme.surface,
+            backgroundColor: Colors.green,
             surfaceTintColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
