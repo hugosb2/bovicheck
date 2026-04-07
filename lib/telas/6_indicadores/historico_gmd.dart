@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart';
+
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../provedores/provedor_fazenda.dart';
@@ -71,16 +71,11 @@ class _TelaHistoricoGMDState extends State<TelaHistoricoGMD> {
 
   List<_DadoMensal> _gerarDadosGMD() {
     final meses = <String, List<double>>{};
-    final now = DateTime.now();
-    
-    for (var i = 11; i >= 0; i--) {
-      final data = DateTime(now.year, now.month - i, 1);
-      final chave = DateFormat('MMM/yy').format(data);
-      meses[chave] = [];
-    }
 
     Map<String, Map<String, Pesagem>> mapaPesos = {};
-    for (var p in _pesagens) {
+    final pesagensOrd = List<Pesagem>.from(_pesagens)..sort((a, b) => a.data.compareTo(b.data));
+
+    for (var p in pesagensOrd) {
       if (p.etapa == 'Nascimento' || p.etapa == 'Desmame') {
         if (!mapaPesos.containsKey(p.animalId)) mapaPesos[p.animalId] = {};
         mapaPesos[p.animalId]![p.etapa] = p;
@@ -97,17 +92,18 @@ class _TelaHistoricoGMDState extends State<TelaHistoricoGMD> {
         if (dias > 60 && ganho > 0) {
           final gmd = ganho / dias;
           final chave = DateFormat('MMM/yy').format(desm.data);
-          if (meses.containsKey(chave)) {
-            meses[chave]!.add(gmd);
+          if (!meses.containsKey(chave)) {
+            meses[chave] = [];
           }
+          meses[chave]!.add(gmd);
         }
       }
     }
 
     return meses.entries.map((e) {
-      if (e.value.isEmpty) return _DadoMensal(label: e.key, valor: 0);
+      if (e.value.isEmpty) return _DadoMensal(label: e.key, valor: 0, sortKey: e.key);
       final media = e.value.reduce((a, b) => a + b) / e.value.length;
-      return _DadoMensal(label: e.key, valor: media * 1000);
+      return _DadoMensal(label: e.key, valor: media * 1000, sortKey: e.key);
     }).toList();
   }
 
@@ -289,7 +285,8 @@ class _TelaHistoricoGMDState extends State<TelaHistoricoGMD> {
 class _DadoMensal {
   final String label;
   final double valor;
-  _DadoMensal({required this.label, required this.valor});
+  final String sortKey;
+  _DadoMensal({required this.label, required this.valor, this.sortKey = ''});
 }
 
 class _CardGrafico extends StatelessWidget {
@@ -302,11 +299,10 @@ class _CardGrafico extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dadosValidos = dado.where((d) => d.valor > 0).toList();
-    final maxValor = dado.map((d) => d.valor).fold(0.0, (a, b) => a > b ? a : b);
 
     if (dadosValidos.isEmpty) {
       return Container(
-        height: 200,
+        height: 100,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerLow,
@@ -316,57 +312,28 @@ class _CardGrafico extends StatelessWidget {
       );
     }
 
-    return Container(
-      height: 250,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.spaceAround,
-          maxY: maxValor * 1.3,
-          barTouchData: BarTouchData(
-            enabled: true,
-            touchTooltipData: BarTouchTooltipData(
-              getTooltipColor: (_) => theme.colorScheme.primaryContainer,
-              getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                return BarTooltipItem('${rod.toY.toStringAsFixed(0)} g/dia', TextStyle(color: theme.colorScheme.onPrimaryContainer, fontWeight: FontWeight.bold));
-              },
-            ),
+    return Column(
+      children: dadosValidos.reversed.map((d) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: cor.withValues(alpha: 0.3)),
           ),
-          titlesData: FlTitlesData(
-            show: true,
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, meta) {
-                  final index = value.toInt();
-                  if (index >= 0 && index < dado.length) {
-                    return Padding(padding: const EdgeInsets.only(top: 8), child: Text(dado[index].label, style: TextStyle(fontSize: 9, color: theme.colorScheme.outline)));
-                  }
-                  return const SizedBox.shrink();
-                },
-                reservedSize: 28,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(d.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(
+                '${d.valor.toStringAsFixed(0)} g/dia',
+                style: TextStyle(color: cor, fontWeight: FontWeight.bold, fontSize: 18),
               ),
-            ),
-            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            ],
           ),
-          borderData: FlBorderData(show: false),
-          gridData: const FlGridData(show: false),
-          barGroups: dado.asMap().entries.map((entry) {
-            return BarChartGroupData(
-              x: entry.key,
-              barRods: [
-                BarChartRodData(toY: entry.value.valor, color: cor, width: 14, borderRadius: const BorderRadius.vertical(top: Radius.circular(4))),
-              ],
-            );
-          }).toList(),
-        ),
-      ),
+        );
+      }).toList(),
     ).animate().fadeIn().slideY(begin: 0.1, end: 0);
   }
 }

@@ -51,7 +51,7 @@ class _TelaDetalhesAnimalState extends State<TelaDetalhesAnimal> {
     List<Map<String, dynamic>> temp = [];
 
     for (var p in pesagens) {
-      temp.add({'tipo': 'Pesagem', 'data': p.data, 'desc': '${p.pesoKg} kg - ${p.etapa}'});
+      temp.add({'tipo': 'Pesagem', 'data': p.data, 'desc': '${p.pesoKg} kg'});
     }
     for (var r in reprodutivos) {
       temp.add({'tipo': 'Reprodutivo', 'data': r.data, 'desc': '${r.tipo} ${r.resultado != null ? '(${r.resultado})' : ''}'});

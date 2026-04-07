@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart';
+
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../modelos/animal.dart';
@@ -158,28 +158,35 @@ class _TelaHistoricoMortalidadeState extends State<TelaHistoricoMortalidade> {
                 const SizedBox(height: 20),
                 Text('Evolução Anual', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
-                Container(
-                  height: 220,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerLow, borderRadius: BorderRadius.circular(16)),
-                  child: BarChart(
-                    BarChartData(
-                      alignment: BarChartAlignment.spaceAround,
-                      maxY: 10,
-                      barTouchData: BarTouchData(enabled: true, touchTooltipData: BarTouchTooltipData(getTooltipColor: (_) => theme.colorScheme.primaryContainer, getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                        final dado = dados[groupIndex];
-                        return BarTooltipItem('${rod.toY.toStringAsFixed(1)}%\n(${dado.obitos} ób.)', TextStyle(color: theme.colorScheme.onPrimaryContainer, fontWeight: FontWeight.bold));
-                      })),
-                      titlesData: FlTitlesData(show: true, bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) { if (value.toInt() >= 0 && value.toInt() < dados.length) return Padding(padding: const EdgeInsets.only(top: 8), child: Text(dados[value.toInt()].ano, style: TextStyle(fontSize: 12, color: theme.colorScheme.outline))); return const SizedBox.shrink(); }, reservedSize: 28)), leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false))),
-                      borderData: FlBorderData(show: false),
-                      gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: 2, getDrawingHorizontalLine: (value) => FlLine(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2), strokeWidth: 1)),
-                      extraLinesData: ExtraLinesData(horizontalLines: [HorizontalLine(y: 3, color: Colors.green.withValues(alpha: 0.5), dashArray: [5, 5], label: HorizontalLineLabel(show: true, labelResolver: (_) => 'Meta 3%', style: TextStyle(color: Colors.green, fontSize: 10)))]),
-                      barGroups: dados.asMap().entries.map((entry) {
-                        final cor = entry.value.valor <= 3 ? Colors.green : (entry.value.valor <= 5 ? Colors.orange : Colors.red);
-                        return BarChartGroupData(x: entry.key, barRods: [BarChartRodData(toY: entry.value.valor == 0 ? 0.1 : entry.value.valor, color: cor, width: 40, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)))]);
-                      }).toList(),
-                    ),
-                  ),
+                Column(
+                  children: dados.map((d) {
+                    final cor = d.valor <= 3 ? Colors.green : (d.valor <= 5 ? Colors.orange : Colors.red);
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: cor.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(d.ano, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              Text('${d.obitos} óbitos de ${d.total}', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
+                            ],
+                          ),
+                          Text(
+                            '${d.valor.toStringAsFixed(1)}%',
+                            style: TextStyle(color: cor, fontWeight: FontWeight.bold, fontSize: 18),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 ),
                 const SizedBox(height: 16),
                 Container(

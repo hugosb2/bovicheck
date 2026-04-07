@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart';
+
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/cores.dart';
@@ -71,49 +71,41 @@ class _TelaHistoricoLeiteState extends State<TelaHistoricoLeite> {
   List<_DadoMensal> _gerarDadosLeite() {
     final mesesLitros = <String, double>{};
     final mesesContagem = <String, int>{};
-    final now = DateTime.now();
-    
-    for (var i = 11; i >= 0; i--) {
-      final data = DateTime(now.year, now.month - i, 1);
-      final chave = DateFormat('MMM/yy').format(data);
-      mesesLitros[chave] = 0;
-      mesesContagem[chave] = 0;
-    }
 
-    for (var p in _producoes) {
+    final producoes = List<ProducaoLeite>.from(_producoes)..sort((a, b) => a.data.compareTo(b.data));
+
+    for (var p in producoes) {
       final chave = DateFormat('MMM/yy').format(p.data);
-      if (mesesLitros.containsKey(chave)) {
-        mesesLitros[chave] = mesesLitros[chave]! + p.litros;
-        mesesContagem[chave] = mesesContagem[chave]! + 1;
+      if (!mesesLitros.containsKey(chave)) {
+        mesesLitros[chave] = 0;
+        mesesContagem[chave] = 0;
       }
+      mesesLitros[chave] = mesesLitros[chave]! + p.litros;
+      mesesContagem[chave] = mesesContagem[chave]! + 1;
     }
 
     return mesesLitros.entries.map((e) {
       final contagem = mesesContagem[e.key] ?? 1;
       final media = contagem > 0 ? e.value / contagem : 0.0;
-      return _DadoMensal(label: e.key, valor: media);
+      return _DadoMensal(label: e.key, valor: media, sortKey: e.key);
     }).toList();
   }
 
   List<_DadoMensal> _gerarDadosTotalLeite() {
     final meses = <String, double>{};
-    final now = DateTime.now();
-    
-    for (var i = 11; i >= 0; i--) {
-      final data = DateTime(now.year, now.month - i, 1);
-      final chave = DateFormat('MMM/yy').format(data);
-      meses[chave] = 0;
-    }
 
-    for (var p in _producoes) {
+    final producoes = List<ProducaoLeite>.from(_producoes)..sort((a, b) => a.data.compareTo(b.data));
+
+    for (var p in producoes) {
       final chave = DateFormat('MMM/yy').format(p.data);
-      if (meses.containsKey(chave)) {
-        meses[chave] = meses[chave]! + p.litros;
+      if (!meses.containsKey(chave)) {
+        meses[chave] = 0;
       }
+      meses[chave] = meses[chave]! + p.litros;
     }
 
     return meses.entries.map((e) {
-      return _DadoMensal(label: e.key, valor: e.value);
+      return _DadoMensal(label: e.key, valor: e.value, sortKey: e.key);
     }).toList();
   }
 
@@ -232,7 +224,8 @@ class _TelaHistoricoLeiteState extends State<TelaHistoricoLeite> {
 class _DadoMensal {
   final String label;
   final double valor;
-  _DadoMensal({required this.label, required this.valor});
+  final String sortKey;
+  _DadoMensal({required this.label, required this.valor, this.sortKey = ''});
 }
 
 class _CardKPI extends StatelessWidget {
@@ -293,89 +286,49 @@ class _CardGrafico extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dadosValidos = dado.where((d) => d.valor > 0).toList();
-    final maxValor = dado.map((d) => d.valor).fold(0.0, (a, b) => a > b ? a : b);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(titulo, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 2),
-          Text(descricao, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
-          const SizedBox(height: 16),
-          if (dadosValidos.isEmpty)
-            Container(
-              height: 150,
-              alignment: Alignment.center,
-              child: Text('Sem dados', style: TextStyle(color: theme.colorScheme.outline)),
-            )
-          else
-            SizedBox(
-              height: 180,
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: maxValor * 1.2,
-                  barTouchData: BarTouchData(
-                    enabled: true,
-                    touchTooltipData: BarTouchTooltipData(
-                      getTooltipColor: (_) => theme.colorScheme.primaryContainer,
-                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                        return BarTooltipItem(
-                          rod.toY.toStringAsFixed(1),
-                          TextStyle(color: theme.colorScheme.onPrimaryContainer, fontWeight: FontWeight.bold),
-                        );
-                      },
-                    ),
-                  ),
-                  titlesData: FlTitlesData(
-                    show: true,
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          final index = value.toInt();
-                          if (index >= 0 && index < dado.length) {
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(dado[index].label, style: TextStyle(fontSize: 9, color: theme.colorScheme.outline)),
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                        reservedSize: 28,
-                      ),
-                    ),
-                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  gridData: const FlGridData(show: false),
-                  barGroups: dado.asMap().entries.map((entry) {
-                    return BarChartGroupData(
-                      x: entry.key,
-                      barRods: [
-                        BarChartRodData(
-                          toY: entry.value.valor,
-                          color: cor,
-                          width: 16,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (titulo.isNotEmpty) ...[
+           Text(titulo, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+           const SizedBox(height: 2),
+           Text(descricao, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
+           const SizedBox(height: 16),
         ],
-      ),
+        if (dadosValidos.isEmpty)
+          Container(
+            height: 100,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text('Sem dados', style: TextStyle(color: theme.colorScheme.outline)),
+          )
+        else
+          ...dadosValidos.map((d) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: cor.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(d.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(
+                    d.valor == d.valor.toInt() ? d.valor.toInt().toString() : d.valor.toStringAsFixed(1),
+                    style: TextStyle(color: cor, fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                ],
+              ),
+            );
+          }),
+      ],
     ).animate().fadeIn().slideY(begin: 0.1, end: 0);
   }
 }

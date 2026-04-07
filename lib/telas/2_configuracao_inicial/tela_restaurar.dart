@@ -6,7 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/icones.dart';
 import '../../servicos/banco_dados_servico.dart';
 import '../../provedores/provedor_fazenda.dart';
-import '../4_dashboard/tela_dashboard.dart';
+import 'tela_selecionar_fazenda.dart';
 
 class TelaRestaurar extends StatefulWidget {
   const TelaRestaurar({super.key});
@@ -100,12 +100,29 @@ class _TelaRestaurarState extends State<TelaRestaurar> {
     setState(() => _restaurando = true);
 
     try {
-      await BancoDadosServico.instancia.restaurarBancoDados(_caminhoArquivo!);
+      bool isSingleFarm = false;
+      try {
+        final content = await File(_caminhoArquivo!).readAsString();
+        if (content.contains('"tipo":"fazenda_unica"')) {
+          isSingleFarm = true;
+        }
+      } catch (_) {
+        // Ignorar erro se não for arquivo de texto
+      }
+
+      if (isSingleFarm) {
+        await BancoDadosServico.instancia.importarFazendaJson(_caminhoArquivo!);
+      } else {
+        await BancoDadosServico.instancia.restaurarBancoDados(_caminhoArquivo!);
+      }
 
       if (mounted) {
+        final provedor = context.read<ProvedorFazenda>();
+        await provedor.carregarPropriedades();
+
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const TelaDashboard()),
+          MaterialPageRoute(builder: (_) => const TelaSelecionarFazenda()),
           (route) => false,
         );
 

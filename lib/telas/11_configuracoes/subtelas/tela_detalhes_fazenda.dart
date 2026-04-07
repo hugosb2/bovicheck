@@ -1,4 +1,9 @@
+import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../estilos/icones.dart';
@@ -46,6 +51,33 @@ class _TelaDetalhesFazendaState extends State<TelaDetalhesFazenda> {
     }
   }
 
+  Future<void> _exportarFazenda(BuildContext context, Propriedade fazenda) async {
+    try {
+      final jsonStr = await BancoDadosServico.instancia.exportarFazendaJson(fazenda.id);
+      final bytes = utf8.encode(jsonStr);
+      final dataStr = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final nomeArquivo = 'BoviCheck_Fazenda_${fazenda.nomeFazenda}_$dataStr.fbvk';
+
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/$nomeArquivo');
+      await file.writeAsBytes(bytes);
+
+      if (context.mounted) {
+        final xFile = XFile(file.path);
+        await Share.shareXFiles(
+          [xFile],
+          text: 'Backup da fazenda ${fazenda.nomeFazenda}',
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao exportar fazenda: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -54,17 +86,13 @@ class _TelaDetalhesFazendaState extends State<TelaDetalhesFazenda> {
 
     // --- LÓGICA DE CORES E POSIÇÃO ---
 
-    // 1. Cor do Fundo da Barra (Verde quando pequena, Branco quando grande)
-    final Color corAppBarBg =
-        _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
+    // 1. Cor da Barra
+    final Color corAppBarBg = theme.colorScheme.primary;
 
-    // 2. Cor dos Elementos (Texto/Ícones: Branco quando pequena, Verde quando grande)
-    final Color corElementos =
-        _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
+    // 2. Cor dos Elementos
+    final Color corElementos = theme.colorScheme.onPrimary;
 
-    // 3. Posição do Título (Padding Esquerdo)
-    // Quando colapsado (_isCollapsed = true): Padding de 72 para fugir da seta de voltar.
-    // Quando expandido (_isCollapsed = false): Padding de 16 para alinhar com a margem.
+    // 3. Posição do Título
     final EdgeInsets paddingTitulo = _isCollapsed
         ? const EdgeInsets.only(left: 72, bottom: 16)
         : const EdgeInsets.only(left: 16, bottom: 16);
@@ -78,81 +106,87 @@ class _TelaDetalhesFazendaState extends State<TelaDetalhesFazenda> {
       backgroundColor: theme.colorScheme.surface,
       body: CustomScrollView(
         controller: _scrollController,
-        // Garante que role mesmo se o conteúdo for pequeno
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverAppBar(
             pinned: true,
-            expandedHeight: 140,
-
-            // Aplica a cor de fundo dinâmica (Verde ao recolher)
+            expandedHeight: 240,
             backgroundColor: corAppBarBg,
-
-            // Aplica a cor nos ícones (Seta de voltar)
             iconTheme: IconThemeData(color: corElementos),
-
             surfaceTintColor: Colors.transparent,
-
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.share),
+                tooltip: 'Exportar Fazenda',
+                onPressed: () => _exportarFazenda(context, fazenda),
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
-              centerTitle: false, // Importante para o padding funcionar
-              titlePadding: paddingTitulo, // Aplica o padding dinâmico
+              centerTitle: false,
+              titlePadding: paddingTitulo,
               expandedTitleScale: 1.6,
-
               title: AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
                 style: TextStyle(
-                  color: corElementos, // Cor do texto muda suavemente
+                  color: corElementos,
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                   fontFamily: 'Roboto',
                 ),
-                child: const Text('Propriedade'),
+                child: Text(fazenda.nomeFazenda),
               ),
-
               background: Container(
-                color:
-                    theme.colorScheme.surface, // Fundo branco quando expandido
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(20)),
+                color: corAppBarBg,
+                child: Stack(
+                  children: [
+                    if (!_isCollapsed)
+                      Positioned.fill(
+                        top: 20,
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              color: corElementos.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: corElementos, width: 2),
+                            ),
+                            child: Center(
+                              child: Text(
+                                fazenda.nomeFazenda.isNotEmpty
+                                    ? fazenda.nomeFazenda[0].toUpperCase()
+                                    : 'F',
+                                style: TextStyle(
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.bold,
+                                  color: corElementos,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Container(
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          borderRadius:
+                              const BorderRadius.vertical(top: Radius.circular(20)),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.only(left: 24, right: 24, top: 8, bottom: 24),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // Ícone Grande com a Inicial
-                Center(
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        fazenda.nomeFazenda.isNotEmpty
-                            ? fazenda.nomeFazenda[0].toUpperCase()
-                            : 'F',
-                        style: TextStyle(
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                  ),
-                ).animate().scale(),
 
                 const SizedBox(height: 32),
 

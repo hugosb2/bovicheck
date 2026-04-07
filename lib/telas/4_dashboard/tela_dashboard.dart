@@ -242,10 +242,10 @@ class _TelaDashboardState extends State<TelaDashboard> {
                         isAlerta: provedor.totalAnimaisDoentes > 0,
                       ),
 
-                      // KPI: Nascimentos (Placeholder)
-                      const _CardKPI(
+                      // KPI: Nascimentos
+                      _CardKPI(
                         titulo: "Nascimentos",
-                        valor: "0",
+                        valor: provedor.totalNascimentos.toString(),
                         iconData: IconesApp.reproducao,
                         cor: Colors.purple,
                       ),

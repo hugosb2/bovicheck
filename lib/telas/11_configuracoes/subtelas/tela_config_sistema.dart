@@ -47,39 +47,7 @@ class _TelaConfigSistemaState extends State<TelaConfigSistema> {
     }
   }
 
-  Future<void> _confirmarResetGeral(BuildContext context) async {
-    final confirmou = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Resetar Aplicativo?'),
-        content: const Text(
-          'Isso apagará TODAS as fazendas, animais e históricos deste dispositivo permanentemente.\n\nEssa ação não pode ser desfeita.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('CANCELAR'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('SIM, APAGAR TUDO'),
-          ),
-        ],
-      ),
-    );
 
-    if (confirmou == true && context.mounted) {
-      await BancoDadosServico.instancia.limparTudo();
-      if (context.mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const TelaDecisao()),
-          (route) => false,
-        );
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -219,30 +187,7 @@ class _TelaConfigSistemaState extends State<TelaConfigSistema> {
                   ),
                 ).animate().fadeIn(delay: 200.ms),
 
-                const SizedBox(height: 40),
 
-                const Text('Zona de Perigo',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.red)),
-                const SizedBox(height: 8),
-
-                Card(
-                  elevation: 0,
-                  color:
-                      theme.colorScheme.errorContainer.withValues(alpha: 0.3),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                        color: theme.colorScheme.error.withValues(alpha: 0.5)),
-                  ),
-                  child: ListTile(
-                    leading: Icon(Icons.delete_forever,
-                        color: theme.colorScheme.error),
-                    title: const Text('Resetar Fábrica'),
-                    subtitle: const Text('Apagar todos os dados do app'),
-                    onTap: () => _confirmarResetGeral(context),
-                  ),
-                ).animate().fadeIn(delay: 400.ms),
 
                 const SizedBox(height: 24),
                 const Center(

@@ -8,6 +8,7 @@ import '../../servicos/banco_dados_servico.dart';
 import '../4_dashboard/tela_dashboard.dart';
 import 'form_dados_fazenda.dart';
 import '../../estilos/tema.dart';
+import '../11_configuracoes/subtelas/tela_config_dados.dart';
 
 class TelaGerenciarFazendas extends StatelessWidget {
   const TelaGerenciarFazendas({super.key});
@@ -21,7 +22,21 @@ class TelaGerenciarFazendas extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: const AppBarPadrao(titulo: 'Minhas Fazendas'),
+      appBar: AppBarPadrao(
+        titulo: 'Minhas Fazendas',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.cloud_sync_outlined),
+            tooltip: 'Gerenciar Dados e Backup',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TelaConfigDados()),
+              );
+            },
+          ),
+        ],
+      ),
       body: fazendas.isEmpty
           ? _estadoVazio(context, theme)
           : ListView.builder(

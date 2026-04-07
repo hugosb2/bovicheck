@@ -185,33 +185,7 @@ class _TelaBoasVindasState extends State<TelaBoasVindas>
                   ),
                 ).animate().fadeIn(delay: 800.ms).slideY(begin: 0.3, end: 0),
 
-                const SizedBox(height: 16),
 
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const TelaRestaurar(),
-                        ),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.5),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    icon: const Icon(Icons.cloud_download_outlined),
-                    label: const Text('RESTAURAR BACKUP'),
-                  ),
-                ).animate().fadeIn(delay: 900.ms),
 
                 const Spacer(),
               ],

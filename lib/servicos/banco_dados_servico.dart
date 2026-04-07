@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -350,14 +351,26 @@ class BancoDadosServico {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getEventosSanitariosPorAnimal(String animalId) async {
+  Future<List<Map<String, dynamic>>> getEventosSanitariosPorAnimal(
+    String animalId,
+  ) async {
     final db = await database;
-    return await db.query('eventos_sanitarios', where: 'animalId = ?', whereArgs: [animalId], orderBy: 'data DESC');
+    return await db.query(
+      'eventos_sanitarios',
+      where: 'animalId = ?',
+      whereArgs: [animalId],
+      orderBy: 'data DESC',
+    );
   }
 
   Future<List<Map<String, dynamic>>> getAbatesPorAnimal(String animalId) async {
     final db = await database;
-    return await db.query('abates', where: 'animalId = ?', whereArgs: [animalId], orderBy: 'data DESC');
+    return await db.query(
+      'abates',
+      where: 'animalId = ?',
+      whereArgs: [animalId],
+      orderBy: 'data DESC',
+    );
   }
 
   // --- Utils ---
@@ -386,17 +399,182 @@ class BancoDadosServico {
       await _database!.close();
       _database = null;
     }
-    
+
     // Tenta fechar de fato as conexões do sqflite e esquecer a instancia do bd velh
     if (await databaseExists(path)) {
       await deleteDatabase(path);
     }
-    
+
     await File(caminhoNovoArquivo).copy(path);
-    
+
     // Força a reabertura do banco
     _database = await _initDB('bovicheck.db');
     // Para garantir a versão, atualiza ela assim que for copiato
     await _database!.setVersion(3);
+  }
+
+  Future<String> exportarFazendaJson(String fazendaId) async {
+    final db = await database;
+
+    // Propriedade
+    final prop = await db.query(
+      'propriedades',
+      where: 'id = ?',
+      whereArgs: [fazendaId],
+    );
+    if (prop.isEmpty) throw Exception('Fazenda não encontrada.');
+
+    // Lotes
+    final lotes = await db.query(
+      'lotes',
+      where: 'fazendaId = ?',
+      whereArgs: [fazendaId],
+    );
+
+    // Animais
+    final animais = await db.query(
+      'animais',
+      where: 'fazendaId = ?',
+      whereArgs: [fazendaId],
+    );
+
+    final animalIds = animais.map((a) => a['id'] as String).toList();
+
+    List<Map<String, dynamic>> pesagens = [];
+    List<Map<String, dynamic>> eventosReprodutivos = [];
+    List<Map<String, dynamic>> producaoLeite = [];
+    List<Map<String, dynamic>> eventosSanitarios = [];
+    List<Map<String, dynamic>> abates = [];
+
+    if (animalIds.isNotEmpty) {
+      final placeholders = List.filled(animalIds.length, '?').join(',');
+      pesagens = await db.query(
+        'pesagens',
+        where: 'animalId IN ($placeholders)',
+        whereArgs: animalIds,
+      );
+      eventosReprodutivos = await db.query(
+        'eventos_reprodutivos',
+        where: 'animalId IN ($placeholders)',
+        whereArgs: animalIds,
+      );
+      producaoLeite = await db.query(
+        'producao_leite',
+        where: 'animalId IN ($placeholders)',
+        whereArgs: animalIds,
+      );
+      eventosSanitarios = await db.query(
+        'eventos_sanitarios',
+        where: 'animalId IN ($placeholders)',
+        whereArgs: animalIds,
+      );
+      abates = await db.query(
+        'abates',
+        where: 'animalId IN ($placeholders)',
+        whereArgs: animalIds,
+      );
+    }
+
+    final exportData = {
+      'tipo': 'fazenda_unica',
+      'version': 1,
+      'propriedade': prop.first,
+      'lotes': lotes,
+      'animais': animais,
+      'pesagens': pesagens,
+      'eventos_reprodutivos': eventosReprodutivos,
+      'producao_leite': producaoLeite,
+      'eventos_sanitarios': eventosSanitarios,
+      'abates': abates,
+    };
+
+    return jsonEncode(exportData);
+  }
+
+  Future<void> importarFazendaJson(String caminhoNovoArquivo) async {
+    final file = File(caminhoNovoArquivo);
+    final jsonStr = await file.readAsString();
+    final Map<String, dynamic> data = jsonDecode(jsonStr);
+
+    if (data['tipo'] != 'fazenda_unica') {
+      throw Exception('Formato de arquivo inválido para fazenda única.');
+    }
+
+    final db = await database;
+    await db.transaction((txn) async {
+      // Import property
+      final prop = data['propriedade'] as Map<String, dynamic>;
+      await txn.insert(
+        'propriedades',
+        prop,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      // Import lotes
+      final lotes = data['lotes'] as List;
+      for (final l in lotes) {
+        await txn.insert(
+          'lotes',
+          Map<String, dynamic>.from(l),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+
+      // Import animais
+      final animais = data['animais'] as List;
+      for (final a in animais) {
+        await txn.insert(
+          'animais',
+          Map<String, dynamic>.from(a),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+
+      // Import events
+      final pesagens = data['pesagens'] as List;
+      for (final p in pesagens) {
+        await txn.insert(
+          'pesagens',
+          Map<String, dynamic>.from(p),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+
+      final eventosReprodutivos = data['eventos_reprodutivos'] as List;
+      for (final e in eventosReprodutivos) {
+        await txn.insert(
+          'eventos_reprodutivos',
+          Map<String, dynamic>.from(e),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+
+      final producaoLeite = data['producao_leite'] as List;
+      for (final p in producaoLeite) {
+        await txn.insert(
+          'producao_leite',
+          Map<String, dynamic>.from(p),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+
+      final eventosSanitarios = data['eventos_sanitarios'] as List;
+      for (final e in eventosSanitarios) {
+        await txn.insert(
+          'eventos_sanitarios',
+          Map<String, dynamic>.from(e),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+
+      final abates = data['abates'] as List;
+      for (final a in abates) {
+        await txn.insert(
+          'abates',
+          Map<String, dynamic>.from(a),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+    });
   }
 }

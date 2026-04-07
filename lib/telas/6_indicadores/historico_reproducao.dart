@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart';
+
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/cores.dart';
@@ -70,52 +70,44 @@ class _TelaHistoricoReproducaoState extends State<TelaHistoricoReproducao> {
 
   List<_DadoMensal> _gerarDadosNatalidade() {
     final meses = <String, int>{};
-    final now = DateTime.now();
-    
-    for (var i = 11; i >= 0; i--) {
-      final data = DateTime(now.year, now.month - i, 1);
-      final chave = DateFormat('MMM/yy').format(data);
-      meses[chave] = 0;
-    }
 
     final totalFemeas = _animais.where((a) => a.sexo == 'F' && a.calcularIdadeMeses() >= 24).length;
 
-    for (var evento in _eventos) {
+    final eventosOrd = List<EventoReprodutivo>.from(_eventos)..sort((a, b) => a.data.compareTo(b.data));
+
+    for (var evento in eventosOrd) {
       if (evento.tipo == 'Parto') {
         final chave = DateFormat('MMM/yy').format(evento.data);
-        if (meses.containsKey(chave)) {
-          meses[chave] = meses[chave]! + 1;
+        if (!meses.containsKey(chave)) {
+          meses[chave] = 0;
         }
+        meses[chave] = meses[chave]! + 1;
       }
     }
 
     return meses.entries.map((e) {
       final valor = totalFemeas > 0 ? (e.value / totalFemeas * 100).clamp(0.0, 100.0) : 0.0;
-      return _DadoMensal(label: e.key, valor: valor);
+      return _DadoMensal(label: e.key, valor: valor, sortKey: e.key);
     }).toList();
   }
 
   List<_DadoMensal> _gerarDadosPrenhez() {
     final meses = <String, int>{};
     final mesesTotal = <String, int>{};
-    final now = DateTime.now();
-    
-    for (var i = 11; i >= 0; i--) {
-      final data = DateTime(now.year, now.month - i, 1);
-      final chave = DateFormat('MMM/yy').format(data);
-      meses[chave] = 0;
-      mesesTotal[chave] = 0;
-    }
 
-    for (var evento in _eventos) {
+    final eventosOrd = List<EventoReprodutivo>.from(_eventos)..sort((a, b) => a.data.compareTo(b.data));
+
+    for (var evento in eventosOrd) {
       if (evento.tipo.contains('Diagnóstico')) {
         final chave = DateFormat('MMM/yy').format(evento.data);
-        if (meses.containsKey(chave)) {
-          mesesTotal[chave] = mesesTotal[chave]! + 1;
-          if ((evento.resultado?.toLowerCase().contains('prenhe') ?? false) ||
-              (evento.resultado?.toLowerCase().contains('positivo') ?? false)) {
-            meses[chave] = meses[chave]! + 1;
-          }
+        if (!meses.containsKey(chave)) {
+          meses[chave] = 0;
+          mesesTotal[chave] = 0;
+        }
+        mesesTotal[chave] = mesesTotal[chave]! + 1;
+        if ((evento.resultado?.toLowerCase().contains('prenhe') ?? false) ||
+            (evento.resultado?.toLowerCase().contains('positivo') ?? false)) {
+          meses[chave] = meses[chave]! + 1;
         }
       }
     }
@@ -123,7 +115,7 @@ class _TelaHistoricoReproducaoState extends State<TelaHistoricoReproducao> {
     return meses.entries.map((e) {
       final total = mesesTotal[e.key] ?? 1;
       final valor = total > 0 ? (e.value / total * 100).clamp(0.0, 100.0) : 0.0;
-      return _DadoMensal(label: e.key, valor: valor);
+      return _DadoMensal(label: e.key, valor: valor, sortKey: e.key);
     }).toList();
   }
 
@@ -211,7 +203,8 @@ class _TelaHistoricoReproducaoState extends State<TelaHistoricoReproducao> {
 class _DadoMensal {
   final String label;
   final double valor;
-  _DadoMensal({required this.label, required this.valor});
+  final String sortKey;
+  _DadoMensal({required this.label, required this.valor, this.sortKey = ''});
 }
 
 class _CardGrafico extends StatelessWidget {
@@ -232,106 +225,48 @@ class _CardGrafico extends StatelessWidget {
     final theme = Theme.of(context);
     final dadosValidos = dado.where((d) => d.valor > 0).toList();
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(titulo, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 2),
-                    Text(descricao, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: cor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                child: Text(
-                  dadosValidos.isNotEmpty ? '${dadosValidos.last.valor.toStringAsFixed(1)}%' : 'N/A',
-                  style: TextStyle(color: cor, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (dadosValidos.isEmpty)
-            Container(
-              height: 150,
-              alignment: Alignment.center,
-              child: Text('Sem dados', style: TextStyle(color: theme.colorScheme.outline)),
-            )
-          else
-            SizedBox(
-              height: 180,
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: 100,
-                  barTouchData: BarTouchData(
-                    enabled: true,
-                    touchTooltipData: BarTouchTooltipData(
-                      getTooltipColor: (_) => theme.colorScheme.primaryContainer,
-                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                        return BarTooltipItem(
-                          '${rod.toY.toStringAsFixed(1)}%',
-                          TextStyle(color: theme.colorScheme.onPrimaryContainer, fontWeight: FontWeight.bold),
-                        );
-                      },
-                    ),
-                  ),
-                  titlesData: FlTitlesData(
-                    show: true,
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          final index = value.toInt();
-                          if (index >= 0 && index < dado.length) {
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(dado[index].label, style: TextStyle(fontSize: 9, color: theme.colorScheme.outline)),
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                        reservedSize: 28,
-                      ),
-                    ),
-                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  gridData: const FlGridData(show: false),
-                  barGroups: dado.asMap().entries.map((entry) {
-                    return BarChartGroupData(
-                      x: entry.key,
-                      barRods: [
-                        BarChartRodData(
-                          toY: entry.value.valor,
-                          color: cor,
-                          width: 16,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (titulo.isNotEmpty) ...[
+           Text(titulo, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+           const SizedBox(height: 2),
+           Text(descricao, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
+           const SizedBox(height: 16),
         ],
-      ),
+        if (dadosValidos.isEmpty)
+          Container(
+            height: 100,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text('Sem dados', style: TextStyle(color: theme.colorScheme.outline)),
+          )
+        else
+          ...dadosValidos.map((d) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: cor.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(d.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(
+                    d.valor == d.valor.toInt() ? '${d.valor.toInt().toString()}%' : '${d.valor.toStringAsFixed(1)}%',
+                    style: TextStyle(color: cor, fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                ],
+              ),
+            );
+          }),
+      ],
     ).animate().fadeIn().slideY(begin: 0.1, end: 0);
   }
 }

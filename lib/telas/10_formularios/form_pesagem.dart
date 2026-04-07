@@ -270,18 +270,7 @@ class _FormPesagemState extends State<FormPesagem> {
                       ),
                       const SizedBox(height: 16),
 
-                      DropdownButtonFormField<String>(
-                        value: _etapaSelecionada,
-                        decoration: const InputDecoration(
-                          labelText: 'Etapa / Motivo',
-                          prefixIcon: Icon(Icons.flag_outlined),
-                        ),
-                        items: _etapas
-                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                            .toList(),
-                        onChanged: (v) => setState(() => _etapaSelecionada = v!),
-                      ),
-                      const SizedBox(height: 16),
+
 
                       TextFormField(
                         controller: _obsController,

@@ -268,7 +268,7 @@ class _TelaConfigDadosState extends State<TelaConfigDados> {
                 // Card Exportar
                 _CardAcaoDados(
                   titulo: 'Criar Backup',
-                  descricao: 'Exportar dados da fazenda atual para .bvk',
+                  descricao: 'Exportar todas as propriedades e registros para .bvk',
                   icone: IconesApp.backup,
                   cor: Colors.blue,
                   textoBotao: 'GERAR ARQUIVO',

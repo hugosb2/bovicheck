@@ -6,6 +6,15 @@ import 'subtelas/tela_config_dados.dart';
 import 'subtelas/tela_config_sistema.dart';
 import 'subtelas/tela_detalhes_fazenda.dart'; // Import da nova tela de detalhes
 
+import 'dart:io';
+import 'dart:convert';
+import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:provider/provider.dart';
+import '../../provedores/provedor_fazenda.dart';
+import '../../servicos/banco_dados_servico.dart';
+
 class TelaConfiguracoes extends StatefulWidget {
   const TelaConfiguracoes({super.key});
 
@@ -37,6 +46,36 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
       if (!_isCollapsed) setState(() => _isCollapsed = true);
     } else {
       if (_isCollapsed) setState(() => _isCollapsed = false);
+    }
+  }
+  Future<void> _exportarFazenda(BuildContext context) async {
+    final provedor = context.read<ProvedorFazenda>();
+    final fazenda = provedor.propriedadeAtiva;
+    if (fazenda == null) return;
+
+    try {
+      final jsonStr = await BancoDadosServico.instancia.exportarFazendaJson(fazenda.id);
+      final bytes = utf8.encode(jsonStr);
+      final dataStr = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final nomeArquivo = 'BoviCheck_Fazenda_${fazenda.nomeFazenda}_$dataStr.fbvk';
+
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/$nomeArquivo');
+      await file.writeAsBytes(bytes);
+
+      if (context.mounted) {
+        final xFile = XFile(file.path);
+        await Share.shareXFiles(
+          [xFile],
+          text: 'Backup da fazenda ${fazenda.nomeFazenda}',
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao exportar fazenda: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -123,17 +162,13 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                 ),
 
                 _CardMenu(
-                  titulo: 'Dados & Backup',
-                  descricao: 'Exportar, importar e gerenciar banco de dados.',
-                  icone: IconesApp.backup,
+                  titulo: 'Backup da Fazenda',
+                  descricao: 'Exportar os dados apenas desta propriedade.',
+                  icone: Icons.save_alt,
                   corIcone: Colors.blue,
-                  onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const TelaConfigDados())),
+                  onTap: () => _exportarFazenda(context),
                   delay: 100,
                 ),
-
                 _cabecalho(theme, 'Aplicativo'),
 
                 _CardMenu(

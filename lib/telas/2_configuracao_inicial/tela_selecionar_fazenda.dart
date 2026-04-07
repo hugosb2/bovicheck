@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/icones.dart';
@@ -6,6 +6,8 @@ import '../../provedores/provedor_fazenda.dart';
 import '../../modelos/propriedade.dart';
 import '../4_dashboard/tela_dashboard.dart';
 import 'form_dados_fazenda.dart';
+import 'tela_restaurar.dart';
+import '../11_configuracoes/subtelas/tela_config_dados.dart';
 
 class TelaSelecionarFazenda extends StatefulWidget {
   const TelaSelecionarFazenda({super.key});
@@ -325,7 +327,7 @@ class _TelaSelecionarFazendaState extends State<TelaSelecionarFazenda> {
               ),
               const SizedBox(height: 24),
               Text(
-                'Adicionar Fazenda',
+                'Opções',
                 style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -370,8 +372,32 @@ class _TelaSelecionarFazendaState extends State<TelaSelecionarFazenda> {
                 subtitle: const Text('Restaurar de arquivo .bvk'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Funcionalidade de importação em desenvolvimento')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const TelaRestaurar()),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.cloud_upload,
+                    color: Colors.blue,
+                  ),
+                ),
+                title: const Text('Exportar backup'),
+                subtitle: const Text('Salvar arquivo com todas as propriedades e registros'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const TelaConfigDados()),
                   );
                 },
               ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart';
+
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../modelos/eventos/evento_reprodutivo.dart';
@@ -94,15 +94,11 @@ class _TelaHistoricoIEPState extends State<TelaHistoricoIEP> {
 
   List<_DadoMensal> _gerarDadosIEP() {
     Map<String, List<int>> intervalosPorAno = {};
-    final now = DateTime.now();
-    
-    for (var i = 3; i >= 0; i--) {
-      final ano = now.year - i;
-      intervalosPorAno[ano.toString()] = [];
-    }
 
     Map<String, List<DateTime>> partosPorVaca = {};
-    for (var evento in _eventos) {
+    final eventosOrd = List<EventoReprodutivo>.from(_eventos)..sort((a, b) => a.data.compareTo(b.data));
+
+    for (var evento in eventosOrd) {
       if (evento.tipo == 'Parto') {
         if (!partosPorVaca.containsKey(evento.animalId)) partosPorVaca[evento.animalId] = [];
         partosPorVaca[evento.animalId]!.add(evento.data);
@@ -116,18 +112,19 @@ class _TelaHistoricoIEPState extends State<TelaHistoricoIEP> {
           final intervaloDias = datas[i + 1].difference(datas[i]).inDays;
           if (intervaloDias > 250 && intervaloDias < 600) {
             final ano = datas[i + 1].year.toString();
-            if (intervalosPorAno.containsKey(ano)) {
-              intervalosPorAno[ano]!.add(intervaloDias);
+            if (!intervalosPorAno.containsKey(ano)) {
+              intervalosPorAno[ano] = [];
             }
+            intervalosPorAno[ano]!.add(intervaloDias);
           }
         }
       }
     }
 
     return intervalosPorAno.entries.map((e) {
-      if (e.value.isEmpty) return _DadoMensal(label: e.key, valor: 0);
+      if (e.value.isEmpty) return _DadoMensal(label: e.key, valor: 0, sortKey: e.key);
       final media = e.value.reduce((a, b) => a + b) / e.value.length / 30.44;
-      return _DadoMensal(label: e.key, valor: media);
+      return _DadoMensal(label: e.key, valor: media, sortKey: e.key);
     }).toList();
   }
 
@@ -247,7 +244,7 @@ class _TelaHistoricoIEPState extends State<TelaHistoricoIEP> {
   }
 }
 
-class _DadoMensal { final String label; final double valor; _DadoMensal({required this.label, required this.valor}); }
+class _DadoMensal { final String label; final double valor; final String sortKey; _DadoMensal({required this.label, required this.valor, this.sortKey = ''}); }
 
 class _LinhaMeta extends StatelessWidget {
   final String label;
@@ -273,25 +270,33 @@ class _CardGrafico extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dadosValidos = dado.where((d) => d.valor > 0).toList();
+
     if (dadosValidos.isEmpty) {
-      return Container(height: 200, alignment: Alignment.center, decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerLow, borderRadius: BorderRadius.circular(16)), child: Text('Sem dados de IEP', style: TextStyle(color: theme.colorScheme.outline)));
+      return Container(height: 100, alignment: Alignment.center, decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerLow, borderRadius: BorderRadius.circular(16)), child: Text('Sem dados de IEP', style: TextStyle(color: theme.colorScheme.outline)));
     }
-    final maxValor = dado.map((d) => d.valor).fold(0.0, (a, b) => a > b ? a : b);
-    return Container(
-      height: 200,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerLow, borderRadius: BorderRadius.circular(16)),
-      child: BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.spaceAround,
-          maxY: 20,
-          barTouchData: BarTouchData(enabled: true, touchTooltipData: BarTouchTooltipData(getTooltipColor: (_) => theme.colorScheme.primaryContainer, getTooltipItem: (group, groupIndex, rod, rodIndex) => BarTooltipItem('${rod.toY.toStringAsFixed(1)} meses', TextStyle(color: theme.colorScheme.onPrimaryContainer, fontWeight: FontWeight.bold)))),
-          titlesData: FlTitlesData(show: true, bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) { final index = value.toInt(); if (index >= 0 && index < dado.length) return Padding(padding: const EdgeInsets.only(top: 8), child: Text(dado[index].label, style: TextStyle(fontSize: 11, color: theme.colorScheme.outline))); return const SizedBox.shrink(); }, reservedSize: 28)), leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false))),
-          borderData: FlBorderData(show: false),
-          gridData: const FlGridData(show: false),
-          barGroups: dado.asMap().entries.map((entry) => BarChartGroupData(x: entry.key, barRods: [BarChartRodData(toY: entry.value.valor == 0 ? 0.1 : entry.value.valor, color: cor, width: 30, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)))])).toList(),
-        ),
-      ),
+
+    return Column(
+      children: dadosValidos.reversed.map((d) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: cor.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(d.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(
+                '${d.valor.toStringAsFixed(1)} meses',
+                style: TextStyle(color: cor, fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     ).animate().fadeIn().slideY(begin: 0.1, end: 0);
   }
 }
