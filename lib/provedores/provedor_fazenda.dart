@@ -3,6 +3,9 @@ import '../modelos/propriedade.dart';
 import '../modelos/lote.dart';
 import '../modelos/animal.dart';
 import '../modelos/eventos/evento_reprodutivo.dart';
+import '../modelos/eventos/evento_sanitario.dart';
+import '../modelos/eventos/pesagem.dart';
+import '../modelos/eventos/producao_leite.dart';
 import '../servicos/banco_dados_servico.dart';
 
 class ProvedorFazenda extends ChangeNotifier {
@@ -11,6 +14,9 @@ class ProvedorFazenda extends ChangeNotifier {
   List<Lote> _lotes = [];
   List<Animal> _animais = [];
   List<EventoReprodutivo> _eventosReprodutivos = [];
+  List<EventoSanitario> _eventosSanitarios = [];
+  List<Pesagem> _pesagens = [];
+  List<ProducaoLeite> _producaoLeite = [];
   bool _isLoading = false;
 
   // Getters Básicos
@@ -29,10 +35,10 @@ class ProvedorFazenda extends ChangeNotifier {
     final inicioSemana = agora.subtract(const Duration(days: 7));
     return _animais.where((a) {
       return a.isAtivo &&
-          _eventosReprodutivos.any(
+          _eventosSanitarios.any(
             (e) =>
                 e.animalId == a.id &&
-                e.tipo.contains('Doença') &&
+                (e.tipo.toLowerCase().contains('doença') || e.tipo.toLowerCase().contains('tratamento')) &&
                 e.data.isAfter(inicioSemana),
           );
     }).length;
@@ -44,6 +50,50 @@ class ProvedorFazenda extends ChangeNotifier {
     return _eventosReprodutivos
         .where((e) => e.tipo == 'Parto' && e.data.isAfter(inicioAno))
         .length;
+  }
+
+  double get totalLeiteMes {
+    final agora = DateTime.now();
+    final inicioMes = DateTime(agora.year, agora.month, 1);
+    return _producaoLeite
+        .where((e) => e.data.isAfter(inicioMes))
+        .fold(0.0, (sum, item) => sum + item.litros);
+  }
+
+  double get taxaMortalidade {
+    if (_animais.isEmpty) return 0.0;
+    final obitos = _animais.where((a) => !a.isAtivo && a.dataObito != null).length;
+    return (obitos / _animais.length) * 100;
+  }
+
+  double get mediaGMD {
+    if (_pesagens.isEmpty) return 0.0;
+    
+    // Simplificado: média de todos os ganhos registrados
+    Map<String, List<Pesagem>> pesagensPorAnimal = {};
+    for (var p in _pesagens) {
+      if (!pesagensPorAnimal.containsKey(p.animalId)) {
+        pesagensPorAnimal[p.animalId] = [];
+      }
+      pesagensPorAnimal[p.animalId]!.add(p);
+    }
+
+    List<double> gmds = [];
+    pesagensPorAnimal.forEach((id, lista) {
+      if (lista.length >= 2) {
+        lista.sort((a, b) => a.data.compareTo(b.data));
+        final primeira = lista.first;
+        final ultima = lista.last;
+        final dias = ultima.data.difference(primeira.data).inDays;
+        final ganho = ultima.pesoKg - primeira.pesoKg;
+        if (dias > 0 && ganho > 0) {
+          gmds.add(ganho / dias);
+        }
+      }
+    });
+
+    if (gmds.isEmpty) return 0.0;
+    return gmds.reduce((a, b) => a + b) / gmds.length;
   }
 
   // Carregamento Inicial
@@ -64,7 +114,7 @@ class ProvedorFazenda extends ChangeNotifier {
         }
       }
     } catch (e) {
-      print("Erro ao carregar propriedades: $e");
+      debugPrint("Erro ao carregar propriedades: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -95,6 +145,10 @@ class ProvedorFazenda extends ChangeNotifier {
     } else {
       _lotes = [];
       _animais = [];
+      _eventosReprodutivos = [];
+      _eventosSanitarios = [];
+      _pesagens = [];
+      _producaoLeite = [];
     }
 
     _isLoading = false;
@@ -126,11 +180,28 @@ class ProvedorFazenda extends ChangeNotifier {
     final db = BancoDadosServico.instancia;
     _animais = await db.getAnimaisPorFazenda(fazendaId);
 
-    // Carrega eventos reprodutivos para cálculo de indicadores no dashboard
+    // Carrega todos os eventos para cálculo de indicadores no dashboard
     _eventosReprodutivos = [];
+    _eventosSanitarios = [];
+    _pesagens = [];
+    _producaoLeite = [];
+
     for (var animal in _animais) {
       _eventosReprodutivos.addAll(
         await db.getEventosReprodutivosPorAnimal(animal.id),
+      );
+      
+      final sanitariosMaps = await db.getEventosSanitariosPorAnimal(animal.id);
+      _eventosSanitarios.addAll(
+        sanitariosMaps.map((m) => EventoSanitario.fromMap(m)).toList(),
+      );
+
+      _pesagens.addAll(
+        await db.getPesagensPorAnimal(animal.id),
+      );
+
+      _producaoLeite.addAll(
+        await db.getProducaoLeitePorAnimal(animal.id),
       );
     }
 
@@ -143,6 +214,9 @@ class ProvedorFazenda extends ChangeNotifier {
     _lotes = [];
     _animais = [];
     _eventosReprodutivos = [];
+    _eventosSanitarios = [];
+    _pesagens = [];
+    _producaoLeite = [];
     notifyListeners();
   }
 }

@@ -231,6 +231,22 @@ class _TelaDashboardState extends State<TelaDashboard> {
                                 builder: (_) => const TelaListaLotes())),
                       ),
 
+                      // KPI: Produção Leite (Mês)
+                      _CardKPI(
+                        titulo: "Leite (Mês)",
+                        valor: "${provedor.totalLeiteMes.toStringAsFixed(0)}L",
+                        iconData: IconesApp.leite,
+                        cor: Colors.blueAccent,
+                      ),
+
+                      // KPI: GMD Médio
+                      _CardKPI(
+                        titulo: "GMD Médio",
+                        valor: "${provedor.mediaGMD.toStringAsFixed(2)}kg",
+                        iconData: IconesApp.peso,
+                        cor: Colors.teal,
+                      ),
+
                       // KPI: Alertas
                       _CardKPI(
                         titulo: "Alertas",
@@ -248,6 +264,14 @@ class _TelaDashboardState extends State<TelaDashboard> {
                         valor: provedor.totalNascimentos.toString(),
                         iconData: IconesApp.reproducao,
                         cor: Colors.purple,
+                      ),
+
+                      // KPI: Mortalidade
+                      _CardKPI(
+                        titulo: "Mortalidade",
+                        valor: "${provedor.taxaMortalidade.toStringAsFixed(1)}%",
+                        iconData: Icons.warning_amber_rounded,
+                        cor: provedor.taxaMortalidade > 5 ? Colors.red : Colors.grey,
                       ),
                     ],
                   ),

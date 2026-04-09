@@ -135,12 +135,12 @@ class _TelaHistoricoGMDState extends State<TelaHistoricoGMD> {
   bool _temDadosSuficientes() {
     Map<String, Map<String, Pesagem>> mapaPesos = {};
     for (var p in _pesagens) {
-      if (p.etapa == 'Nascimento' || p.etapa == 'Desmama') {
+      if (p.etapa == 'Nascimento' || p.etapa == 'Desmame') {
         if (!mapaPesos.containsKey(p.animalId)) mapaPesos[p.animalId] = {};
         mapaPesos[p.animalId]![p.etapa] = p;
       }
     }
-    return mapaPesos.length >= 2;
+    return mapaPesos.values.any((etapas) => etapas.containsKey('Nascimento') && etapas.containsKey('Desmame'));
   }
 
   @override
