@@ -111,7 +111,7 @@ class _TelaDetalhesLoteState extends State<TelaDetalhesLote> {
                   theme: theme,
                   titulo: 'Total',
                   valor: '${animaisDoLote.length}',
-                  icone: Icons.pets,
+                  icone: IconesApp.animal,
                   cor: theme.colorScheme.primary,
                 ).animate().fadeIn(delay: 100.ms).slideX(begin: 0.1, end: 0),
               ),

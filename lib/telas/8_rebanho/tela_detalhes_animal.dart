@@ -195,7 +195,7 @@ class _TelaDetalhesAnimalState extends State<TelaDetalhesAnimal> {
               Expanded(
                 child: _cartaoInfo(
                   theme: theme,
-                  icon: Icons.pets,
+                  icon: IconesApp.animal,
                   titulo: 'Raça',
                   valor: animalAtual.raca,
                 ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.1, end: 0),

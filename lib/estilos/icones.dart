@@ -10,10 +10,10 @@ class IconesApp {
   static const String iconAnimalSvg = 'assets/icons/boicon.svg';
 
   // --- Ícones de Fonte (Material Icons) ---
-  static const IconData animal = Icons.grass; // Ícone de pasto/gado
+  static const IconData animal = Icons.agriculture; // Ícone de agro/gado
   
   static const IconData dashboard = Icons.dashboard_outlined;
-  static const IconData rebanho = Icons.grass;
+  static const IconData rebanho = Icons.agriculture;
   static const IconData lote = Icons.fence_outlined;
   static const IconData indicadores = Icons.bar_chart_rounded;
   static const IconData iaConsultor = Icons.auto_awesome;

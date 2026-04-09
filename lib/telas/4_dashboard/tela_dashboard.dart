@@ -77,48 +77,58 @@ class _TelaDashboardState extends State<TelaDashboard> {
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
-            // 1. Saudação
-            Text(
-              "Olá, ${provedor.propriedadeAtiva!.nomeProprietario.split(' ').first}",
-              style: theme.textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ).animate().fadeIn(),
-
-            Text(
-              provedor.propriedadeAtiva!.nomeFazenda,
-              style: theme.textTheme.bodyLarge
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ).animate().fadeIn(delay: 100.ms),
-
-            const SizedBox(height: 24),
-
-            // 2. Card Inteligente (Onboarding ou Info)
-            if (!temAnimais)
-              _CardPrimeirosPassos(temLotes: temLotes)
-            else
-              // Placeholder se você não tiver o arquivo card_ia.dart ainda
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer
-                      .withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: [
-                    Icon(IconesApp.iaConsultor,
-                        color: theme.colorScheme.primary),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                        child: Text(
-                            "Seu rebanho está crescendo! Acompanhe os indicadores abaixo.")),
+            // 1. Saudação Neon
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    theme.colorScheme.primary,
+                    const Color(0xFF00FF00), 
                   ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ).animate().fadeIn(),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Olá, ${provedor.propriedadeAtiva!.nomeProprietario.split(' ').first}!",
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black, // Contraste máximo no neon
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, size: 14, color: Colors.black54),
+                      const SizedBox(width: 4),
+                      Text(
+                        provedor.propriedadeAtiva!.nomeFazenda,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9), end: const Offset(1, 1)),
 
             const SizedBox(height: 24),
 
-            // 3. KPIs (Indicadores)
+            // 3. KPIs (Indicadores) mais coloridos
             Text(
               "Resumo do Rebanho",
               style: theme.textTheme.titleMedium
@@ -132,21 +142,20 @@ class _TelaDashboardState extends State<TelaDashboard> {
               mainAxisSpacing: 12,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.5,
+              childAspectRatio: 1.4,
               children: [
                 // KPI: Total Animais (COM SVG)
                 _CardKPI(
                   titulo: "Total Animais",
                   valor: provedor.totalAnimais.toString(),
-                  // Passamos o widget SVG aqui
                   customIcon: SvgPicture.asset(
                     IconesApp.iconAnimalSvg,
                     width: 24,
                     height: 24,
                     colorFilter: const ColorFilter.mode(
-                        Colors.blue, BlendMode.srcIn),
+                        Colors.white, BlendMode.srcIn),
                   ),
-                  cor: Colors.blue,
+                  cor: Colors.blue.shade600,
                   onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -158,7 +167,7 @@ class _TelaDashboardState extends State<TelaDashboard> {
                   titulo: "Lotes",
                   valor: provedor.totalLotes.toString(),
                   iconData: IconesApp.lote,
-                  cor: Colors.orange,
+                  cor: Colors.orange.shade700,
                   onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -170,7 +179,7 @@ class _TelaDashboardState extends State<TelaDashboard> {
                   titulo: "Leite (Mês)",
                   valor: "${provedor.totalLeiteMes.toStringAsFixed(0)}L",
                   iconData: IconesApp.leite,
-                  cor: Colors.blueAccent,
+                  cor: Colors.cyan.shade700,
                 ),
 
                 // KPI: GMD Médio
@@ -178,7 +187,7 @@ class _TelaDashboardState extends State<TelaDashboard> {
                   titulo: "GMD Médio",
                   valor: "${provedor.mediaGMD.toStringAsFixed(2)}kg",
                   iconData: IconesApp.peso,
-                  cor: Colors.teal,
+                  cor: Colors.teal.shade600,
                 ),
 
                 // KPI: Alertas
@@ -187,8 +196,8 @@ class _TelaDashboardState extends State<TelaDashboard> {
                   valor: provedor.totalAnimaisDoentes.toString(),
                   iconData: IconesApp.iaAtencao,
                   cor: provedor.totalAnimaisDoentes > 0
-                      ? Colors.red
-                      : Colors.green,
+                      ? Colors.red.shade600
+                      : Colors.green.shade600,
                   isAlerta: provedor.totalAnimaisDoentes > 0,
                 ),
 
@@ -197,7 +206,7 @@ class _TelaDashboardState extends State<TelaDashboard> {
                   titulo: "Nascimentos",
                   valor: provedor.totalNascimentos.toString(),
                   iconData: IconesApp.reproducao,
-                  cor: Colors.purple,
+                  cor: Colors.pink.shade600,
                 ),
 
                 // KPI: Mortalidade
@@ -205,7 +214,7 @@ class _TelaDashboardState extends State<TelaDashboard> {
                   titulo: "Mortalidade",
                   valor: "${provedor.taxaMortalidade.toStringAsFixed(1)}%",
                   iconData: Icons.warning_amber_rounded,
-                  cor: provedor.taxaMortalidade > 5 ? Colors.red : Colors.grey,
+                  cor: provedor.taxaMortalidade > 5 ? Colors.deepOrange : Colors.blueGrey,
                 ),
               ],
             ),
@@ -484,13 +493,13 @@ class _CardKPI extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
+          color: cor.withValues(alpha: 0.05), // Fundo sutil colorido
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+              color: cor.withValues(alpha: 0.2), width: 1.5), // Borda colorida
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: cor.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4))
           ],
@@ -517,7 +526,7 @@ class _CardKPI extends StatelessWidget {
                         color: theme.colorScheme.onSurface)),
                 Text(titulo,
                     style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500)),
               ],
             )
           ],

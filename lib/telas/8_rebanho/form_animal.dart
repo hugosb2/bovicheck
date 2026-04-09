@@ -601,7 +601,7 @@ class _PaginaCaracteristicas extends StatelessWidget {
             controller: racaController,
             decoration: InputDecoration(
               labelText: 'Raça *',
-              prefixIcon: const Icon(Icons.pets),
+              prefixIcon: const Icon(IconesApp.animal),
               hintText: 'Ex: Nelore, Angus, Girolando',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -804,7 +804,7 @@ class _PaginaConfirmacao extends StatelessWidget {
                   'Sexo',
                   sexo == 'M' ? 'Macho' : 'Fêmea',
                 ),
-                _linhaResumo(context, Icons.pets, 'Raça', raca),
+                _linhaResumo(context, IconesApp.animal, 'Raça', raca),
                 _linhaResumo(
                   context,
                   Icons.category_outlined,

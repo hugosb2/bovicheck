@@ -5,8 +5,17 @@ class TemaApp {
   static const double _raioBordaPequeno = 12.0;
 
   static ThemeData _construirTemaBase(ColorScheme esquemaCores) {
+    // Forçamos a cor primária a ser a cor pura do esquema (vibrante)
+    final Color corPrimariaPura = esquemaCores.primary;
+    final Color corFonteNoPrimario = corPrimariaPura.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+
     final base = ThemeData(
-      colorScheme: esquemaCores,
+      colorScheme: esquemaCores.copyWith(
+        primary: corPrimariaPura,
+        onPrimary: corFonteNoPrimario,
+        secondary: corPrimariaPura,
+        onSecondary: corFonteNoPrimario,
+      ),
       useMaterial3: true,
       fontFamily: 'Roboto',
       brightness: esquemaCores.brightness,
@@ -17,12 +26,12 @@ class TemaApp {
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: esquemaCores.primary,
-        foregroundColor: esquemaCores.onPrimary,
+        backgroundColor: corPrimariaPura,
+        foregroundColor: corFonteNoPrimario,
         surfaceTintColor: Colors.transparent,
-        iconTheme: IconThemeData(color: esquemaCores.onPrimary),
+        iconTheme: IconThemeData(color: corFonteNoPrimario),
         titleTextStyle: TextStyle(
-          color: esquemaCores.onPrimary,
+          color: corFonteNoPrimario,
           fontSize: 20,
           fontWeight: FontWeight.bold,
           letterSpacing: 0.5,
@@ -264,6 +273,10 @@ class TemaApp {
     final esquema = ColorScheme.fromSeed(
       seedColor: corSemente,
       brightness: Brightness.light,
+    ).copyWith(
+      primary: corSemente,
+      secondary: corSemente,
+      onPrimary: corSemente.computeLuminance() > 0.5 ? Colors.black : Colors.white,
     );
     return _construirTemaBase(esquema);
   }
@@ -272,6 +285,10 @@ class TemaApp {
     final esquema = ColorScheme.fromSeed(
       seedColor: corSemente,
       brightness: Brightness.dark,
+    ).copyWith(
+      primary: corSemente,
+      secondary: corSemente,
+      onPrimary: corSemente.computeLuminance() > 0.5 ? Colors.black : Colors.white,
     );
     return _construirTemaBase(esquema);
   }
