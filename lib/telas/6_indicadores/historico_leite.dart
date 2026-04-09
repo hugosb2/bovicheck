@@ -7,7 +7,6 @@ import '../../estilos/tema.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../modelos/eventos/producao_leite.dart';
 import '../../servicos/banco_dados_servico.dart';
-import '../../estilos/tema.dart';
 import 'widgets/dados_insuficientes.dart';
 import '../10_formularios/form_leite.dart';
 

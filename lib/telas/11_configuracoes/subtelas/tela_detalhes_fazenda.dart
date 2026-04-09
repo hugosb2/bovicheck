@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../estilos/icones.dart';
+import '../../../estilos/tema.dart';
 import '../../../modelos/propriedade.dart';
 import '../../../provedores/provedor_fazenda.dart';
 import '../../../servicos/banco_dados_servico.dart';
@@ -22,35 +23,6 @@ class TelaDetalhesFazenda extends StatefulWidget {
 }
 
 class _TelaDetalhesFazendaState extends State<TelaDetalhesFazenda> {
-  late ScrollController _scrollController;
-
-  // Variável de estado para controlar a aparência
-  bool _isCollapsed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_scrollListener);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_scrollListener);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _scrollListener() {
-    if (_scrollController.hasClients) {
-      // Gatilho: Quando passar de 90px de rolagem (ExpandedHeight 140 - Toolbar 56 ~= 84)
-      bool deveColapsar = _scrollController.offset > 90;
-      if (deveColapsar != _isCollapsed) {
-        setState(() => _isCollapsed = deveColapsar);
-      }
-    }
-  }
-
   Future<void> _exportarFazenda(BuildContext context, Propriedade fazenda) async {
     try {
       final jsonStr = await BancoDadosServico.instancia.exportarFazendaJson(fazenda.id);
@@ -84,19 +56,6 @@ class _TelaDetalhesFazendaState extends State<TelaDetalhesFazenda> {
     final provedor = context.watch<ProvedorFazenda>();
     final fazenda = provedor.propriedadeAtiva;
 
-    // --- LÓGICA DE CORES E POSIÇÃO ---
-
-    // 1. Cor da Barra
-    final Color corAppBarBg = theme.colorScheme.primary;
-
-    // 2. Cor dos Elementos
-    final Color corElementos = theme.colorScheme.onPrimary;
-
-    // 3. Posição do Título
-    final EdgeInsets paddingTitulo = _isCollapsed
-        ? const EdgeInsets.only(left: 72, bottom: 16)
-        : const EdgeInsets.only(left: 16, bottom: 16);
-
     if (fazenda == null) {
       return const Scaffold(
           body: Center(child: Text("Nenhuma fazenda selecionada.")));
@@ -104,173 +63,150 @@ class _TelaDetalhesFazendaState extends State<TelaDetalhesFazenda> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      body: CustomScrollView(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 240,
-            backgroundColor: corAppBarBg,
-            iconTheme: IconThemeData(color: corElementos),
-            surfaceTintColor: Colors.transparent,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.share),
-                tooltip: 'Exportar Fazenda',
-                onPressed: () => _exportarFazenda(context, fazenda),
+      appBar: AppBarPadrao(
+        titulo: fazenda.nomeFazenda,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Exportar Fazenda',
+            onPressed: () => _exportarFazenda(context, fazenda),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          // Cabeçalho Simplificado (estilo Detalhes Animal)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  theme.colorScheme.primary,
+                  theme.colorScheme.primary.withValues(alpha: 0.8),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onPrimary.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: theme.colorScheme.onPrimary.withValues(alpha: 0.5),
+                      width: 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      fazenda.nomeFazenda.isNotEmpty
+                          ? fazenda.nomeFazenda[0].toUpperCase()
+                          : 'F',
+                      style: TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+                const SizedBox(height: 16),
+                Text(
+                  fazenda.nomeFazenda,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onPrimary,
+                  ),
+                ).animate().fadeIn(delay: 200.ms),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 32),
+
+          // Dados da Fazenda
+          _InfoCard(
+            label: "Nome da Fazenda",
+            valor: fazenda.nomeFazenda,
+            icon: IconesApp.fazenda,
+          ),
+
+          const SizedBox(height: 16),
+
+          _InfoCard(
+            label: "Proprietário",
+            valor: fazenda.nomeProprietario,
+            icon: Icons.person,
+          ),
+
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: _InfoCard(
+                  label: "Cidade",
+                  valor: fazenda.cidade,
+                  icon: Icons.location_city,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _InfoCard(
+                  label: "UF",
+                  valor: fazenda.estado,
+                  icon: Icons.map,
+                ),
               ),
             ],
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: false,
-              titlePadding: paddingTitulo,
-              expandedTitleScale: 1.6,
-              title: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  color: corElementos,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  fontFamily: 'Roboto',
-                ),
-                child: Text(fazenda.nomeFazenda),
-              ),
-              background: Container(
-                color: corAppBarBg,
-                child: Stack(
-                  children: [
-                    if (!_isCollapsed)
-                      Positioned.fill(
-                        top: 20,
-                        child: Align(
-                          alignment: Alignment.center,
-                          child: Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              color: corElementos.withValues(alpha: 0.2),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: corElementos, width: 2),
-                            ),
-                            child: Center(
-                              child: Text(
-                                fazenda.nomeFazenda.isNotEmpty
-                                    ? fazenda.nomeFazenda[0].toUpperCase()
-                                    : 'F',
-                                style: TextStyle(
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.bold,
-                                  color: corElementos,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Container(
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          borderRadius:
-                              const BorderRadius.vertical(top: Radius.circular(20)),
-                        ),
-                      ),
-                    ),
-                  ],
+          ),
+
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: _InfoCard(
+                  label: "Sistema",
+                  valor: fazenda.sistemaProducao,
+                  icon: Icons.settings_input_component,
                 ),
               ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _InfoCard(
+                  label: "Área (ha)",
+                  valor: fazenda.areaTotalHectares
+                      .toString()
+                      .replaceAll('.', ','),
+                  icon: Icons.aspect_ratio,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 40),
+
+          Center(
+            child: SelectableText(
+              "ID: ${fazenda.id}",
+              style: TextStyle(
+                  color: Colors.grey.withValues(alpha: 0.5),
+                  fontSize: 12),
             ),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.only(left: 24, right: 24, top: 8, bottom: 24),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
 
-                const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
-                // Dados da Fazenda
-                _InfoCard(
-                  label: "Nome da Fazenda",
-                  valor: fazenda.nomeFazenda,
-                  icon: IconesApp.fazenda,
-                ),
+          _botaoDanger(theme, fazenda),
 
-                const SizedBox(height: 16),
-
-                _InfoCard(
-                  label: "Proprietário",
-                  valor: fazenda.nomeProprietario,
-                  icon: Icons.person,
-                ),
-
-                const SizedBox(height: 16),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _InfoCard(
-                        label: "Cidade",
-                        valor: fazenda.cidade,
-                        icon: Icons.location_city,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _InfoCard(
-                        label: "UF",
-                        valor: fazenda.estado,
-                        icon: Icons.map,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _InfoCard(
-                        label: "Sistema",
-                        valor: fazenda.sistemaProducao,
-                        icon: Icons.settings_input_component,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _InfoCard(
-                        label: "Área (ha)",
-                        valor: fazenda.areaTotalHectares
-                            .toString()
-                            .replaceAll('.', ','),
-                        icon: Icons.aspect_ratio,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 40),
-
-                Center(
-                  child: SelectableText(
-                    "ID: ${fazenda.id}",
-                    style: TextStyle(
-                        color: Colors.grey.withValues(alpha: 0.5),
-                        fontSize: 12),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                _botaoDanger(theme, fazenda),
-
-                // Espaço extra grande para garantir rolagem em telas altas
-                SizedBox(height: MediaQuery.of(context).size.height * 0.4),
-              ]),
-            ),
-          ),
+          const SizedBox(height: 100),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(

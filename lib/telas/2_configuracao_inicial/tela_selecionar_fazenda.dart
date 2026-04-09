@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/icones.dart';
+import '../../estilos/tema.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../modelos/propriedade.dart';
 import '../4_dashboard/tela_dashboard.dart';
@@ -33,6 +34,9 @@ class _TelaSelecionarFazendaState extends State<TelaSelecionarFazenda> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
+      appBar: const AppBarPadrao(
+        titulo: 'Fazendas',
+      ),
       floatingActionButton: fazendas.isNotEmpty
           ? FloatingActionButton.extended(
               onPressed: () => _mostrarOpcoesAdicionar(context),
@@ -40,132 +44,88 @@ class _TelaSelecionarFazendaState extends State<TelaSelecionarFazenda> {
               label: const Text('Nova Fazenda'),
             )
           : null,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 140,
-            pinned: true,
-            backgroundColor: Colors.green,
-            surfaceTintColor: Colors.transparent,
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: false,
-              titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
-              expandedTitleScale: 1.6,
-              title: Text(
-                'Fazendas',
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
+      body: RefreshIndicator(
+        onRefresh: () => provedor.carregarPropriedades(),
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            const SizedBox(height: 20),
+            
+            Center(
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/icon.png',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+            ),
+            
+            const SizedBox(height: 24),
+            
+            Center(
+              child: Text(
+                'BoviCheck',
+                style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-              background: Container(
-                color: theme.colorScheme.surface,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                    ),
-                  ),
+                  color: theme.colorScheme.primary,
                 ),
               ),
             ),
-          ),
-          SliverToBoxAdapter(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 20),
-                  
-                  Center(
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer,
-                        shape: BoxShape.circle,
-                      ),
-                      child: ClipOval(
-                        child: Image.asset(
-                          'assets/icon.png',
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  Center(
-                    child: Text(
-                      'BoviCheck',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  Center(
-                    child: Text(
-                      'Selecione uma fazenda para continuar',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 40),
-                  
-                  if (fazendas.isEmpty) ...[
-                    _estadoVazio(theme),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: () => _mostrarOpcoesAdicionar(context),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Criar Primeira Fazenda'),
-                      ),
-                    ),
-                  ] else ...[
-                    Text(
-                      'MINHAS FAZENDAS',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    ...fazendas.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final fazenda = entry.value;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _cartaoFazenda(
-                          context,
-                          theme,
-                          fazenda,
-                          provedor,
-                        ).animate().fadeIn(delay: (index * 100).ms).slideX(begin: 0.1, end: 0),
-                      );
-                    }),
-                  ],
-                ],
+            
+            const SizedBox(height: 8),
+            
+            Center(
+              child: Text(
+                'Selecione uma fazenda para continuar',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
-          ),
-        ],
+            
+            const SizedBox(height: 40),
+            
+            if (fazendas.isEmpty) ...[
+              _estadoVazio(theme),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: BotaoPadrao(
+                  label: 'CRIAR PRIMEIRA FAZENDA',
+                  icone: Icons.add,
+                  onPressed: () => _mostrarOpcoesAdicionar(context),
+                ),
+              ),
+            ] else ...[
+              const SecaoTitulo(texto: 'Minhas Fazendas'),
+              
+              const SizedBox(height: 8),
+              
+              ...fazendas.asMap().entries.map((entry) {
+                final index = entry.key;
+                final fazenda = entry.value;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _cartaoFazenda(
+                    context,
+                    theme,
+                    fazenda,
+                    provedor,
+                  ).animate().fadeIn(delay: (index * 100).ms).slideX(begin: 0.1, end: 0),
+                );
+              }),
+            ],
+            const SizedBox(height: 80),
+          ],
+        ),
       ),
     );
   }
@@ -213,76 +173,62 @@ class _TelaSelecionarFazendaState extends State<TelaSelecionarFazenda> {
     Propriedade fazenda,
     ProvedorFazenda provedor,
   ) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _selecionarFazenda(context, fazenda, provedor),
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+    return CartaoPadrao(
+      onTap: () => _selecionarFazenda(context, fazenda, provedor),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                fazenda.nomeFazenda.isNotEmpty
+                    ? fazenda.nomeFazenda[0].toUpperCase()
+                    : 'F',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
             ),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    fazenda.nomeFazenda.isNotEmpty
-                        ? fazenda.nomeFazenda[0].toUpperCase()
-                        : 'F',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fazenda.nomeFazenda,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      fazenda.nomeFazenda,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${fazenda.cidade} - ${fazenda.estado}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    Text(
-                      fazenda.sistemaProducao,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.outline,
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 4),
+                Text(
+                  '${fazenda.cidade} - ${fazenda.estado}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                color: theme.colorScheme.primary,
-              ),
-            ],
+                Text(
+                  fazenda.sistemaProducao,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+          Icon(
+            Icons.chevron_right,
+            color: theme.colorScheme.primary,
+          ),
+        ],
       ),
     );
   }
@@ -299,13 +245,6 @@ class _TelaSelecionarFazendaState extends State<TelaSelecionarFazenda> {
         MaterialPageRoute(builder: (_) => const TelaDashboard()),
       );
     }
-  }
-
-  void _criarNovaFazenda(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const FormDadosFazenda()),
-    );
   }
 
   void _mostrarOpcoesAdicionar(BuildContext context) {

@@ -7,7 +7,6 @@ import '../../estilos/tema.dart';
 import '../../estilos/cores.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../servicos/ia_gemini_cliente.dart';
-import '../../estilos/tema.dart';
 
 class TelaIAConsultor extends StatefulWidget {
   const TelaIAConsultor({super.key});

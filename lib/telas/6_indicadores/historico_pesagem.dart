@@ -8,7 +8,6 @@ import '../../provedores/provedor_fazenda.dart';
 import '../../modelos/eventos/pesagem.dart';
 import '../../modelos/animal.dart';
 import '../../servicos/banco_dados_servico.dart';
-import '../../estilos/tema.dart';
 import 'widgets/dados_insuficientes.dart';
 import '../10_formularios/form_pesagem.dart';
 

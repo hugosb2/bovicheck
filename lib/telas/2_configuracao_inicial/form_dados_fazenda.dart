@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
 import '../../estilos/icones.dart';
+import '../../estilos/tema.dart';
 import '../../modelos/propriedade.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../servicos/preferencias_usuario.dart';
@@ -22,9 +23,6 @@ class FormDadosFazenda extends StatefulWidget {
 class _FormDadosFazendaState extends State<FormDadosFazenda> {
   final PageController _pageController = PageController();
   final _formKey = GlobalKey<FormState>();
-
-  late ScrollController _scrollController;
-  bool _isCollapsed = false;
 
   final _nomeFazendaController = TextEditingController();
   final _proprietarioController = TextEditingController();
@@ -51,8 +49,6 @@ class _FormDadosFazendaState extends State<FormDadosFazenda> {
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_scrollListener);
 
     if (widget.propriedadeExistente != null) {
       final p = widget.propriedadeExistente!;
@@ -67,8 +63,6 @@ class _FormDadosFazendaState extends State<FormDadosFazenda> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_scrollListener);
-    _scrollController.dispose();
     _nomeFazendaController.dispose();
     _proprietarioController.dispose();
     _cidadeController.dispose();
@@ -76,15 +70,6 @@ class _FormDadosFazendaState extends State<FormDadosFazenda> {
     _cepController.dispose();
     _pageController.dispose();
     super.dispose();
-  }
-
-  void _scrollListener() {
-    if (_scrollController.hasClients) {
-      bool deveColapsar = _scrollController.offset > 90;
-      if (deveColapsar != _isCollapsed) {
-        setState(() => _isCollapsed = deveColapsar);
-      }
-    }
   }
 
   void _proximaEtapa() {
@@ -247,73 +232,23 @@ class _FormDadosFazendaState extends State<FormDadosFazenda> {
     final theme = Theme.of(context);
     final isEdicao = widget.propriedadeExistente != null;
 
-    final Color corAppBarBg =
-        _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
-    final Color corElementos =
-        _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
-    final EdgeInsets paddingTitulo = _isCollapsed
-        ? const EdgeInsets.only(left: 72, bottom: 16)
-        : const EdgeInsets.only(left: 16, bottom: 16);
-
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
+      appBar: AppBarPadrao(
+        titulo: isEdicao ? 'Editar Fazenda' : 'Nova Fazenda',
+      ),
       body: Column(
         children: [
+          _indicadorEtapas(),
           Expanded(
-            child: CustomScrollView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverAppBar(
-                  pinned: true,
-                  expandedHeight: 140,
-                  backgroundColor: corAppBarBg,
-                  foregroundColor: corElementos,
-                  iconTheme: IconThemeData(color: corElementos),
-                  surfaceTintColor: Colors.transparent,
-                  flexibleSpace: FlexibleSpaceBar(
-                    centerTitle: false,
-                    titlePadding: paddingTitulo,
-                    expandedTitleScale: 1.6,
-                    title: AnimatedDefaultTextStyle(
-                      duration: const Duration(milliseconds: 200),
-                      style: TextStyle(
-                        color: corElementos,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                      child: Text(isEdicao ? 'Editar Fazenda' : 'Nova Fazenda'),
-                    ),
-                    background: Container(
-                      color: theme.colorScheme.surface,
-                      child: Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Container(
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: _indicadorEtapas(),
-                ),
-                SliverFillRemaining(
-                  child: PageView(
-                    controller: _pageController,
-                    onPageChanged: (index) => setState(() => _etapaAtual = index),
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      _etapaIdentificacao(),
-                      _etapaLocalizacao(),
-                      _etapaSistema(),
-                    ],
-                  ),
-                ),
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (index) => setState(() => _etapaAtual = index),
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                _etapaIdentificacao(),
+                _etapaLocalizacao(),
+                _etapaSistema(),
               ],
             ),
           ),
@@ -326,12 +261,13 @@ class _FormDadosFazendaState extends State<FormDadosFazenda> {
   Widget _indicadorEtapas() {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      color: theme.colorScheme.primary,
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
       child: Row(
         children: [
-          _circuloEtapa(0, 'Identificação', Icons.badge_outlined),
+          _circuloEtapa(0, 'Dados', Icons.badge_outlined),
           _linhaEtapa(0),
-          _circuloEtapa(1, 'Localização', Icons.location_on_outlined),
+          _circuloEtapa(1, 'Local', Icons.location_on_outlined),
           _linhaEtapa(1),
           _circuloEtapa(2, 'Sistema', Icons.settings_outlined),
         ],
@@ -348,31 +284,27 @@ class _FormDadosFazendaState extends State<FormDadosFazenda> {
       child: Column(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: isAtual 
-                  ? theme.colorScheme.primary 
-                  : (isAtivo ? theme.colorScheme.primaryContainer : theme.colorScheme.surfaceContainerLow),
+                  ? Colors.white 
+                  : (isAtivo ? Colors.white.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.1)),
               shape: BoxShape.circle,
-              border: Border.all(
-                color: isAtual ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
-                width: 2,
-              ),
             ),
             child: Icon(
               icone,
-              size: 20,
-              color: isAtual ? theme.colorScheme.onPrimary : theme.colorScheme.primary,
+              size: 18,
+              color: isAtual ? theme.colorScheme.primary : Colors.white,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: isAtual ? FontWeight.bold : FontWeight.normal,
-              color: isAtual ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+              color: Colors.white,
             ),
           ),
         ],
@@ -381,15 +313,14 @@ class _FormDadosFazendaState extends State<FormDadosFazenda> {
   }
 
   Widget _linhaEtapa(int index) {
-    final theme = Theme.of(context);
     final isAtivo = _etapaAtual > index;
     
     return Container(
-      width: 30,
+      width: 20,
       height: 2,
-      margin: const EdgeInsets.only(bottom: 24),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: isAtivo ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+        color: isAtivo ? Colors.white : Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(1),
       ),
     );
@@ -518,7 +449,6 @@ class _FormDadosFazendaState extends State<FormDadosFazenda> {
 
   Widget _etapaSistema() {
     final theme = Theme.of(context);
-    final isEdicao = widget.propriedadeExistente != null;
     
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -526,7 +456,7 @@ class _FormDadosFazendaState extends State<FormDadosFazenda> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'último passo!',
+            'Último passo!',
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
             ),

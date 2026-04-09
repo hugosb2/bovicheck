@@ -6,7 +6,7 @@ class ProvedorTema extends ChangeNotifier {
   static const String _chaveModoTema = 'tema_modo';
   static const String _chaveCorSemente = 'tema_cor';
 
-  ThemeMode _modoTema = ThemeMode.system;
+  ThemeMode _modoTema = ThemeMode.light;
   Color _corSemente = CoresApp.corPadrao;
 
   ThemeMode get modoTema => _modoTema;
@@ -20,7 +20,8 @@ class ProvedorTema extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
 
     // Carrega Modo (0=System, 1=Light, 2=Dark)
-    final modoIndex = prefs.getInt(_chaveModoTema) ?? 0;
+    // Padrão: 1 (Light)
+    final modoIndex = prefs.getInt(_chaveModoTema) ?? 1;
     _modoTema = ThemeMode.values[modoIndex];
 
     // Carrega Cor
