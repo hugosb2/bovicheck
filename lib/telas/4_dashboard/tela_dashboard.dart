@@ -28,36 +28,14 @@ class TelaDashboard extends StatefulWidget {
 }
 
 class _TelaDashboardState extends State<TelaDashboard> {
-  late ScrollController _scrollController;
-  bool _isCollapsed = false;
-
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_scrollListener);
 
     // Garante atualização dos dados ao abrir o Dashboard
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProvedorFazenda>().carregarPropriedades();
     });
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_scrollListener);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _scrollListener() {
-    // 140 é a altura expandida definida abaixo.
-    if (_scrollController.hasClients &&
-        _scrollController.offset > (140 - kToolbarHeight)) {
-      if (!_isCollapsed) setState(() => _isCollapsed = true);
-    } else {
-      if (_isCollapsed) setState(() => _isCollapsed = false);
-    }
   }
 
   @override
@@ -85,287 +63,247 @@ class _TelaDashboardState extends State<TelaDashboard> {
                   "Nenhuma fazenda selecionada. Vá em Menu > Trocar Fazenda.")));
     }
 
-    // Cores da AppBar
-    final Color corAppBarBg =
-        _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
-    final Color corElementos =
-        _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
-    final EdgeInsets paddingTitulo = _isCollapsed
-        ? const EdgeInsets.only(left: 60, bottom: 16)
-        : const EdgeInsets.only(left: 16, bottom: 16);
-
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       drawer: const GavetaMenu(),
+      appBar: AppBar(
+        title: const Text(
+          'Dashboard',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: false,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           await provedor.carregarPropriedades();
         },
-        child: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            SliverAppBar(
-              pinned: true,
-              expandedHeight: 140,
-              backgroundColor: corAppBarBg,
-              foregroundColor: corElementos,
-              iconTheme: IconThemeData(color: corElementos),
-              surfaceTintColor: Colors.transparent,
-              flexibleSpace: FlexibleSpaceBar(
-                centerTitle: false,
-                titlePadding: paddingTitulo,
-                expandedTitleScale: 1.6,
-                title: Text(
-                  'Dashboard',
-                  style: TextStyle(
-                    color: corElementos,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
+        child: ListView(
+          padding: const EdgeInsets.all(16.0),
+          children: [
+            // 1. Saudação
+            Text(
+              "Olá, ${provedor.propriedadeAtiva!.nomeProprietario.split(' ').first}",
+              style: theme.textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ).animate().fadeIn(),
+
+            Text(
+              provedor.propriedadeAtiva!.nomeFazenda,
+              style: theme.textTheme.bodyLarge
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ).animate().fadeIn(delay: 100.ms),
+
+            const SizedBox(height: 24),
+
+            // 2. Card Inteligente (Onboarding ou Info)
+            if (!temAnimais)
+              _CardPrimeirosPassos(temLotes: temLotes)
+            else
+              // Placeholder se você não tiver o arquivo card_ia.dart ainda
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                background: Container(
-                  color: theme.colorScheme.surface,
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(20)),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.all(16.0),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  // 1. Saudação
-                  Text(
-                    "Olá, ${provedor.propriedadeAtiva!.nomeProprietario.split(' ').first}",
-                    style: theme.textTheme.headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ).animate().fadeIn(),
-
-                  Text(
-                    provedor.propriedadeAtiva!.nomeFazenda,
-                    style: theme.textTheme.bodyLarge
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                  ).animate().fadeIn(delay: 100.ms),
-
-                  const SizedBox(height: 24),
-
-                  // 2. Card Inteligente (Onboarding ou Info)
-                  if (!temAnimais)
-                    _CardPrimeirosPassos(temLotes: temLotes)
-                  else
-                    // Placeholder se você não tiver o arquivo card_ia.dart ainda
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer
-                            .withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(IconesApp.iaConsultor,
-                              color: theme.colorScheme.primary),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                              child: Text(
-                                  "Seu rebanho está crescendo! Acompanhe os indicadores abaixo.")),
-                        ],
-                      ),
-                    ).animate().fadeIn(),
-
-                  const SizedBox(height: 24),
-
-                  // 3. KPIs (Indicadores)
-                  Text(
-                    "Resumo do Rebanho",
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-
-                  GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    childAspectRatio: 1.5,
-                    children: [
-                      // KPI: Total Animais (COM SVG)
-                      _CardKPI(
-                        titulo: "Total Animais",
-                        valor: provedor.totalAnimais.toString(),
-                        // Passamos o widget SVG aqui
-                        customIcon: SvgPicture.asset(
-                          IconesApp.iconAnimalSvg,
-                          width: 24,
-                          height: 24,
-                          colorFilter: const ColorFilter.mode(
-                              Colors.blue, BlendMode.srcIn),
-                        ),
-                        cor: Colors.blue,
-                        onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const TelaListaAnimais())),
-                      ),
-
-                      // KPI: Lotes
-                      _CardKPI(
-                        titulo: "Lotes",
-                        valor: provedor.totalLotes.toString(),
-                        iconData: IconesApp.lote,
-                        cor: Colors.orange,
-                        onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const TelaListaLotes())),
-                      ),
-
-                      // KPI: Produção Leite (Mês)
-                      _CardKPI(
-                        titulo: "Leite (Mês)",
-                        valor: "${provedor.totalLeiteMes.toStringAsFixed(0)}L",
-                        iconData: IconesApp.leite,
-                        cor: Colors.blueAccent,
-                      ),
-
-                      // KPI: GMD Médio
-                      _CardKPI(
-                        titulo: "GMD Médio",
-                        valor: "${provedor.mediaGMD.toStringAsFixed(2)}kg",
-                        iconData: IconesApp.peso,
-                        cor: Colors.teal,
-                      ),
-
-                      // KPI: Alertas
-                      _CardKPI(
-                        titulo: "Alertas",
-                        valor: provedor.totalAnimaisDoentes.toString(),
-                        iconData: IconesApp.iaAtencao,
-                        cor: provedor.totalAnimaisDoentes > 0
-                            ? Colors.red
-                            : Colors.green,
-                        isAlerta: provedor.totalAnimaisDoentes > 0,
-                      ),
-
-                      // KPI: Nascimentos
-                      _CardKPI(
-                        titulo: "Nascimentos",
-                        valor: provedor.totalNascimentos.toString(),
-                        iconData: IconesApp.reproducao,
-                        cor: Colors.purple,
-                      ),
-
-                      // KPI: Mortalidade
-                      _CardKPI(
-                        titulo: "Mortalidade",
-                        valor: "${provedor.taxaMortalidade.toStringAsFixed(1)}%",
-                        iconData: Icons.warning_amber_rounded,
-                        cor: provedor.taxaMortalidade > 5 ? Colors.red : Colors.grey,
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // 4. Ações Rápidas (Aparecem se tiver animais)
-                  if (temAnimais) ...[
-                    Text(
-                      "Ações Rápidas",
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 100,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          _BotaoAcaoRapida(
-                            label: "Pesar",
-                            icon: IconesApp.peso,
-                            color: Colors.indigo,
-                            onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const FormPesagem())),
-                          ),
-                          _BotaoAcaoRapida(
-                            label: "Sanitário",
-                            icon: IconesApp.vacina,
-                            color: Colors.red,
-                            // Abre sem animal selecionado (Dashboard mode)
-                            onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const FormSanitario())),
-                          ),
-                          _BotaoAcaoRapida(
-                            label: "Reprodução",
-                            icon: IconesApp.reproducao,
-                            color: Colors.pink,
-                            onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const FormReprodutivo())),
-                          ),
-                          _BotaoAcaoRapida(
-                            label: "Leite",
-                            icon: IconesApp.leite,
-                            color: Colors.blue,
-                            onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const FormLeite())),
-                          ),
-                          _BotaoAcaoRapida(
-                            label: "Novo Animal",
-                            icon: Icons.add,
-                            color: Colors.green,
-                            onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const FormAnimal())),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
+                child: Row(
+                  children: [
+                    Icon(IconesApp.iaConsultor,
+                        color: theme.colorScheme.primary),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                        child: Text(
+                            "Seu rebanho está crescendo! Acompanhe os indicadores abaixo.")),
                   ],
+                ),
+              ).animate().fadeIn(),
 
-                  // 5. Últimas Atividades (Placeholder)
-                  Text(
-                    "Últimas Atividades",
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
+            const SizedBox(height: 24),
+
+            // 3. KPIs (Indicadores)
+            Text(
+              "Resumo do Rebanho",
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+
+            GridView.count(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              childAspectRatio: 1.5,
+              children: [
+                // KPI: Total Animais (COM SVG)
+                _CardKPI(
+                  titulo: "Total Animais",
+                  valor: provedor.totalAnimais.toString(),
+                  // Passamos o widget SVG aqui
+                  customIcon: SvgPicture.asset(
+                    IconesApp.iconAnimalSvg,
+                    width: 24,
+                    height: 24,
+                    colorFilter: const ColorFilter.mode(
+                        Colors.blue, BlendMode.srcIn),
                   ),
-                  const SizedBox(height: 8),
-                  const Card(
-                    margin: EdgeInsets.zero,
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.grey,
-                        child: Icon(Icons.history, color: Colors.white),
-                      ),
-                      title: Text("Sistema Iniciado"),
-                      subtitle: Text("Bem-vindo ao novo BoviCheck!"),
-                      trailing: Text("Hoje"),
+                  cor: Colors.blue,
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const TelaListaAnimais())),
+                ),
+
+                // KPI: Lotes
+                _CardKPI(
+                  titulo: "Lotes",
+                  valor: provedor.totalLotes.toString(),
+                  iconData: IconesApp.lote,
+                  cor: Colors.orange,
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const TelaListaLotes())),
+                ),
+
+                // KPI: Produção Leite (Mês)
+                _CardKPI(
+                  titulo: "Leite (Mês)",
+                  valor: "${provedor.totalLeiteMes.toStringAsFixed(0)}L",
+                  iconData: IconesApp.leite,
+                  cor: Colors.blueAccent,
+                ),
+
+                // KPI: GMD Médio
+                _CardKPI(
+                  titulo: "GMD Médio",
+                  valor: "${provedor.mediaGMD.toStringAsFixed(2)}kg",
+                  iconData: IconesApp.peso,
+                  cor: Colors.teal,
+                ),
+
+                // KPI: Alertas
+                _CardKPI(
+                  titulo: "Alertas",
+                  valor: provedor.totalAnimaisDoentes.toString(),
+                  iconData: IconesApp.iaAtencao,
+                  cor: provedor.totalAnimaisDoentes > 0
+                      ? Colors.red
+                      : Colors.green,
+                  isAlerta: provedor.totalAnimaisDoentes > 0,
+                ),
+
+                // KPI: Nascimentos
+                _CardKPI(
+                  titulo: "Nascimentos",
+                  valor: provedor.totalNascimentos.toString(),
+                  iconData: IconesApp.reproducao,
+                  cor: Colors.purple,
+                ),
+
+                // KPI: Mortalidade
+                _CardKPI(
+                  titulo: "Mortalidade",
+                  valor: "${provedor.taxaMortalidade.toStringAsFixed(1)}%",
+                  iconData: Icons.warning_amber_rounded,
+                  cor: provedor.taxaMortalidade > 5 ? Colors.red : Colors.grey,
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 32),
+
+            // 4. Ações Rápidas (Aparecem se tiver animais)
+            if (temAnimais) ...[
+              Text(
+                "Ações Rápidas",
+                style: theme.textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 100,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _BotaoAcaoRapida(
+                      label: "Pesar",
+                      icon: IconesApp.peso,
+                      color: Colors.indigo,
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const FormPesagem())),
                     ),
-                  ),
-                  const SizedBox(height: 80),
-                ]),
+                    _BotaoAcaoRapida(
+                      label: "Sanitário",
+                      icon: IconesApp.vacina,
+                      color: Colors.red,
+                      // Abre sem animal selecionado (Dashboard mode)
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const FormSanitario())),
+                    ),
+                    _BotaoAcaoRapida(
+                      label: "Reprodução",
+                      icon: IconesApp.reproducao,
+                      color: Colors.pink,
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const FormReprodutivo())),
+                    ),
+                    _BotaoAcaoRapida(
+                      label: "Leite",
+                      icon: IconesApp.leite,
+                      color: Colors.blue,
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const FormLeite())),
+                    ),
+                    _BotaoAcaoRapida(
+                      label: "Novo Animal",
+                      icon: Icons.add,
+                      color: Colors.green,
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const FormAnimal())),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
+
+            // 5. Últimas Atividades (Placeholder)
+            Text(
+              "Últimas Atividades",
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.grey,
+                  child: Icon(Icons.history, color: Colors.white),
+                ),
+                title: Text("Sistema Iniciado"),
+                subtitle: Text("Bem-vindo ao novo BoviCheck!"),
+                trailing: Text("Hoje"),
               ),
             ),
+            const SizedBox(height: 80),
           ],
         ),
       ),

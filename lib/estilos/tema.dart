@@ -16,7 +16,7 @@ class TemaApp {
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
-        scrolledUnderElevation: 3,
+        scrolledUnderElevation: 0,
         backgroundColor: esquemaCores.primary,
         foregroundColor: esquemaCores.onPrimary,
         surfaceTintColor: Colors.transparent,
@@ -306,6 +306,7 @@ class AppBarPadrao extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: corFundo ?? theme.colorScheme.primary,
       foregroundColor: theme.colorScheme.onPrimary,
       elevation: 0,
+      scrolledUnderElevation: 0,
       leading: leading,
       actions: actions,
       title: Text(

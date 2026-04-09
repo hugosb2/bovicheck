@@ -18,8 +18,6 @@ class TelaHistoricoGMD extends StatefulWidget {
 }
 
 class _TelaHistoricoGMDState extends State<TelaHistoricoGMD> {
-  late ScrollController _scrollController;
-  bool _isCollapsed = false;
   bool _carregando = true;
   List<Pesagem> _pesagens = [];
   List<Animal> _animais = [];
@@ -27,24 +25,7 @@ class _TelaHistoricoGMDState extends State<TelaHistoricoGMD> {
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_scrollListener);
     WidgetsBinding.instance.addPostFrameCallback((_) => _carregarDados());
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_scrollListener);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _scrollListener() {
-    if (_scrollController.hasClients && _scrollController.offset > (140 - kToolbarHeight)) {
-      if (!_isCollapsed) setState(() => _isCollapsed = true);
-    } else {
-      if (_isCollapsed) setState(() => _isCollapsed = false);
-    }
   }
 
   Future<void> _carregarDados() async {
@@ -146,138 +127,103 @@ class _TelaHistoricoGMDState extends State<TelaHistoricoGMD> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final corAppBarBg = _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
-    final corElementos = _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
-    final paddingTitulo = _isCollapsed ? const EdgeInsets.only(left: 60, bottom: 16) : const EdgeInsets.only(left: 16, bottom: 16);
-
     final dados = _gerarDadosGMD();
     final temDadosSuficientes = _temDadosSuficientes();
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 140,
-            backgroundColor: corAppBarBg,
-            iconTheme: IconThemeData(color: corElementos),
-            surfaceTintColor: Colors.transparent,
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: false,
-              titlePadding: paddingTitulo,
-              expandedTitleScale: 1.6,
-              title: Text(
-                'Ganho Médio Diário',
-                style: TextStyle(color: corElementos, fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-              background: Container(
-                color: theme.colorScheme.surface,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          if (_carregando)
-            const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
-          else if (!temDadosSuficientes)
-            SliverFillRemaining(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    CardDadosInsuficientes(
-                      mensagem: 'Para calcular o GMD (Ganho Médio Diário), você precisa ter pesagens de:\n\n'
-                          '• Peso ao Nascimento\n'
-                          '• Peso ao Desmama\n\n'
-                          'Do mesmo animal em momentos diferentes.',
-                      botaoTexto: 'Cadastrar Pesagem',
-                      onBotao: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormPesagem())),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(12),
+      appBar: AppBar(
+        title: const Text('Ganho Médio Diário', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: false,
+        backgroundColor: theme.colorScheme.surface,
+        foregroundColor: theme.colorScheme.primary,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+      body: _carregando
+          ? const Center(child: CircularProgressIndicator())
+          : !temDadosSuficientes
+              ? SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      CardDadosInsuficientes(
+                        mensagem: 'Para calcular o GMD (Ganho Médio Diário), você precisa ter pesagens de:\n\n'
+                            '• Peso ao Nascimento\n'
+                            '• Peso ao Desmame\n\n'
+                            'Do mesmo animal em momentos diferentes.',
+                        botaoTexto: 'Cadastrar Pesagem',
+                        onBotao: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormPesagem())),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Como funciona:', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 8),
+                            Text('O GMD = (Peso Desmame - Peso Nascimento) ÷ Dias entre pesagens', style: theme.textTheme.bodySmall),
+                            const SizedBox(height: 8),
+                            Text('Você precisa de pelo menos 2 pesagens (Nascimento e Desmame) do mesmo animal.', style: theme.textTheme.bodySmall),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.orange.withValues(alpha: 0.1), theme.colorScheme.surface],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
                         children: [
-                          Text('Como funciona:', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 8),
-                          Text('O GMD = (Peso Desmama - Peso Nascimento) ÷ Dias entre pesagens', style: theme.textTheme.bodySmall),
-                          const SizedBox(height: 8),
-                          Text('Você precisa de pelo menos 2 pesagens (Nascimento e Desmama) do mesmo animal.', style: theme.textTheme.bodySmall),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.trending_up, color: Colors.orange, size: 32),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('GMD Médio', style: theme.textTheme.titleMedium),
+                                Text('Nascimento → Desmame', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            '${(_gmdMedio * 1000).toStringAsFixed(1)} g/dia',
+                            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: Colors.orange),
+                          ),
                         ],
                       ),
                     ),
+                    const SizedBox(height: 20),
+                    Text('Evolução Mensal (g/dia)', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    _CardGrafico(dado: dados, cor: Colors.orange),
+                    const SizedBox(height: 40),
                   ],
                 ),
-              ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.orange.withValues(alpha: 0.1), theme.colorScheme.surface],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.trending_up, color: Colors.orange, size: 32),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('GMD Médio', style: theme.textTheme.titleMedium),
-                              Text('Nascimento → Desmama', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          '${(_gmdMedio * 1000).toStringAsFixed(1)} g/dia',
-                          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: Colors.orange),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text('Evolução Mensal (g/dia)', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  _CardGrafico(dado: dados, cor: Colors.orange),
-                  const SizedBox(height: 40),
-                ]),
-              ),
-            ),
-        ],
-      ),
     );
   }
 }

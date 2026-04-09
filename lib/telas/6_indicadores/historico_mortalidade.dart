@@ -15,32 +15,13 @@ class TelaHistoricoMortalidade extends StatefulWidget {
 }
 
 class _TelaHistoricoMortalidadeState extends State<TelaHistoricoMortalidade> {
-  late ScrollController _scrollController;
-  bool _isCollapsed = false;
   bool _carregando = false;
   List<Animal> _animais = [];
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_scrollListener);
     WidgetsBinding.instance.addPostFrameCallback((_) => _carregarDados());
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_scrollListener);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _scrollListener() {
-    if (_scrollController.hasClients && _scrollController.offset > (140 - kToolbarHeight)) {
-      if (!_isCollapsed) setState(() => _isCollapsed = true);
-    } else {
-      if (_isCollapsed) setState(() => _isCollapsed = false);
-    }
   }
 
   void _carregarDados() {
@@ -88,53 +69,36 @@ class _TelaHistoricoMortalidadeState extends State<TelaHistoricoMortalidade> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final corAppBarBg = _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
-    final corElementos = _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
-    final paddingTitulo = _isCollapsed ? const EdgeInsets.only(left: 60, bottom: 16) : const EdgeInsets.only(left: 16, bottom: 16);
-
     final dados = _gerarDadosMortalidade();
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 140,
-            backgroundColor: corAppBarBg,
-            iconTheme: IconThemeData(color: corElementos),
-            surfaceTintColor: Colors.transparent,
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: false,
-              titlePadding: paddingTitulo,
-              expandedTitleScale: 1.6,
-              title: Text('Taxa de Mortalidade', style: TextStyle(color: corElementos, fontWeight: FontWeight.bold, fontSize: 18)),
-              background: Container(color: theme.colorScheme.surface, child: Align(alignment: Alignment.bottomCenter, child: Container(height: 20, decoration: BoxDecoration(color: theme.colorScheme.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(20)))))),
-            ),
-          ),
-          if (!_temDadosSuficientes())
-            SliverFillRemaining(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    CardDadosInsuficientes(
-                      mensagem: 'Para calcular a Taxa de Mortalidade, você precisa ter:\n\n'
-                          '• Animais cadastrados no rebanho\n'
-                          '• Registrar quando um animal morrer (data de óbito)',
-                      botaoTexto: 'Cadastrar Animal',
-                      onBotao: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormAnimal())),
-                    ),
-                  ],
-                ),
+      appBar: AppBar(
+        title: const Text('Taxa de Mortalidade', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: false,
+        backgroundColor: theme.colorScheme.surface,
+        foregroundColor: theme.colorScheme.primary,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+      body: !_temDadosSuficientes()
+          ? SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  CardDadosInsuficientes(
+                    mensagem: 'Para calcular a Taxa de Mortalidade, você precisa ter:\n\n'
+                        '• Animais cadastrados no rebanho\n'
+                        '• Registrar quando um animal morrer (data de óbito)',
+                    botaoTexto: 'Cadastrar Animal',
+                    onBotao: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormAnimal())),
+                  ),
+                ],
               ),
             )
-          else
-            SliverPadding(
+          : ListView(
               padding: const EdgeInsets.all(16),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
+              children: [
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -201,11 +165,8 @@ class _TelaHistoricoMortalidadeState extends State<TelaHistoricoMortalidade> {
                   ]),
                 ),
                 const SizedBox(height: 40),
-              ]),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }

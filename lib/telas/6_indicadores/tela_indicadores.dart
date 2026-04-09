@@ -23,10 +23,6 @@ class TelaIndicadores extends StatefulWidget {
 }
 
 class _TelaIndicadoresState extends State<TelaIndicadores> {
-  // Controle de Scroll para animação da AppBar
-  late ScrollController _scrollController;
-  bool _isCollapsed = false;
-
   DateTimeRange _periodoSelecionado = DateTimeRange(
     start: DateTime.now().subtract(const Duration(days: 365)),
     end: DateTime.now(),
@@ -43,33 +39,8 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_scrollListener);
-
     // Carrega dados após o build inicial
     WidgetsBinding.instance.addPostFrameCallback((_) => _carregarDados());
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_scrollListener);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _scrollListener() {
-    // Detecta se a AppBar colapsou para trocar as cores
-    // 140 é a expandedHeight definida na AppBar
-    if (_scrollController.hasClients &&
-        _scrollController.offset > (140 - kToolbarHeight)) {
-      if (!_isCollapsed) {
-        setState(() => _isCollapsed = true);
-      }
-    } else {
-      if (_isCollapsed) {
-        setState(() => _isCollapsed = false);
-      }
-    }
   }
 
   Future<void> _carregarDados() async {
@@ -139,280 +110,223 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
       fim: _periodoSelecionado.end,
     );
 
-    // --- LÓGICA DE APARÊNCIA DINÂMICA ---
-    final Color corAppBarBg =
-        _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
-    final Color corElementos =
-        _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
-
-    // Padding Dinâmico:
-    // Quando colapsado (pequeno), empurra o texto para direita (60) para não bater na seta.
-    // Quando expandido (grande), alinha o texto com a margem normal (16).
-    final EdgeInsets paddingTitulo = _isCollapsed
-        ? const EdgeInsets.only(left: 60, bottom: 16)
-        : const EdgeInsets.only(left: 16, bottom: 16);
-
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          // 1. App Bar Moderno e Dinâmico
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 140,
-            backgroundColor: corAppBarBg,
-
-            // Define cor da seta de voltar
-            iconTheme: IconThemeData(color: corElementos),
-            surfaceTintColor: Colors.transparent,
-            actions: const [],
-
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: false, // Alinha à esquerda
-              titlePadding: paddingTitulo, // Padding dinâmico aplicado
-              expandedTitleScale: 1.6,
-
-              title: Text(
-                'Performance',
-                style: TextStyle(
-                  color: corElementos,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-              background: Container(
-                color: theme.colorScheme.surface,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(20)),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // 2. Filtros (Sliver)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Dropdown Lote Estilizado
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String?>(
-                        value: _loteSelecionadoId,
-                        hint: const Text("Todos os Lotes"),
-                        isExpanded: true,
-                        icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                        items: [
-                          const DropdownMenuItem(
-                              value: null, child: Text("Rebanho Geral")),
-                          ...provedor.lotes.map((l) => DropdownMenuItem(
-                              value: l.id, child: Text(l.nome))),
-                        ],
-                        onChanged: (v) =>
-                            setState(() => _loteSelecionadoId = v),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Chips de Data
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _PeriodoChip('30 Dias', 30, _periodoSelecionado,
-                            (d) => _atualizarPeriodo(d)),
-                        _PeriodoChip('6 Meses', 180, _periodoSelecionado,
-                            (d) => _atualizarPeriodo(d)),
-                        _PeriodoChip('1 Ano', 365, _periodoSelecionado,
-                            (d) => _atualizarPeriodo(d)),
-                        _PeriodoChip('Tudo', 3650, _periodoSelecionado,
-                            (d) => _atualizarPeriodo(d)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          if (_carregando)
-            const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()))
-          else
-            SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  // --- SEÇÃO 1: DESTAQUES REPRODUTIVOS (GRÁFICOS) ---
-                  const _TituloSecao('Eficiência Reprodutiva'),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _CardCircular(
-                          titulo: 'Natalidade',
-                          porcentagem: calc.taxaNatalidade,
-                          meta: 80,
-                          cor: Colors.pink,
-                          tooltip: 'Nascimentos / Fêmeas Aptas',
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoReproducao())),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _CardCircular(
-                          titulo: 'Prenhez',
-                          porcentagem: calc.taxaPrenhez,
-                          meta: 85,
-                          cor: Colors.purple,
-                          tooltip: 'Diagnósticos Positivos',
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoReproducao())),
-                        ),
-                      ),
-                    ],
-                  ).animate().scale(duration: 400.ms),
-
-                  const SizedBox(height: 12),
-
-                  // Dados Secundários de Reprodução
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _CardMetricaSimples(
-                          label: 'IEP (Meses)',
-                          valor: calc.iepMeses.toStringAsFixed(1),
-                          meta: 'Meta: 12-14',
-                          status: calc.getStatusIEP(),
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoIEP())),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _CardMetricaSimples(
-                          label: '1º Parto (Meses)',
-                          valor:
-                              calc.idadePrimeiroPartoMeses.toStringAsFixed(1),
-                          meta: 'Meta: < 30',
-                          status: calc.getStatusIdadeParto(),
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoReproducao())),
-                        ),
-                      ),
-                    ],
-                  ).animate().fadeIn(delay: 200.ms),
-
-                  const SizedBox(height: 32),
-
-                  // --- SEÇÃO 2: PRODUÇÃO (CARDS GRANDES) ---
-                  const _TituloSecao('Produção & Ganho'),
-
-                  _CardProducaoDetalhado(
-                    titulo: 'GMD (Nascimento-Desmame)',
-                    valor: '${calc.gmdNascDesmame.toStringAsFixed(3)} kg/dia',
-                    icone: Icons.show_chart_rounded,
-                    cor: Colors.blue,
-                    status: calc.getStatusGMD(),
-                    subtitulo: 'Ganho de peso diário dos bezerros',
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoGMD())),
-                  ),
-                  const SizedBox(height: 12),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _CardMetricaSimples(
-                          label: 'Taxa Desmame',
-                          valor: '${calc.taxaDesmame.toStringAsFixed(1)}%',
-                          meta: '> 85%',
-                          status: calc.getStatusDesmame(),
-                          icone: Icons.child_care,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoReproducao())),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _CardMetricaSimples(
-                          label: 'Leite / Dia',
-                          valor: '${calc.mediaLeiteDia.toStringAsFixed(1)} L',
-                          meta: 'Média Vaca',
-                          status: _Status.neutro,
-                          icone: Icons.water_drop,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoLeite())),
-                        ),
-                      ),
-                    ],
-                  ).animate().fadeIn(delay: 300.ms),
-
-                  const SizedBox(height: 32),
-
-                  // --- SEÇÃO 3: SANIDADE (ALERTAS) ---
-                  const _TituloSecao('Saúde do Rebanho'),
-
-                  _CardSanidade(
-                    taxaMortalidade: calc.taxaMortalidade,
-                    status: calc.getStatusMortalidade(),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoMortalidade())),
-                  ).animate().slideY(begin: 0.2, end: 0, delay: 400.ms),
-
-                  const SizedBox(height: 12),
-
-                  // --- SEÇÃO 4: PRODUÇÃO DE LEITE E PESAGENS ---
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _CardMetricaSimples(
-                          label: 'Pesagens',
-                          valor: '${_todasPesagens.length} registros',
-                          meta: 'Total registrado',
-                          status: _Status.neutro,
-                          icone: Icons.monitor_weight,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoPesagem())),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _CardMetricaSimples(
-                          label: 'Eventos Reprod.',
-                          valor: '${_todosEventosReprodutivos.length} eventos',
-                          meta: 'Total registrado',
-                          status: _Status.neutro,
-                          icone: Icons.favorite_border,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoReproducao())),
-                        ),
-                      ),
-                    ],
-                  ).animate().fadeIn(delay: 300.ms),
-
-                  const SizedBox(height: 40),
-
-                  Center(
-                    child: Text(
-                      'Dados baseados em ${animaisFiltrados.length} animais filtrados.',
-                      style: TextStyle(
-                          color: theme.colorScheme.outline, fontSize: 12),
-                    ),
-                  ),
-                  const SizedBox(height: 80),
-                ]),
-              ),
-            ),
-        ],
+      appBar: AppBar(
+        title: const Text(
+          'Performance',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: false,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        elevation: 0,
+        scrolledUnderElevation: 0,
       ),
+      body: _carregando
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.all(16.0),
+              children: [
+                // 2. Filtros
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Dropdown Lote Estilizado
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String?>(
+                          value: _loteSelecionadoId,
+                          hint: const Text("Todos os Lotes"),
+                          isExpanded: true,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                          items: [
+                            const DropdownMenuItem(
+                                value: null, child: Text("Rebanho Geral")),
+                            ...provedor.lotes.map((l) => DropdownMenuItem(
+                                value: l.id, child: Text(l.nome))),
+                          ],
+                          onChanged: (v) =>
+                              setState(() => _loteSelecionadoId = v),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Chips de Data
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _PeriodoChip('30 Dias', 30, _periodoSelecionado,
+                              (d) => _atualizarPeriodo(d)),
+                          _PeriodoChip('6 Meses', 180, _periodoSelecionado,
+                              (d) => _atualizarPeriodo(d)),
+                          _PeriodoChip('1 Ano', 365, _periodoSelecionado,
+                              (d) => _atualizarPeriodo(d)),
+                          _PeriodoChip('Tudo', 3650, _periodoSelecionado,
+                              (d) => _atualizarPeriodo(d)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // --- SEÇÃO 1: DESTAQUES REPRODUTIVOS (GRÁFICOS) ---
+                const _TituloSecao('Eficiência Reprodutiva'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _CardCircular(
+                        titulo: 'Natalidade',
+                        porcentagem: calc.taxaNatalidade,
+                        meta: 80,
+                        cor: Colors.pink,
+                        tooltip: 'Nascimentos / Fêmeas Aptas',
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoReproducao())),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _CardCircular(
+                        titulo: 'Prenhez',
+                        porcentagem: calc.taxaPrenhez,
+                        meta: 85,
+                        cor: Colors.purple,
+                        tooltip: 'Diagnósticos Positivos',
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoReproducao())),
+                      ),
+                    ),
+                  ],
+                ).animate().scale(duration: 400.ms),
+
+                const SizedBox(height: 12),
+
+                // Dados Secundários de Reprodução
+                Row(
+                  children: [
+                    Expanded(
+                      child: _CardMetricaSimples(
+                        label: 'IEP (Meses)',
+                        valor: calc.iepMeses.toStringAsFixed(1),
+                        meta: 'Meta: 12-14',
+                        status: calc.getStatusIEP(),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoIEP())),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _CardMetricaSimples(
+                        label: '1º Parto (Meses)',
+                        valor:
+                            calc.idadePrimeiroPartoMeses.toStringAsFixed(1),
+                        meta: 'Meta: < 30',
+                        status: calc.getStatusIdadeParto(),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoReproducao())),
+                      ),
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 200.ms),
+
+                const SizedBox(height: 32),
+
+                // --- SEÇÃO 2: PRODUÇÃO (CARDS GRANDES) ---
+                const _TituloSecao('Produção & Ganho'),
+
+                _CardProducaoDetalhado(
+                  titulo: 'GMD (Nascimento-Desmame)',
+                  valor: '${calc.gmdNascDesmame.toStringAsFixed(3)} kg/dia',
+                  icone: Icons.show_chart_rounded,
+                  cor: Colors.blue,
+                  status: calc.getStatusGMD(),
+                  subtitulo: 'Ganho de peso diário dos bezerros',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoGMD())),
+                ),
+                const SizedBox(height: 12),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _CardMetricaSimples(
+                        label: 'Taxa Desmame',
+                        valor: '${calc.taxaDesmame.toStringAsFixed(1)}%',
+                        meta: '> 85%',
+                        status: calc.getStatusDesmame(),
+                        icone: Icons.child_care,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoReproducao())),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _CardMetricaSimples(
+                        label: 'Leite / Dia',
+                        valor: '${calc.mediaLeiteDia.toStringAsFixed(1)} L',
+                        meta: 'Média Vaca',
+                        status: _Status.neutro,
+                        icone: Icons.water_drop,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoLeite())),
+                      ),
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 300.ms),
+
+                const SizedBox(height: 32),
+
+                // --- SEÇÃO 3: SANIDADE (ALERTAS) ---
+                const _TituloSecao('Saúde do Rebanho'),
+
+                _CardSanidade(
+                  taxaMortalidade: calc.taxaMortalidade,
+                  status: calc.getStatusMortalidade(),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoMortalidade())),
+                ).animate().slideY(begin: 0.2, end: 0, delay: 400.ms),
+
+                const SizedBox(height: 12),
+
+                // --- SEÇÃO 4: PRODUÇÃO DE LEITE E PESAGENS ---
+                Row(
+                  children: [
+                    Expanded(
+                      child: _CardMetricaSimples(
+                        label: 'Pesagens',
+                        valor: '${_todasPesagens.length} registros',
+                        meta: 'Total registrado',
+                        status: _Status.neutro,
+                        icone: Icons.monitor_weight,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoPesagem())),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _CardMetricaSimples(
+                        label: 'Eventos Reprod.',
+                        valor: '${_todosEventosReprodutivos.length} eventos',
+                        meta: 'Total registrado',
+                        status: _Status.neutro,
+                        icone: Icons.favorite_border,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoReproducao())),
+                      ),
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 300.ms),
+
+                const SizedBox(height: 40),
+
+                Center(
+                  child: Text(
+                    'Dados baseados em ${animaisFiltrados.length} animais filtrados.',
+                    style: TextStyle(
+                        color: theme.colorScheme.outline, fontSize: 12),
+                  ),
+                ),
+                const SizedBox(height: 80),
+              ],
+            ),
     );
   }
 }

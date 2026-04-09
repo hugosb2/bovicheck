@@ -17,17 +17,11 @@ class TelaListaAnimais extends StatefulWidget {
 
 class _TelaListaAnimaisState extends State<TelaListaAnimais> {
   final TextEditingController _buscaController = TextEditingController();
-  late ScrollController _scrollController;
-
-  // Estado para controlar a aparência
-  bool _isCollapsed = false;
   String _filtroTexto = '';
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_scrollListener);
 
     _buscaController.addListener(() {
       setState(() {
@@ -38,24 +32,8 @@ class _TelaListaAnimaisState extends State<TelaListaAnimais> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_scrollListener);
-    _scrollController.dispose();
     _buscaController.dispose();
     super.dispose();
-  }
-
-  void _scrollListener() {
-    // CORREÇÃO CRÍTICA: Ajuste do ponto de gatilho.
-    // ExpandedHeight é 140. kToolbarHeight é 56.
-    // Se o usuário rolar mais que 90px, mudamos o estado.
-    if (_scrollController.hasClients) {
-      bool deveColapsar = _scrollController.offset > 90;
-      if (deveColapsar != _isCollapsed) {
-        setState(() {
-          _isCollapsed = deveColapsar;
-        });
-      }
-    }
   }
 
   void _navegarParaNovoAnimal(BuildContext context) {
@@ -102,191 +80,126 @@ class _TelaListaAnimaisState extends State<TelaListaAnimais> {
       return matchBrinco || matchNome;
     }).toList();
 
-    // LÓGICA DE CORES
-    // Colapsado (Pequeno): Fundo Verde, Ícones Brancos
-    // Expandido (Grande): Fundo Branco, Ícones Verdes
-    final Color corAppBarBg =
-        _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
-    final Color corElementos =
-        _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
-
-    // LÓGICA DE PADDING (Correção de Sobreposição)
-    // Quando colapsado, empurra 72px para a direita para fugir da seta
-    final EdgeInsets paddingTitulo = _isCollapsed
-        ? const EdgeInsets.only(left: 72, bottom: 16)
-        : const EdgeInsets.only(left: 16, bottom: 16);
-
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      body: CustomScrollView(
-        controller: _scrollController,
-        // CORREÇÃO: Força o scroll funcionar mesmo com poucos itens para a animação rodar
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 140,
-
-            // Cores
-            backgroundColor: corAppBarBg,
-            foregroundColor:
-                corElementos, // Controla a cor da seta automaticamente
-            iconTheme: IconThemeData(color: corElementos),
-
-            surfaceTintColor:
-                Colors.transparent, // Evita mistura de cores do Material 3
-
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: false, // Força alinhamento a esquerda
-              titlePadding: paddingTitulo, // Aplica o padding dinâmico
-              expandedTitleScale: 1.6,
-
-              title: AnimatedDefaultTextStyle(
-                // Animação suave na troca de cor do texto
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  color: corElementos,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  fontFamily: 'Roboto', // Garante a fonte correta
-                ),
-                child: const Text('Rebanho'),
-              ),
-
-              background: Container(
-                color: theme.colorScheme.surface,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(20)),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
+      appBar: AppBar(
+        title: const Text(
+          'Rebanho',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: false,
+        backgroundColor: theme.colorScheme.surface,
+        foregroundColor: theme.colorScheme.primary,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+      body: Column(
+        children: [
           // Busca Fixa
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: TextField(
-                controller: _buscaController,
-                decoration: InputDecoration(
-                  hintText: 'Buscar por brinco ou nome...',
-                  prefixIcon: const Icon(IconesApp.buscar),
-                  suffixIcon: _filtroTexto.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(IconesApp.fechar),
-                          onPressed: () => _buscaController.clear())
-                      : null,
-                  filled: true,
-                  fillColor: theme.colorScheme.surfaceContainerHighest
-                      .withValues(alpha: 0.3),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none),
-                ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: TextField(
+              controller: _buscaController,
+              decoration: InputDecoration(
+                hintText: 'Buscar por brinco ou nome...',
+                prefixIcon: const Icon(IconesApp.buscar),
+                suffixIcon: _filtroTexto.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(IconesApp.fechar),
+                        onPressed: () => _buscaController.clear())
+                    : null,
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest
+                    .withValues(alpha: 0.3),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none),
               ),
             ),
           ),
 
-          if (animaisFiltrados.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(IconesApp.rebanho,
-                        size: 64,
-                        color:
-                            theme.colorScheme.outline.withValues(alpha: 0.5)),
-                    const SizedBox(height: 16),
-                    Text(
-                      _filtroTexto.isEmpty
-                          ? 'Nenhum animal cadastrado.'
-                          : 'Nenhum animal encontrado.',
-                      style: TextStyle(color: theme.colorScheme.outline),
+          Expanded(
+            child: animaisFiltrados.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(IconesApp.rebanho,
+                            size: 64,
+                            color: theme.colorScheme.outline
+                                .withValues(alpha: 0.5)),
+                        const SizedBox(height: 16),
+                        Text(
+                          _filtroTexto.isEmpty
+                              ? 'Nenhum animal cadastrado.'
+                              : 'Nenhum animal encontrado.',
+                          style: TextStyle(color: theme.colorScheme.outline),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final animal = animaisFiltrados[index];
-                    final loteObj = provedor.lotes.cast<Lote?>().firstWhere(
-                        (l) => l?.id == animal.loteId,
-                        orElse: () => null);
-                    final nomeLote = loteObj?.nome ?? 'Lote não encontrado';
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: animaisFiltrados.length,
+                    itemBuilder: (context, index) {
+                      final animal = animaisFiltrados[index];
+                      final loteObj = provedor.lotes.cast<Lote?>().firstWhere(
+                          (l) => l?.id == animal.loteId,
+                          orElse: () => null);
+                      final nomeLote = loteObj?.nome ?? 'Lote não encontrado';
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                            color: theme.colorScheme.outlineVariant
-                                .withValues(alpha: 0.4)),
-                      ),
-                      color: theme.colorScheme.surfaceContainerLow,
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        leading: CircleAvatar(
-                          backgroundColor: animal.sexo == 'M'
-                              ? Colors.blue.shade100
-                              : Colors.pink.shade100,
-                          child: Text(
-                            animal.brinco.length > 3
-                                ? animal.brinco.substring(0, 3)
-                                : animal.brinco,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: animal.sexo == 'M'
-                                  ? Colors.blue.shade800
-                                  : Colors.pink.shade800,
-                              fontSize: 12,
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                              color: theme.colorScheme.outlineVariant
+                                  .withValues(alpha: 0.4)),
+                        ),
+                        color: theme.colorScheme.surfaceContainerLow,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          leading: CircleAvatar(
+                            backgroundColor: animal.sexo == 'M'
+                                ? Colors.blue.shade100
+                                : Colors.pink.shade100,
+                            child: Text(
+                              animal.brinco.length > 3
+                                  ? animal.brinco.substring(0, 3)
+                                  : animal.brinco,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: animal.sexo == 'M'
+                                    ? Colors.blue.shade800
+                                    : Colors.pink.shade800,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
+                          title: Text("Brinco ${animal.brinco}",
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text(
+                              "${animal.nome ?? 'Sem nome'} • $nomeLote\n${animal.calcularIdadeMeses()} meses",
+                              style: theme.textTheme.bodySmall),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        TelaDetalhesAnimal(animal: animal)));
+                          },
                         ),
-                        title: Text("Brinco ${animal.brinco}",
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(
-                            "${animal.nome ?? 'Sem nome'} • $nomeLote\n${animal.calcularIdadeMeses()} meses",
-                            style: theme.textTheme.bodySmall),
-                        trailing: Icon(IconesApp.setaDireita,
-                            color: theme.colorScheme.outline),
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      TelaDetalhesAnimal(animal: animal)));
-                        },
-                      ),
-                    )
-                        .animate()
-                        .fadeIn(duration: 300.ms, delay: (index * 30).ms)
-                        .slideX();
-                  },
-                  childCount: animaisFiltrados.length,
-                ),
-              ),
-            ),
-
-          // Espaço extra no final para garantir que o último item não fique escondido pelo FAB
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                      )
+                          .animate()
+                          .fadeIn(duration: 300.ms, delay: (index * 30).ms)
+                          .slideX();
+                    },
+                  ),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
