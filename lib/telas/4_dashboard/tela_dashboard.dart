@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_svg/flutter_svg.dart'; // Import para o SVG
 import '../../../estilos/icones.dart';
+import '../../../estilos/tema.dart';
 import '../../../provedores/provedor_fazenda.dart';
 
 // --- IMPORTS DOS FORMULÁRIOS ---
@@ -66,16 +67,8 @@ class _TelaDashboardState extends State<TelaDashboard> {
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       drawer: const GavetaMenu(),
-      appBar: AppBar(
-        title: const Text(
-          'Dashboard',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: false,
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: const AppBarPadrao(
+        titulo: 'Dashboard',
       ),
       body: RefreshIndicator(
         onRefresh: () async {

@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../estilos/tema.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../modelos/eventos/evento_reprodutivo.dart';
 import '../../servicos/banco_dados_servico.dart';
+import '../../estilos/tema.dart';
 import 'widgets/dados_insuficientes.dart';
 import '../10_formularios/form_reprodutivo.dart';
 
@@ -127,14 +129,7 @@ class _TelaHistoricoIEPState extends State<TelaHistoricoIEP> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Intervalo Entre Partos', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: false,
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.primary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
+      appBar: const AppBarPadrao(titulo: 'Intervalo Entre Partos'),
       body: _carregando
           ? const Center(child: CircularProgressIndicator())
           : !temDadosSuficientes

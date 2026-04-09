@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/icones.dart';
+import '../../estilos/tema.dart';
 import '../../estilos/cores.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../servicos/ia_gemini_cliente.dart';

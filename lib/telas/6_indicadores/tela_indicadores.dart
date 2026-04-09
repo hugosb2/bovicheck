@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../estilos/tema.dart';
 import '../../estilos/cores.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../modelos/animal.dart';
@@ -112,16 +113,8 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text(
-          'Performance',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: false,
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: const AppBarPadrao(
+        titulo: 'Performance',
       ),
       body: _carregando
           ? const Center(child: CircularProgressIndicator())

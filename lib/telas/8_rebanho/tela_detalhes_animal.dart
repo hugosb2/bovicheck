@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/icones.dart';
+import '../../estilos/tema.dart';
 import '../../modelos/animal.dart';
 import '../../modelos/lote.dart';
 import '../../provedores/provedor_fazenda.dart';
@@ -86,18 +87,10 @@ class _TelaDetalhesAnimalState extends State<TelaDetalhesAnimal> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: Text(
-          animalAtual.nome != null && animalAtual.nome!.isNotEmpty
-              ? animalAtual.nome!
-              : 'Detalhes do Animal',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: false,
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.primary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: AppBarPadrao(
+        titulo: animalAtual.nome != null && animalAtual.nome!.isNotEmpty
+            ? animalAtual.nome!
+            : 'Detalhes do Animal',
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

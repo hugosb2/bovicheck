@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../estilos/tema.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../modelos/eventos/producao_leite.dart';
 import '../../servicos/banco_dados_servico.dart';
+import '../../estilos/tema.dart';
 import 'widgets/dados_insuficientes.dart';
 import '../10_formularios/form_leite.dart';
 
@@ -82,14 +84,7 @@ class _TelaHistoricoLeiteState extends State<TelaHistoricoLeite> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Produção de Leite', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: false,
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.primary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
+      appBar: const AppBarPadrao(titulo: 'Produção de Leite'),
       body: _carregando
           ? const Center(child: CircularProgressIndicator())
           : !temDadosSuficientes

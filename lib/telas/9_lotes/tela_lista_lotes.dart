@@ -23,16 +23,8 @@ class _TelaListaLotesState extends State<TelaListaLotes> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text(
-          'Lotes & Pastos',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: false,
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.primary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: const AppBarPadrao(
+        titulo: 'Lotes & Pastos',
       ),
       body: lotes.isEmpty
           ? EstadoVazioPadrao(

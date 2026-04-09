@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/icones.dart';
+import '../../estilos/tema.dart';
 import '../../modelos/lote.dart';
 import '../../provedores/provedor_fazenda.dart';
 import 'tela_detalhes_animal.dart';
@@ -82,35 +83,29 @@ class _TelaListaAnimaisState extends State<TelaListaAnimais> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text(
-          'Rebanho',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: false,
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.primary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: const AppBarPadrao(
+        titulo: 'Rebanho',
       ),
       body: Column(
         children: [
           // Busca Fixa
-          Padding(
+          Container(
+            color: theme.colorScheme.primary,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: TextField(
               controller: _buscaController,
+              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Buscar por brinco ou nome...',
-                prefixIcon: const Icon(IconesApp.buscar),
+                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                prefixIcon: const Icon(IconesApp.buscar, color: Colors.white),
                 suffixIcon: _filtroTexto.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(IconesApp.fechar),
+                        icon: const Icon(IconesApp.fechar, color: Colors.white),
                         onPressed: () => _buscaController.clear())
                     : null,
                 filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest
-                    .withValues(alpha: 0.3),
+                fillColor: Colors.white.withValues(alpha: 0.2),
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none),
@@ -139,7 +134,7 @@ class _TelaListaAnimaisState extends State<TelaListaAnimais> {
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     itemCount: animaisFiltrados.length,
                     itemBuilder: (context, index) {
                       final animal = animaisFiltrados[index];

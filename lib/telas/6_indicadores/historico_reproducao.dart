@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../estilos/tema.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../modelos/eventos/evento_reprodutivo.dart';
 import '../../modelos/animal.dart';
@@ -71,14 +72,7 @@ class _TelaHistoricoReproducaoState extends State<TelaHistoricoReproducao> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Histórico Reprodutivo', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: false,
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.primary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
+      appBar: const AppBarPadrao(titulo: 'Histórico Reprodutivo'),
       body: _carregando
           ? const Center(child: CircularProgressIndicator())
           : !temDadosSuficientes

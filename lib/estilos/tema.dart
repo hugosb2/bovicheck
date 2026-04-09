@@ -282,17 +282,15 @@ class TemaApp {
 class AppBarPadrao extends StatelessWidget implements PreferredSizeWidget {
   final String titulo;
   final List<Widget>? actions;
-  final bool usarCorSolida;
-  final Color? corFundo;
   final Widget? leading;
+  final bool centralizar;
 
   const AppBarPadrao({
     super.key,
     required this.titulo,
     this.actions,
-    this.usarCorSolida = true,
-    this.corFundo,
     this.leading,
+    this.centralizar = false,
   });
 
   @override
@@ -303,21 +301,21 @@ class AppBarPadrao extends StatelessWidget implements PreferredSizeWidget {
     final theme = Theme.of(context);
     
     return AppBar(
-      backgroundColor: corFundo ?? theme.colorScheme.primary,
+      backgroundColor: theme.colorScheme.primary,
       foregroundColor: theme.colorScheme.onPrimary,
       elevation: 0,
       scrolledUnderElevation: 0,
       leading: leading,
       actions: actions,
+      centerTitle: centralizar,
       title: Text(
         titulo,
         style: TextStyle(
-          color: theme.colorScheme.onPrimary,
           fontWeight: FontWeight.bold,
-          fontSize: 20,
+          fontSize: 18,
+          color: theme.colorScheme.onPrimary,
         ),
       ),
-      centerTitle: false,
     );
   }
 }

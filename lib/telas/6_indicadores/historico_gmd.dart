@@ -7,6 +7,7 @@ import '../../provedores/provedor_fazenda.dart';
 import '../../modelos/eventos/pesagem.dart';
 import '../../modelos/animal.dart';
 import '../../servicos/banco_dados_servico.dart';
+import '../../estilos/tema.dart';
 import 'widgets/dados_insuficientes.dart';
 import '../10_formularios/form_pesagem.dart';
 
@@ -132,14 +133,7 @@ class _TelaHistoricoGMDState extends State<TelaHistoricoGMD> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Ganho Médio Diário', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: false,
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.primary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
+      appBar: const AppBarPadrao(titulo: 'Ganho Médio Diário'),
       body: _carregando
           ? const Center(child: CircularProgressIndicator())
           : !temDadosSuficientes

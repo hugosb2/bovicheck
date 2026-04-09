@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../modelos/animal.dart';
+import '../../estilos/tema.dart';
 import 'widgets/dados_insuficientes.dart';
 import '../8_rebanho/form_animal.dart';
 
@@ -73,14 +74,7 @@ class _TelaHistoricoMortalidadeState extends State<TelaHistoricoMortalidade> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Taxa de Mortalidade', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: false,
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.primary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
+      appBar: const AppBarPadrao(titulo: 'Taxa de Mortalidade'),
       body: !_temDadosSuficientes()
           ? SingleChildScrollView(
               padding: const EdgeInsets.all(16),

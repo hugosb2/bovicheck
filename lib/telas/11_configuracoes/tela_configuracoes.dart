@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/icones.dart';
+import '../../estilos/tema.dart';
 import 'subtelas/tela_config_aparencia.dart';
 import 'subtelas/tela_config_sistema.dart';
 import 'subtelas/tela_detalhes_fazenda.dart';
@@ -59,16 +60,8 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text(
-          'Configurações',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: false,
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.primary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: const AppBarPadrao(
+        titulo: 'Configurações',
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
