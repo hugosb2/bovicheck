@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_svg/flutter_svg.dart'; // Import para o SVG
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../estilos/icones.dart';
 import '../../../estilos/tema.dart';
 import '../../../provedores/provedor_fazenda.dart';
@@ -15,11 +15,10 @@ import '../8_rebanho/form_animal.dart';
 import '../8_rebanho/tela_lista_animais.dart';
 import '../9_lotes/form_lote.dart';
 import '../9_lotes/tela_lista_lotes.dart';
+import '../5_ia_consultor/tela_ia_consultor.dart';
 
 // Widgets locais
 import 'widgets/gaveta_menu.dart';
-// Se o card_ia.dart não existir, remova esta linha e o uso do CardIA abaixo
-// import 'widgets/card_ia.dart';
 
 class TelaDashboard extends StatefulWidget {
   const TelaDashboard({super.key});
@@ -29,14 +28,36 @@ class TelaDashboard extends StatefulWidget {
 }
 
 class _TelaDashboardState extends State<TelaDashboard> {
+  final ScrollController _scrollController = ScrollController();
+  bool _exibirTitulo = false;
+
   @override
   void initState() {
     super.initState();
-
-    // Garante atualização dos dados ao abrir o Dashboard
+    _scrollController.addListener(_scrollListener);
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProvedorFazenda>().carregarPropriedades();
     });
+  }
+
+  void _scrollListener() {
+    if (_scrollController.hasClients) {
+      // Ativa o título um pouco antes de terminar de recolher a barra (140 é o expandedHeight)
+      final bool novoExibir = _scrollController.offset > 60;
+      if (novoExibir != _exibirTitulo) {
+        setState(() {
+          _exibirTitulo = novoExibir;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -44,535 +65,564 @@ class _TelaDashboardState extends State<TelaDashboard> {
     final theme = Theme.of(context);
     final provedor = context.watch<ProvedorFazenda>();
 
-    // Estados para controle de UI
     final bool temFazenda = provedor.propriedadeAtiva != null;
-    final bool temLotes = provedor.lotes.isNotEmpty;
-    final bool temAnimais = provedor.animais.isNotEmpty;
     final bool isLoading = provedor.isLoading;
 
     if (isLoading) {
       return Scaffold(
-          body: Center(
-              child:
-                  CircularProgressIndicator(color: theme.colorScheme.primary)));
+        body: Center(
+          child: CircularProgressIndicator(color: theme.colorScheme.primary),
+        ),
+      );
     }
 
     if (!temFazenda) {
       return const Scaffold(
-          body: Center(
-              child: Text(
-                  "Nenhuma fazenda selecionada. Vá em Menu > Trocar Fazenda.")));
+        body: Center(
+          child: Text("Nenhuma fazenda selecionada. Vá em Menu > Trocar Fazenda."),
+        ),
+      );
     }
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       drawer: const GavetaMenu(),
-      appBar: const AppBarPadrao(
-        titulo: 'Dashboard',
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await provedor.carregarPropriedades();
-        },
-        child: ListView(
-          padding: const EdgeInsets.all(16.0),
-          children: [
-            // 1. Saudação Neon
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primary,
-                    const Color(0xFF00FF00), 
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.4),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+      body: CustomScrollView(
+        controller: _scrollController,
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          // 1. App Bar Moderna com Saudação
+          SliverAppBar(
+            expandedHeight: 140,
+            floating: false,
+            pinned: true,
+            elevation: 0,
+            centerTitle: true,
+            backgroundColor: theme.colorScheme.primary,
+            foregroundColor: theme.colorScheme.onPrimary,
+            title: AnimatedOpacity(
+              opacity: _exibirTitulo ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: const Text(
+                "Painel",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Olá, ${provedor.propriedadeAtiva!.nomeProprietario.split(' ').first}!",
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: Colors.black, // Contraste máximo no neon
-                    ),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              collapseMode: CollapseMode.pin,
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.colorScheme.primary,
+                      theme.colorScheme.primary.withValues(alpha: 0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  const SizedBox(height: 4),
-                  Row(
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 20, bottom: 20),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.location_on, size: 14, color: Colors.black54),
-                      const SizedBox(width: 4),
-                      Text(
-                        provedor.propriedadeAtiva!.nomeFazenda,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.black87,
-                          fontWeight: FontWeight.w600,
+                      AnimatedOpacity(
+                        opacity: _exibirTitulo ? 0.0 : 1.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Text(
+                          "Olá, ${provedor.propriedadeAtiva!.nomeProprietario.split(' ').first}!",
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onPrimary,
+                          ),
                         ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.location_on, size: 14, color: theme.colorScheme.onPrimary.withValues(alpha: 0.7)),
+                          const SizedBox(width: 4),
+                          Text(
+                            provedor.propriedadeAtiva!.nomeFazenda,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9), end: const Offset(1, 1)),
-
-            const SizedBox(height: 24),
-
-            // 3. KPIs (Indicadores) mais coloridos
-            Text(
-              "Resumo do Rebanho",
-              style: theme.textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 12),
-
-            GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.4,
-              children: [
-                // KPI: Total Animais (COM SVG)
-                _CardKPI(
-                  titulo: "Total Animais",
-                  valor: provedor.totalAnimais.toString(),
-                  customIcon: SvgPicture.asset(
-                    IconesApp.iconAnimalSvg,
-                    width: 24,
-                    height: 24,
-                    colorFilter: const ColorFilter.mode(
-                        Colors.white, BlendMode.srcIn),
-                  ),
-                  cor: Colors.blue.shade600,
-                  onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const TelaListaAnimais())),
-                ),
-
-                // KPI: Lotes
-                _CardKPI(
-                  titulo: "Lotes",
-                  valor: provedor.totalLotes.toString(),
-                  iconData: IconesApp.lote,
-                  cor: Colors.orange.shade700,
-                  onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const TelaListaLotes())),
-                ),
-
-                // KPI: Produção Leite (Mês)
-                _CardKPI(
-                  titulo: "Leite (Mês)",
-                  valor: "${provedor.totalLeiteMes.toStringAsFixed(0)}L",
-                  iconData: IconesApp.leite,
-                  cor: Colors.cyan.shade700,
-                ),
-
-                // KPI: GMD Médio
-                _CardKPI(
-                  titulo: "GMD Médio",
-                  valor: "${provedor.mediaGMD.toStringAsFixed(2)}kg",
-                  iconData: IconesApp.peso,
-                  cor: Colors.teal.shade600,
-                ),
-
-                // KPI: Alertas
-                _CardKPI(
-                  titulo: "Alertas",
-                  valor: provedor.totalAnimaisDoentes.toString(),
-                  iconData: IconesApp.iaAtencao,
-                  cor: provedor.totalAnimaisDoentes > 0
-                      ? Colors.red.shade600
-                      : Colors.green.shade600,
-                  isAlerta: provedor.totalAnimaisDoentes > 0,
-                ),
-
-                // KPI: Nascimentos
-                _CardKPI(
-                  titulo: "Nascimentos",
-                  valor: provedor.totalNascimentos.toString(),
-                  iconData: IconesApp.reproducao,
-                  cor: Colors.pink.shade600,
-                ),
-
-                // KPI: Mortalidade
-                _CardKPI(
-                  titulo: "Mortalidade",
-                  valor: "${provedor.taxaMortalidade.toStringAsFixed(1)}%",
-                  iconData: Icons.warning_amber_rounded,
-                  cor: provedor.taxaMortalidade > 5 ? Colors.deepOrange : Colors.blueGrey,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 32),
-
-            // 4. Ações Rápidas (Aparecem se tiver animais)
-            if (temAnimais) ...[
-              Text(
-                "Ações Rápidas",
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications_none_rounded),
+                onPressed: () {},
+                color: theme.colorScheme.onPrimary,
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 100,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
+            ],
+          ),
+
+          // 2. Conteúdo do Dashboard
+          SliverToBoxAdapter(
+            child: RefreshIndicator(
+              onRefresh: () async => await provedor.carregarPropriedades(),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _BotaoAcaoRapida(
-                      label: "Pesar",
+                    // --- BENTO GRID KPIs ---
+                    _SecaoTitulo(titulo: "Resumo Estratégico"),
+                    const SizedBox(height: 12),
+                    
+                    // Layout Bento
+                    Row(
+                      children: [
+                        // Card Grande: Total Animais
+                        Expanded(
+                          flex: 2,
+                          child: _CardKPIBento(
+                            titulo: "Total Rebanho",
+                            valor: provedor.totalAnimais.toString(),
+                            cor: Colors.blue.shade700,
+                            iconWidget: SvgPicture.asset(
+                              IconesApp.iconAnimalSvg,
+                              width: 32,
+                              height: 32,
+                              colorFilter: ColorFilter.mode(Colors.blue.shade700, BlendMode.srcIn),
+                            ),
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaListaAnimais())),
+                            isDestaque: true,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Coluna de 2 cards menores
+                        Expanded(
+                          flex: 1,
+                          child: Column(
+                            children: [
+                              _CardKPIBento(
+                                titulo: "Lotes",
+                                valor: provedor.totalLotes.toString(),
+                                cor: Colors.orange.shade800,
+                                icon: IconesApp.lote,
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaListaLotes())),
+                              ),
+                              const SizedBox(height: 12),
+                              _CardKPIBento(
+                                titulo: "Alertas",
+                                valor: provedor.totalAnimaisDoentes.toString(),
+                                cor: provedor.totalAnimaisDoentes > 0 ? Colors.red : Colors.green,
+                                icon: IconesApp.iaAtencao,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _CardKPIBento(
+                            titulo: "Leite (Mês)",
+                            valor: "${provedor.totalLeiteMes.toStringAsFixed(0)}L",
+                            cor: Colors.cyan.shade700,
+                            icon: IconesApp.leite,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _CardKPIBento(
+                            titulo: "GMD Médio",
+                            valor: "${provedor.mediaGMD.toStringAsFixed(2)}kg",
+                            cor: Colors.teal.shade700,
+                            icon: IconesApp.peso,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // --- CARD DE SUGESTÃO IA ---
+                    _CardSugestaoIA(
+                      sugestao: provedor.totalAnimaisDoentes > 0 
+                        ? "Atenção: Você tem ${provedor.totalAnimaisDoentes} animais com alertas de saúde. Recomenda-se vistoria no lote."
+                        : "Seu rebanho está saudável! O GMD médio subiu 0.2kg esta semana. Continue assim.",
+                      carregando: false,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaIAConsultor())),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // --- AÇÕES RÁPIDAS ---
+                    _SecaoTitulo(titulo: "Ações do Dia"),
+                    const SizedBox(height: 12),
+                    GridView.count(
+                      crossAxisCount: 4,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      children: [
+                        _BotaoAcaoCircular(
+                          label: "Pesar",
+                          icon: IconesApp.peso,
+                          cor: Colors.indigo,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormPesagem())),
+                        ),
+                        _BotaoAcaoCircular(
+                          label: "Saúde",
+                          icon: IconesApp.vacina,
+                          cor: Colors.red,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormSanitario())),
+                        ),
+                        _BotaoAcaoCircular(
+                          label: "Cio/Prenhez",
+                          icon: IconesApp.reproducao,
+                          cor: Colors.pink,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormReprodutivo())),
+                        ),
+                        _BotaoAcaoCircular(
+                          label: "Leite",
+                          icon: IconesApp.leite,
+                          cor: Colors.blue,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormLeite())),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // --- ÚLTIMAS ATIVIDADES ---
+                    _SecaoTitulo(titulo: "Linha do Tempo"),
+                    const SizedBox(height: 12),
+                    _CardAtividade(
+                      titulo: "Novo registro de pesagem",
+                      subtitulo: "Lote: Engorda I",
+                      data: "Há 15 min",
                       icon: IconesApp.peso,
-                      color: Colors.indigo,
-                      onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const FormPesagem())),
+                      cor: Colors.indigo,
                     ),
-                    _BotaoAcaoRapida(
-                      label: "Sanitário",
+                    _CardAtividade(
+                      titulo: "Vacinação concluída",
+                      subtitulo: "12 animais imunizados",
+                      data: "Hoje, 08:30",
                       icon: IconesApp.vacina,
-                      color: Colors.red,
-                      // Abre sem animal selecionado (Dashboard mode)
-                      onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const FormSanitario())),
+                      cor: Colors.red,
                     ),
-                    _BotaoAcaoRapida(
-                      label: "Reprodução",
-                      icon: IconesApp.reproducao,
-                      color: Colors.pink,
-                      onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const FormReprodutivo())),
-                    ),
-                    _BotaoAcaoRapida(
-                      label: "Leite",
-                      icon: IconesApp.leite,
-                      color: Colors.blue,
-                      onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const FormLeite())),
-                    ),
-                    _BotaoAcaoRapida(
-                      label: "Novo Animal",
-                      icon: Icons.add,
-                      color: Colors.green,
-                      onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const FormAnimal())),
-                    ),
+                    
+                    const SizedBox(height: 100), // Espaço para não bater no fundo
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
-            ],
-
-            // 5. Últimas Atividades (Placeholder)
-            Text(
-              "Últimas Atividades",
-              style: theme.textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
-            const Card(
-              margin: EdgeInsets.zero,
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.grey,
-                  child: Icon(Icons.history, color: Colors.white),
-                ),
-                title: Text("Sistema Iniciado"),
-                subtitle: Text("Bem-vindo ao novo BoviCheck!"),
-                trailing: Text("Hoje"),
-              ),
-            ),
-            const SizedBox(height: 80),
-          ],
-        ),
+          ),
+        ],
+      ),
+      floatingActionButton: BotaoFlutuanteBovi(
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormAnimal())),
+        label: "Novo Animal",
+        icone: Icons.add_rounded,
       ),
     );
   }
 }
 
-// --- WIDGETS AUXILIARES ADAPTADOS ---
+// --- WIDGETS AUXILIARES REFORMULADOS ---
 
-// 1. Card de Onboarding
-class _CardPrimeirosPassos extends StatelessWidget {
-  final bool temLotes;
-
-  const _CardPrimeirosPassos({required this.temLotes});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bool etapa1Concluida = temLotes;
-
-    return Card(
-      elevation: 2,
-      color: theme.colorScheme.primaryContainer,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-            color: theme.colorScheme.primary.withValues(alpha: 0.3), width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info, color: theme.colorScheme.onPrimaryContainer),
-                const SizedBox(width: 12),
-                Text(
-                  "Comece por aqui",
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onPrimaryContainer,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              "Para usar o sistema completo, siga os passos abaixo:",
-              style: TextStyle(
-                fontSize: 14,
-                color:
-                    theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Passo 1
-            _ItemPasso(
-              titulo: "1. Criar Lote ou Pasto",
-              descricao: "Defina onde os animais ficarão.",
-              concluido: etapa1Concluida,
-              onTap: etapa1Concluida
-                  ? null
-                  : () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const FormLote())),
-            ),
-
-            Divider(
-                color: theme.colorScheme.onPrimaryContainer
-                    .withValues(alpha: 0.2)),
-
-            // Passo 2
-            _ItemPasso(
-              titulo: "2. Cadastrar Primeiro Animal",
-              descricao: "Adicione bovinos ao lote criado.",
-              concluido: false,
-              bloqueado: !etapa1Concluida,
-              onTap: !etapa1Concluida
-                  ? null
-                  : () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const FormAnimal())),
-            ),
-          ],
-        ),
-      ),
-    ).animate().scale().shimmer(
-        duration: 2.seconds,
-        delay: 1.seconds,
-        color: theme.colorScheme.primary.withValues(alpha: 0.3));
-  }
-}
-
-class _ItemPasso extends StatelessWidget {
+class _SecaoTitulo extends StatelessWidget {
   final String titulo;
-  final String descricao;
-  final bool concluido;
-  final bool bloqueado;
-  final VoidCallback? onTap;
-
-  const _ItemPasso(
-      {required this.titulo,
-      required this.descricao,
-      required this.concluido,
-      this.bloqueado = false,
-      this.onTap});
+  const _SecaoTitulo({required this.titulo});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final Color corBase = concluido
-        ? Colors.green
-        : (bloqueado
-            ? theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.4)
-            : theme.colorScheme.primary);
-
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-            color: corBase.withValues(alpha: 0.1), shape: BoxShape.circle),
-        child: Icon(
-          concluido
-              ? Icons.check
-              : (bloqueado ? Icons.lock : Icons.arrow_forward),
-          color: corBase,
-          size: 20,
-        ),
-      ),
-      title: Text(
-        titulo,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: bloqueado
-              ? theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.5)
-              : theme.colorScheme.onPrimaryContainer,
-          decoration: concluido ? TextDecoration.lineThrough : null,
-        ),
-      ),
-      subtitle: Text(descricao,
-          style: TextStyle(
-              color:
-                  theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.7))),
-      trailing: (onTap != null)
-          ? FilledButton(
-              onPressed: onTap,
-              style: FilledButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary),
-              child: const Text("Criar"),
-            )
-          : null,
+    return Text(
+      titulo,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
+          ),
     );
   }
 }
 
-// 2. Card de KPI (Adaptado para aceitar Widget ou IconData)
-class _CardKPI extends StatelessWidget {
+class _CardKPIBento extends StatelessWidget {
   final String titulo;
   final String valor;
-  final IconData? iconData; // Opção 1
-  final Widget? customIcon; // Opção 2 (Para o SVG)
+  final IconData? icon;
+  final Widget? iconWidget;
   final Color cor;
-  final bool isAlerta;
   final VoidCallback? onTap;
+  final bool isDestaque;
 
-  const _CardKPI({
+  const _CardKPIBento({
     required this.titulo,
     required this.valor,
-    this.iconData,
-    this.customIcon,
+    this.icon,
+    this.iconWidget,
     required this.cor,
-    this.isAlerta = false,
     this.onTap,
+    this.isDestaque = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bool clicavel = onTap != null;
+    
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(24),
       child: Container(
+        height: isDestaque ? 160 : 74,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: cor.withValues(alpha: 0.05), // Fundo sutil colorido
-          borderRadius: BorderRadius.circular(16),
+          color: theme.colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
-              color: cor.withValues(alpha: 0.2), width: 1.5), // Borda colorida
+            color: clicavel 
+              ? cor.withValues(alpha: 0.3) 
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+            width: clicavel ? 1.5 : 1,
+          ),
           boxShadow: [
             BoxShadow(
-                color: cor.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4))
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Lógica para exibir SVG ou Ícone Padrão
-                customIcon ?? Icon(iconData, color: cor, size: 24),
-                if (isAlerta)
-                  Icon(Icons.circle, color: theme.colorScheme.error, size: 8),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(valor,
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onSurface)),
-                Text(titulo,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500)),
-              ],
+              color: clicavel ? cor.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             )
           ],
         ),
+        child: Stack(
+          children: [
+            if (clicavel)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Icon(Icons.arrow_outward_rounded, size: 14, color: cor.withValues(alpha: 0.5)),
+              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: isDestaque ? MainAxisAlignment.spaceBetween : MainAxisAlignment.center,
+              children: [
+                if (isDestaque) ...[
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: cor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: iconWidget ?? Icon(icon, color: cor, size: 24),
+                  ),
+                  const Spacer(),
+                  Text(valor, style: theme.textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.w900, color: cor)),
+                  Text(titulo, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant)),
+                ] else ...[
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, color: cor, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(valor, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, height: 1.1)),
+                            ),
+                            Text(titulo, 
+                              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontSize: 10), 
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ],
+                        ),
+                      )
+                    ],
+                  )
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
+  }
+}
+
+class _CardSugestaoIA extends StatelessWidget {
+  final String sugestao;
+  final bool carregando;
+  final VoidCallback onTap;
+
+  const _CardSugestaoIA({required this.sugestao, required this.carregando, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: carregando ? null : onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.primaryContainer.withValues(alpha: 0.7),
+              theme.colorScheme.surfaceContainerHighest,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))
+                ]
+              ),
+              child: carregando 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Insight da IA",
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (carregando)
+                    Container(
+                      width: double.infinity,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 1.seconds)
+                  else
+                    Text(
+                      sugestao,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (!carregando) Icon(Icons.chevron_right_rounded, color: theme.colorScheme.primary),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 400.ms);
+  }
+}
+
+class _BotaoAcaoCircular extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color cor;
+  final VoidCallback onTap;
+
+  const _BotaoAcaoCircular({required this.label, required this.icon, required this.cor, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: cor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(icon, color: cor, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     ).animate().scale(delay: 200.ms);
   }
 }
 
-// 3. Botão de Ação Rápida
-class _BotaoAcaoRapida extends StatelessWidget {
-  final String label;
+class _CardAtividade extends StatelessWidget {
+  final String titulo;
+  final String subtitulo;
+  final String data;
   final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
+  final Color cor;
 
-  const _BotaoAcaoRapida(
-      {required this.label,
-      required this.icon,
-      required this.color,
-      required this.onTap});
+  const _CardAtividade({required this.titulo, required this.subtitulo, required this.data, required this.icon, required this.cor});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 16.0),
-      child: InkWell(
-        onTap: onTap,
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        child: Column(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16)),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(height: 8),
-            Text(label,
-                style:
-                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-          ],
-        ),
+        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
       ),
-    ).animate().fadeIn().slideX();
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: cor.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: cor, size: 18),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(subtitulo, style: theme.textTheme.bodySmall),
+              ],
+            ),
+          ),
+          Text(data, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        ],
+      ),
+    ).animate().fadeIn().slideX(begin: 0.05, end: 0);
   }
 }

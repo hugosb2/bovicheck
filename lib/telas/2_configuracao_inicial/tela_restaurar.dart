@@ -38,6 +38,8 @@ class _TelaRestaurarState extends State<TelaRestaurar> {
 
   Future<void> _selecionarArquivo() async {
     try {
+      // Usar FileType.any porque extensões customizadas (.bvk) podem causar erro 
+      // em alguns dispositivos Android/iOS se o sistema não reconhecer o mime type.
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.any,
       );
@@ -46,11 +48,11 @@ class _TelaRestaurarState extends State<TelaRestaurar> {
         final path = result.files.single.path!;
         final pathLower = path.toLowerCase();
         
-        if (!pathLower.endsWith('.bvk') && !pathLower.endsWith('.db')) {
+        if (!pathLower.endsWith('.bvk')) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Formato inválido. Selecione um arquivo .bvk ou .db'),
+                content: Text('Formato inválido. Selecione um arquivo .bvk'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -81,21 +83,8 @@ class _TelaRestaurarState extends State<TelaRestaurar> {
     setState(() => _restaurando = true);
 
     try {
-      bool isSingleFarm = false;
-      try {
-        final content = await File(_caminhoArquivo!).readAsString();
-        if (content.contains('"tipo":"fazenda_unica"')) {
-          isSingleFarm = true;
-        }
-      } catch (_) {
-        // Ignorar erro se não for arquivo de texto
-      }
-
-      if (isSingleFarm) {
-        await BancoDadosServico.instancia.importarFazendaJson(_caminhoArquivo!);
-      } else {
-        await BancoDadosServico.instancia.restaurarBancoDados(_caminhoArquivo!);
-      }
+      // O novo fluxo utiliza apenas importarFazendaJson que já lida com o formato .bvk (JSON)
+      await BancoDadosServico.instancia.importarFazendaJson(_caminhoArquivo!);
 
       if (mounted) {
         final provedor = context.read<ProvedorFazenda>();
@@ -109,7 +98,7 @@ class _TelaRestaurarState extends State<TelaRestaurar> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Backup restaurado com sucesso!'),
+              content: Text('Dados restaurados com sucesso!'),
               backgroundColor: Colors.green),
         );
       }

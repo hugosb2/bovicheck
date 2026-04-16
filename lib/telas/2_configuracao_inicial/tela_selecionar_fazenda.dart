@@ -34,317 +34,263 @@ class _TelaSelecionarFazendaState extends State<TelaSelecionarFazenda> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: const AppBarPadrao(
-        titulo: 'Fazendas',
-      ),
-      floatingActionButton: fazendas.isNotEmpty
-          ? FloatingActionButton.extended(
-              onPressed: () => _mostrarOpcoesAdicionar(context),
-              icon: const Icon(Icons.add),
-              label: const Text('Nova Fazenda'),
-            )
-          : null,
       body: RefreshIndicator(
         onRefresh: () => provedor.carregarPropriedades(),
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            const SizedBox(height: 20),
-            
-            Center(
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/icon.png',
-                    fit: BoxFit.cover,
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            // 1. Header Minimalista e Elegante
+            SliverAppBar(
+              expandedHeight: 200,
+              pinned: true,
+              stretch: true,
+              backgroundColor: theme.colorScheme.primary,
+              flexibleSpace: FlexibleSpaceBar(
+                stretchModes: const [StretchMode.zoomBackground],
+                background: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.8)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 40),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20)],
+                        ),
+                        child: Image.asset('assets/icon.png', width: 60, height: 60),
+                      ).animate().scale(curve: Curves.elasticOut, duration: 600.ms),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'BoviCheck',
+                        style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1),
+                      ),
+                    ],
                   ),
                 ),
-              ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
-            ),
-            
-            const SizedBox(height: 24),
-            
-            Center(
-              child: Text(
-                'BoviCheck',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
-                ),
               ),
             ),
-            
-            const SizedBox(height: 8),
-            
-            Center(
-              child: Text(
-                'Selecione uma fazenda para continuar',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+
+            // 2. Lista de Fazendas
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 100),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _SecaoTituloCustom(titulo: 'Suas Propriedades'),
+                      IconButton(
+                        onPressed: () => _mostrarOpcoesAdicionar(context),
+                        icon: Icon(Icons.add_circle_outline, color: theme.colorScheme.primary),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  if (fazendas.isEmpty)
+                    _EstadoVazioModerno(theme: theme, onAction: () => _mostrarOpcoesAdicionar(context))
+                  else
+                    ...fazendas.asMap().entries.map((entry) {
+                      return _CardFazendaModerno(
+                        fazenda: entry.value,
+                        index: entry.key,
+                        onTap: () => _selecionarFazenda(context, entry.value, provedor),
+                      );
+                    }),
+                ]),
               ),
             ),
-            
-            const SizedBox(height: 40),
-            
-            if (fazendas.isEmpty) ...[
-              _estadoVazio(theme),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: BotaoPadrao(
-                  label: 'CRIAR PRIMEIRA FAZENDA',
-                  icone: Icons.add,
-                  onPressed: () => _mostrarOpcoesAdicionar(context),
-                ),
-              ),
-            ] else ...[
-              const SecaoTitulo(texto: 'Minhas Fazendas'),
-              
-              const SizedBox(height: 8),
-              
-              ...fazendas.asMap().entries.map((entry) {
-                final index = entry.key;
-                final fazenda = entry.value;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _cartaoFazenda(
-                    context,
-                    theme,
-                    fazenda,
-                    provedor,
-                  ).animate().fadeIn(delay: (index * 100).ms).slideX(begin: 0.1, end: 0),
-                );
-              }),
-            ],
-            const SizedBox(height: 80),
           ],
         ),
       ),
+      floatingActionButton: fazendas.isNotEmpty
+          ? BotaoFlutuanteBovi(
+              onPressed: () => _mostrarOpcoesAdicionar(context),
+              icone: Icons.add_business_rounded,
+              label: 'NOVA FAZENDA',
+            )
+          : null,
     );
   }
 
-  Widget _estadoVazio(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.agriculture_outlined,
-            size: 64,
-            color: theme.colorScheme.outline.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Nenhuma fazenda cadastrada',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Crie sua primeira fazenda para começar a gerenciar seu rebanho',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0);
-  }
-
-  Widget _cartaoFazenda(
-    BuildContext context,
-    ThemeData theme,
-    Propriedade fazenda,
-    ProvedorFazenda provedor,
-  ) {
-    return CartaoPadrao(
-      onTap: () => _selecionarFazenda(context, fazenda, provedor),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Text(
-                fazenda.nomeFazenda.isNotEmpty
-                    ? fazenda.nomeFazenda[0].toUpperCase()
-                    : 'F',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  fazenda.nomeFazenda,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${fazenda.cidade} - ${fazenda.estado}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                Text(
-                  fazenda.sistemaProducao,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.outline,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            Icons.chevron_right,
-            color: theme.colorScheme.primary,
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _selecionarFazenda(
-    BuildContext context,
-    Propriedade fazenda,
-    ProvedorFazenda provedor,
-  ) async {
+  void _selecionarFazenda(BuildContext context, Propriedade fazenda, ProvedorFazenda provedor) async {
     await provedor.selecionarFazenda(fazenda.id);
     if (context.mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const TelaDashboard()),
-      );
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const TelaDashboard()));
     }
   }
 
   void _mostrarOpcoesAdicionar(BuildContext context) {
+    // Reuso do seu modal atual, mas com visual limpo
     showModalBottomSheet(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(ctx).colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(ctx).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 24),
+                const Text('Gestão de Dados', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 24),
+                _ItemOpcao(
+                  icon: Icons.add_business_rounded,
+                  titulo: 'Nova Fazenda',
+                  cor: Theme.of(ctx).colorScheme.primary,
+                  onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const FormDadosFazenda())); },
                 ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Opções',
-                style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
+                _ItemOpcao(
+                  icon: Icons.file_download_outlined,
+                  titulo: 'Importar Backup (.bvk)',
+                  cor: Colors.orange,
+                  onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaRestaurar())); },
                 ),
-              ),
-              const SizedBox(height: 24),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Theme.of(ctx).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.add_business,
-                    color: Theme.of(ctx).colorScheme.primary,
-                  ),
+                _ItemOpcao(
+                  icon: Icons.settings_backup_restore_rounded,
+                  titulo: 'Configurações de Dados',
+                  cor: Colors.blue,
+                  onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaConfigDados())); },
                 ),
-                title: const Text('Criar nova fazenda'),
-                subtitle: const Text('Cadastrar uma nova propriedade'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const FormDadosFazenda()),
-                  );
-                },
-              ),
-              const SizedBox(height: 8),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Theme.of(ctx).colorScheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.file_upload,
-                    color: Theme.of(ctx).colorScheme.secondary,
-                  ),
-                ),
-                title: const Text('Importar backup'),
-                subtitle: const Text('Restaurar de arquivo .bvk'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const TelaRestaurar()),
-                  );
-                },
-              ),
-              const SizedBox(height: 8),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.cloud_upload,
-                    color: Colors.blue,
-                  ),
-                ),
-                title: const Text('Exportar backup'),
-                subtitle: const Text('Salvar arquivo com todas as propriedades e registros'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const TelaConfigDados()),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SecaoTituloCustom extends StatelessWidget {
+  final String titulo;
+  const _SecaoTituloCustom({required this.titulo});
+  @override
+  Widget build(BuildContext context) {
+    return Text(titulo, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: Colors.grey.shade700));
+  }
+}
+
+class _CardFazendaModerno extends StatelessWidget {
+  final Propriedade fazenda;
+  final int index;
+  final VoidCallback onTap;
+
+  const _CardFazendaModerno({required this.fazenda, required this.index, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Text(
+                    fazenda.nomeFazenda.isNotEmpty ? fazenda.nomeFazenda[0].toUpperCase() : 'F',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: theme.colorScheme.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(fazenda.nomeFazenda, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+                    Text('${fazenda.cidade}, ${fazenda.estado}', style: theme.textTheme.bodySmall),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(6)),
+                      child: Text(fazenda.sistemaProducao, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios_rounded, size: 14, color: theme.colorScheme.outline),
+            ],
+          ),
+        ),
+      ).animate().fadeIn(delay: (index * 80).ms).slideX(begin: 0.05, end: 0),
+    );
+  }
+}
+
+class _EstadoVazioModerno extends StatelessWidget {
+  final ThemeData theme;
+  final VoidCallback onAction;
+  const _EstadoVazioModerno({required this.theme, required this.onAction});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          Icon(Icons.agriculture_rounded, size: 80, color: theme.colorScheme.outline.withValues(alpha: 0.2)),
+          const SizedBox(height: 16),
+          const Text('Tudo pronto para começar!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          const SizedBox(height: 8),
+          const Text('Cadastre sua primeira propriedade para gerenciar seu rebanho com inteligência.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+          const SizedBox(height: 32),
+          BotaoPadrao(label: 'CRIAR FAZENDA', icone: Icons.add, onPressed: onAction),
+        ],
+      ),
+    ).animate().fadeIn();
+  }
+}
+
+class _ItemOpcao extends StatelessWidget {
+  final IconData icon;
+  final String titulo;
+  final Color cor;
+  final VoidCallback onTap;
+
+  const _ItemOpcao({required this.icon, required this.titulo, required this.cor, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onTap,
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(color: cor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+        child: Icon(icon, color: cor),
+      ),
+      title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.w600)),
+      trailing: const Icon(Icons.chevron_right_rounded, size: 20),
     );
   }
 }

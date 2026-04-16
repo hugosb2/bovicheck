@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'provedores/provedor_fazenda.dart';
 import 'provedores/provedor_tema.dart';
 import 'estilos/tema.dart';
@@ -8,7 +9,9 @@ import 'estilos/tema.dart';
 import 'telas/2_configuracao_inicial/tela_boas_vindas.dart';
 import 'telas/2_configuracao_inicial/tela_selecionar_fazenda.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   runApp(const BoviCheckApp());
 }
 

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../../estilos/icones.dart';
-import '../../modelos/animal.dart';
-import '../../modelos/eventos/producao_leite.dart';
-import '../../provedores/provedor_fazenda.dart';
-import '../../servicos/banco_dados_servico.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../../../estilos/icones.dart';
+import '../../../estilos/tema.dart';
+import '../../../modelos/animal.dart';
+import '../../../modelos/eventos/producao_leite.dart';
+import '../../../provedores/provedor_fazenda.dart';
+import '../../../servicos/banco_dados_servico.dart';
 
 class FormLeite extends StatefulWidget {
   final Animal? animalPreSelecionado;
@@ -22,9 +24,6 @@ class _FormLeiteState extends State<FormLeite> {
   final _obsController = TextEditingController();
   final _dataController = TextEditingController();
 
-  late ScrollController _scrollController;
-  bool _isCollapsed = false;
-
   late DateTime _dataSelecionada;
   String? _animalIdSelecionado;
   String _periodoSelecionado = 'Manhã';
@@ -35,9 +34,6 @@ class _FormLeiteState extends State<FormLeite> {
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_scrollListener);
-
     _dataSelecionada = DateTime.now();
     _dataController.text = DateFormat('dd/MM/yyyy').format(_dataSelecionada);
 
@@ -48,21 +44,10 @@ class _FormLeiteState extends State<FormLeite> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_scrollListener);
-    _scrollController.dispose();
     _litrosController.dispose();
     _obsController.dispose();
     _dataController.dispose();
     super.dispose();
-  }
-
-  void _scrollListener() {
-    if (_scrollController.hasClients) {
-      bool deveColapsar = _scrollController.offset > 90;
-      if (deveColapsar != _isCollapsed) {
-        setState(() => _isCollapsed = deveColapsar);
-      }
-    }
   }
 
   Future<void> _selecionarData() async {
@@ -83,9 +68,7 @@ class _FormLeiteState extends State<FormLeite> {
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
     if (_animalIdSelecionado == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Selecione um animal')));
+      _mostrarErro('Selecione uma fêmea');
       return;
     }
 
@@ -106,26 +89,26 @@ class _FormLeiteState extends State<FormLeite> {
 
       if (mounted) {
         context.read<ProvedorFazenda>().carregarPropriedades();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Produção salva!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        _mostrarSucesso('Produção de leite salva com sucesso!');
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao salvar: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) _mostrarErro('Erro ao salvar: $e');
     } finally {
       if (mounted) setState(() => _salvando = false);
     }
+  }
+
+  void _mostrarErro(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red.shade800, behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  void _mostrarSucesso(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.green.shade800, behavior: SnackBarBehavior.floating),
+    );
   }
 
   @override
@@ -134,216 +117,163 @@ class _FormLeiteState extends State<FormLeite> {
     final provedor = context.watch<ProvedorFazenda>();
     final femeas = provedor.animais.where((a) => a.sexo == 'F').toList();
 
-    final Color corAppBarBg = _isCollapsed
-        ? theme.colorScheme.primary
-        : theme.colorScheme.surface;
-    final Color corElementos = _isCollapsed
-        ? theme.colorScheme.onPrimary
-        : theme.colorScheme.primary;
-    final EdgeInsets paddingTitulo = _isCollapsed
-        ? const EdgeInsets.only(left: 72, bottom: 16)
-        : const EdgeInsets.only(left: 16, bottom: 16);
-
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 140,
-            backgroundColor: corAppBarBg,
-            foregroundColor: corElementos,
-            iconTheme: IconThemeData(color: corElementos),
-            surfaceTintColor: Colors.transparent,
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: false,
-              titlePadding: paddingTitulo,
-              expandedTitleScale: 1.6,
-              title: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  color: corElementos,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-                child: const Text('Produção de Leite'),
-              ),
-              background: Container(
-                color: theme.colorScheme.surface,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(20),
-                      ),
+      appBar: const AppBarPadrao(titulo: 'Produção de Leite', centralizar: true),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- CARD 1: DATA E ANIMAL ---
+              const SecaoTitulo(texto: 'Identificação', icone: Icons.calendar_today_outlined),
+              CartaoPadrao(
+                child: Column(
+                  children: [
+                    CampoFormularioPadrao(
+                      label: 'Data da Ordenha',
+                      icone: Icons.calendar_today_outlined,
+                      controller: _dataController,
+                      soLeitura: true,
+                      onTap: _selecionarData,
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    if (widget.animalPreSelecionado == null)
+                      DropdownPadrao<String>(
+                        label: 'Vaca',
+                        icone: IconesApp.animal,
+                        valorSelecionado: _animalIdSelecionado,
+                        itens: femeas.map((a) {
+                          return DropdownMenuItem(
+                            value: a.id,
+                            child: Text('${a.brinco} - ${a.nome ?? "S/N"}'),
+                          );
+                        }).toList(),
+                        onChanged: (v) => setState(() => _animalIdSelecionado = v),
+                        validador: (v) => v == null ? 'Obrigatório' : null,
+                      )
+                    else
+                      _WidgetInformativo(
+                        icone: IconesApp.animal,
+                        titulo: 'Vaca Selecionada',
+                        valor: '${widget.animalPreSelecionado!.brinco} - ${widget.animalPreSelecionado!.nome ?? "Sem nome"}',
+                      ),
+                  ],
                 ),
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.all(20),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _secaoTitulo('Data'),
-                      const SizedBox(height: 12),
+              ).animate().fadeIn().slideY(begin: 0.1, end: 0),
 
-                      TextFormField(
-                        controller: _dataController,
-                        readOnly: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Data da Ordenha',
-                          prefixIcon: Icon(Icons.calendar_today),
-                        ),
-                        onTap: _selecionarData,
-                      ),
+              const SizedBox(height: 24),
 
-                      const SizedBox(height: 24),
-                      _secaoTitulo('Animal'),
-                      const SizedBox(height: 12),
-
-                      if (widget.animalPreSelecionado == null)
-                        DropdownButtonFormField<String>(
-                          value: _animalIdSelecionado,
-                          decoration: const InputDecoration(
-                            labelText: 'Vaca',
-                            prefixIcon: Icon(IconesApp.animal),
-                          ),
-                          items: femeas
-                              .map(
-                                (a) => DropdownMenuItem(
-                                  value: a.id,
-                                  child: Text(a.brinco),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (v) =>
-                              setState(() => _animalIdSelecionado = v),
-                          validator: (v) => v == null ? 'Obrigatório' : null,
-                        )
-                      else
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer
-                                .withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                IconesApp.animal,
-                                color: theme.colorScheme.primary,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                widget.animalPreSelecionado!.brinco,
-                                style: theme.textTheme.titleMedium,
-                              ),
-                            ],
+              // --- CARD 2: DADOS DA PRODUÇÃO ---
+              const SecaoTitulo(texto: 'Dados da Produção', icone: IconesApp.leite),
+              CartaoPadrao(
+                child: Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: CampoFormularioPadrao(
+                            label: 'Quantidade',
+                            icone: IconesApp.leite,
+                            controller: _litrosController,
+                            tipoTeclado: const TextInputType.numberWithOptions(decimal: true),
+                            validador: (v) {
+                              if (v!.isEmpty) return 'Obrigatório';
+                              if (double.tryParse(v.replaceAll(',', '.')) == null) return 'Valor inválido';
+                              return null;
+                            },
                           ),
                         ),
-
-                      const SizedBox(height: 24),
-                      _secaoTitulo('Produção'),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        controller: _litrosController,
-                        decoration: const InputDecoration(
-                          labelText: 'Litros',
-                          prefixIcon: Icon(IconesApp.leite),
-                          suffixText: 'L',
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          flex: 1,
+                          child: Padding(
+                            padding: EdgeInsets.only(top: 16),
+                            child: Text('Litros', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+                          ),
                         ),
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: (v) {
-                          if (v!.isEmpty) return 'Obrigatório';
-                          if (double.tryParse(v.replaceAll(',', '.')) == null)
-                            return 'Inválido';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      DropdownButtonFormField<String>(
-                        value: _periodoSelecionado,
-                        decoration: const InputDecoration(
-                          labelText: 'Período',
-                          prefixIcon: Icon(Icons.schedule),
-                        ),
-                        items: _periodos
-                            .map(
-                              (p) => DropdownMenuItem(value: p, child: Text(p)),
-                            )
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() => _periodoSelecionado = v!),
-                      ),
-                      const SizedBox(height: 16),
-
-                      TextFormField(
-                        controller: _obsController,
-                        decoration: const InputDecoration(
-                          labelText: 'Observação (Ex: Ordenha manhã)',
-                          prefixIcon: Icon(Icons.notes),
-                        ),
-                        maxLines: 2,
-                      ),
-
-                      const SizedBox(height: 32),
-
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: FilledButton(
-                          onPressed: _salvando ? null : _salvar,
-                          child: _salvando
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white,
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(IconesApp.salvar),
-                                    const SizedBox(width: 8),
-                                    const Text('SALVAR PRODUÇÃO'),
-                                  ],
-                                ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 50),
-                    ],
-                  ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownPadrao<String>(
+                      label: 'Período',
+                      icone: Icons.schedule_rounded,
+                      valorSelecionado: _periodoSelecionado,
+                      itens: _periodos.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                      onChanged: (v) => setState(() => _periodoSelecionado = v!),
+                    ),
+                  ],
                 ),
-              ]),
-            ),
+              ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1, end: 0),
+
+              const SizedBox(height: 24),
+
+              // --- CARD 3: OBSERVAÇÕES ---
+              const SecaoTitulo(texto: 'Observações', icone: Icons.notes_rounded),
+              CartaoPadrao(
+                child: CampoFormularioPadrao(
+                  label: 'Detalhes da ordenha (Opcional)',
+                  controller: _obsController,
+                  maxLinhas: 3,
+                ),
+              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
+
+              const SizedBox(height: 40),
+
+              // --- BOTÃO SALVAR ---
+              BotaoPadrao(
+                label: 'SALVAR PRODUÇÃO',
+                icone: IconesApp.salvar,
+                onPressed: _salvando ? null : _salvar,
+                carregando: _salvando,
+                expandido: true,
+              ).animate().scale(delay: 300.ms),
+              
+              const SizedBox(height: 40),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
+}
 
-  Widget _secaoTitulo(String texto) {
+class _WidgetInformativo extends StatelessWidget {
+  final IconData icone;
+  final String titulo;
+  final String valor;
+
+  const _WidgetInformativo({required this.icone, required this.titulo, required this.valor});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Text(
-      texto.toUpperCase(),
-      style: theme.textTheme.labelLarge?.copyWith(
-        color: theme.colorScheme.primary,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 1.2,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          Icon(icone, color: theme.colorScheme.primary),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(titulo, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary)),
+                Text(valor, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

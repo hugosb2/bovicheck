@@ -1,13 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../estilos/icones.dart';
 import '../../../estilos/tema.dart';
-import '../../../servicos/banco_dados_servico.dart';
 import '../../2_configuracao_inicial/tela_restaurar.dart';
+import 'tela_exportacao_avancada.dart';
 
 class TelaConfigDados extends StatefulWidget {
   const TelaConfigDados({super.key});
@@ -17,144 +14,6 @@ class TelaConfigDados extends StatefulWidget {
 }
 
 class _TelaConfigDadosState extends State<TelaConfigDados> {
-  Future<void> _realizarBackup(BuildContext context) async {
-    try {
-      final bytes = await BancoDadosServico.instancia.exportarBancoDados();
-      final dataStr = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final nomeArquivo = 'BoviCheck_Backup_$dataStr.bvk';
-
-      showModalBottomSheet(
-        context: context,
-        builder: (ctx) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Theme.of(ctx).colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Salvar Backup',
-                  style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Theme.of(ctx).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.folder,
-                      color: Theme.of(ctx).colorScheme.primary,
-                    ),
-                  ),
-                  title: const Text('Salvar no dispositivo'),
-                  subtitle: const Text('Escolher pasta para salvar o arquivo'),
-                  onTap: () async {
-                    Navigator.pop(ctx);
-                    await _salvarBackupInterno(context, bytes, nomeArquivo);
-                  },
-                ),
-                const SizedBox(height: 8),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Theme.of(ctx).colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.share,
-                      color: Theme.of(ctx).colorScheme.secondary,
-                    ),
-                  ),
-                  title: const Text('Compartilhar'),
-                  subtitle: const Text('Enviar arquivo para outro app'),
-                  onTap: () async {
-                    Navigator.pop(ctx);
-                    await _compartilharBackup(context, bytes, nomeArquivo);
-                  },
-                ),
-                const SizedBox(height: 16),
-              ],
-            ),
-          ),
-        ),
-      );
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Erro ao criar backup: $e'),
-              backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
-  Future<void> _salvarBackupInterno(BuildContext context, List<int> bytes, String nomeArquivo) async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/$nomeArquivo');
-      await file.writeAsBytes(bytes);
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Backup salvo em: ${file.path}'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao salvar: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _compartilharBackup(BuildContext context, List<int> bytes, String nomeArquivo) async {
-    try {
-      final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/$nomeArquivo');
-      await file.writeAsBytes(bytes);
-
-      if (context.mounted) {
-        final xFile = XFile(file.path);
-        await Share.shareXFiles(
-          [xFile],
-          text: 'Backup do BoviCheck - $nomeArquivo',
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao compartilhar: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -174,13 +33,13 @@ class _TelaConfigDadosState extends State<TelaConfigDados> {
               border:
                   Border.all(color: Colors.blue.withValues(alpha: 0.3)),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(Icons.info_outline, color: Colors.blue),
+                Icon(Icons.info_outline, color: Colors.blue),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Mantenha seus dados seguros. Faça backups regularmente e salve o arquivo fora do celular.',
+                    'Exporte seus dados para backup ou compartilhe registros específicos de fazendas e animais.',
                     style: TextStyle(height: 1.4),
                   ),
                 ),
@@ -190,23 +49,28 @@ class _TelaConfigDadosState extends State<TelaConfigDados> {
 
           const SizedBox(height: 32),
 
-          // Card Exportar
+          // Card Exportar (Unificado)
           _CardAcaoDados(
-            titulo: 'Criar Backup',
-            descricao: 'Exportar todas as propriedades e registros para .bvk',
-            icone: IconesApp.backup,
+            titulo: 'Exportar Dados (Backup)',
+            descricao: 'Crie um backup completo ou exporte apenas fazendas, lotes e animais selecionados.',
+            icone: Icons.cloud_upload_outlined,
             cor: Colors.blue,
-            textoBotao: 'GERAR ARQUIVO',
-            onTap: () => _realizarBackup(context),
+            textoBotao: 'CONFIGURAR EXPORTAÇÃO',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TelaExportacaoAvancada()),
+              );
+            },
           ),
 
           const SizedBox(height: 24),
 
-          // Card Importar
+          // Card Importar (Unificado)
           _CardAcaoDados(
-            titulo: 'Restaurar Backup',
-            descricao: 'Restaurar dados de um arquivo .bvk salvo anteriormente',
-            icone: IconesApp.restaurar,
+            titulo: 'Importar Dados (Restaurar)',
+            descricao: 'Restaure um backup completo ou adicione dados de arquivos .bvk exportados.',
+            icone: Icons.cloud_download_outlined,
             cor: Colors.orange,
             textoBotao: 'SELECIONAR ARQUIVO',
             isOutlined: true,
@@ -271,6 +135,7 @@ class _CardAcaoDados extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               titulo,
+              textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -283,6 +148,7 @@ class _CardAcaoDados extends StatelessWidget {
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
+              height: 48,
               child: isOutlined
                   ? OutlinedButton(onPressed: onTap, child: Text(textoBotao))
                   : FilledButton(

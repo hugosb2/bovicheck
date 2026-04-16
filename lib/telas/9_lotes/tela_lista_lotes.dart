@@ -15,120 +15,237 @@ class TelaListaLotes extends StatefulWidget {
 }
 
 class _TelaListaLotesState extends State<TelaListaLotes> {
+  final TextEditingController _buscaController = TextEditingController();
+  String _filtroTexto = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _buscaController.addListener(() {
+      setState(() {
+        _filtroTexto = _buscaController.text.toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _buscaController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final provedor = context.watch<ProvedorFazenda>();
-    final lotes = provedor.lotes;
+    
+    final lotesFiltrados = provedor.lotes.where((lote) {
+      return lote.nome.toLowerCase().contains(_filtroTexto) ||
+             lote.descricao.toLowerCase().contains(_filtroTexto) ||
+             lote.tipo.toLowerCase().contains(_filtroTexto);
+    }).toList();
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: const AppBarPadrao(
-        titulo: 'Lotes & Pastos',
-      ),
-      body: lotes.isEmpty
-          ? EstadoVazioPadrao(
-              icone: IconesApp.lote,
-              titulo: 'Nenhum lote cadastrado',
-              mensagem: 'Crie um lote para organizar seus animais',
-              textoBotao: 'CRIAR LOTE',
-              onPressedBotao: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const FormLote()),
-                );
-              },
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: lotes.length,
-              itemBuilder: (context, index) {
-                final lote = lotes[index];
-                final qtdAnimais = provedor.animais
-                    .where((a) => a.loteId == lote.id)
-                    .length;
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: CartaoPadrao(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => TelaDetalhesLote(lote: lote),
-                        ),
-                      );
-                    },
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            IconesApp.lote,
-                            color: theme.colorScheme.primary,
-                            size: 28,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                lote.nome,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                lote.descricao.isNotEmpty
-                                    ? lote.descricao
-                                    : lote.tipo,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.secondaryContainer,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            '$qtdAnimais',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onSecondaryContainer,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ).animate().fadeIn(delay: (index * 50).ms).slideX(),
-                );
-              },
+      appBar: const AppBarPadrao(titulo: 'Lotes & Pastos', centralizar: true),
+      body: Column(
+        children: [
+          // 1. Barra de Busca Moderna
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+            child: TextField(
+              controller: _buscaController,
+              decoration: InputDecoration(
+                hintText: 'Buscar lote ou pasto...',
+                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                suffixIcon: _filtroTexto.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 20),
+                        onPressed: () => _buscaController.clear(),
+                      )
+                    : null,
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerLow,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                ),
+              ),
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const FormLote()),
-          );
-        },
-        icon: const Icon(IconesApp.adicionar),
-        label: const Text('NOVO LOTE'),
+          ),
+
+          // 2. Lista de Lotes
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async => await provedor.carregarPropriedades(),
+              child: provedor.lotes.isEmpty
+                  ? _EstadoVazioLotes(theme: theme)
+                  : lotesFiltrados.isEmpty
+                      ? _EstadoVazioBuscaLotes(filtro: _filtroTexto, theme: theme)
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: lotesFiltrados.length,
+                          itemBuilder: (context, index) {
+                            final lote = lotesFiltrados[index];
+                            final qtdAnimais = provedor.animais.where((a) => a.loteId == lote.id).length;
+                            return _CardLoteModerno(lote: lote, qtd: qtdAnimais, index: index);
+                          },
+                        ),
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: BotaoFlutuanteBovi(
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormLote())),
+        icone: Icons.add_location_alt_rounded,
+        label: 'NOVO LOTE',
+      ),
+    );
+  }
+}
+
+class _CardLoteModerno extends StatelessWidget {
+  final dynamic lote;
+  final int qtd;
+  final int index;
+
+  const _CardLoteModerno({required this.lote, required this.qtd, required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool hasAnimais = qtd > 0;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TelaDetalhesLote(lote: lote))),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(IconesApp.lote, color: theme.colorScheme.primary, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(lote.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 2),
+                    Text(lote.descricao.isNotEmpty ? lote.descricao : 'Tipo: ${lote.tipo}', 
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: hasAnimais ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$qtd',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        color: hasAnimais ? Colors.white : theme.colorScheme.outline,
+                      ),
+                    ),
+                    Text(
+                      'animais',
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                        color: hasAnimais ? Colors.white.withValues(alpha: 0.8) : theme.colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ).animate().fadeIn(delay: (index * 50).ms).slideY(begin: 0.1, end: 0),
+    );
+  }
+}
+
+class _EstadoVazioLotes extends StatelessWidget {
+  final ThemeData theme;
+  const _EstadoVazioLotes({required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.map_outlined, size: 80, color: theme.colorScheme.outline.withValues(alpha: 0.2)),
+            const SizedBox(height: 16),
+            const Text('Nenhum lote ou pasto', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            const SizedBox(height: 8),
+            const Text('Organize seu rebanho dividindo a fazenda em áreas de manejo.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 32),
+            BotaoPadrao(
+              label: 'CRIAR LOTE AGORA',
+              icone: Icons.add_location_alt_rounded,
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormLote())),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EstadoVazioBuscaLotes extends StatelessWidget {
+  final String filtro;
+  final ThemeData theme;
+  const _EstadoVazioBuscaLotes({required this.filtro, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.location_off_rounded, size: 64, color: theme.colorScheme.outline.withValues(alpha: 0.2)),
+          const SizedBox(height: 16),
+          Text(
+            'Nenhum lote encontrado para "$filtro"',
+            style: TextStyle(color: theme.colorScheme.outline, fontWeight: FontWeight.w500),
+          ),
+        ],
       ),
     );
   }

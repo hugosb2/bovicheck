@@ -9,7 +9,7 @@ import '../../modelos/propriedade.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../servicos/preferencias_usuario.dart';
 import '../../servicos/banco_dados_servico.dart';
-import '../4_dashboard/tela_dashboard.dart';
+import '../4_dashboard/tela_dashboard.dart' hide Text;
 
 class FormDadosFazenda extends StatefulWidget {
   final Propriedade? propriedadeExistente;

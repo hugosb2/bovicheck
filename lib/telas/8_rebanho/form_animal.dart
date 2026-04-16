@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
-import '../../estilos/icones.dart';
-import '../../modelos/animal.dart';
-import '../../provedores/provedor_fazenda.dart';
-import '../../servicos/banco_dados_servico.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../../../estilos/icones.dart';
+import '../../../estilos/tema.dart';
+import '../../../modelos/animal.dart';
+import '../../../provedores/provedor_fazenda.dart';
+import '../../../servicos/banco_dados_servico.dart';
 
 class FormAnimal extends StatefulWidget {
   final Animal? animalExistente;
@@ -33,20 +35,12 @@ class _FormAnimalState extends State<FormAnimal> {
   bool _salvando = false;
 
   final List<String> _categorias = [
-    'Bezerro',
-    'Bezerra',
-    'Novilho',
-    'Novilha',
-    'Boi',
-    'Vaca',
-    'Touro',
-    'Outro',
+    'Bezerro', 'Bezerra', 'Novilho', 'Novilha', 'Boi', 'Vaca', 'Touro', 'Outro',
   ];
 
   @override
   void initState() {
     super.initState();
-
     if (widget.animalExistente != null) {
       final a = widget.animalExistente!;
       _brincoController.text = a.brinco;
@@ -72,54 +66,31 @@ class _FormAnimalState extends State<FormAnimal> {
 
   void _irParaEtapa(int etapa) {
     setState(() => _etapaAtual = etapa);
-    _pageController.animateToPage(
-      etapa,
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeInOut,
-    );
+    _pageController.animateToPage(etapa, duration: const Duration(milliseconds: 400), curve: Curves.easeInOutCubic);
   }
 
-  bool _validarEtapaIdentificacao() {
-    if (_brincoController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preencha o número do brinco')),
-      );
-      return false;
+  bool _validarEtapa(int etapa) {
+    if (etapa == 0) {
+      if (_brincoController.text.isEmpty) return _erro('Informe o número do brinco');
+      if (_loteSelecionadoId == null) return _erro('Selecione um lote ou pasto');
     }
-    if (_loteSelecionadoId == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Selecione um lote/pasto')));
-      return false;
+    if (etapa == 1) {
+      if (_racaController.text.isEmpty) return _erro('Informe a raça do animal');
     }
     return true;
   }
 
-  bool _validarEtapaCaracteristicas() {
-    if (_racaController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preencha a raça do animal')),
-      );
-      return false;
-    }
-    return true;
+  bool _erro(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red.shade800, behavior: SnackBarBehavior.floating));
+    return false;
   }
 
   void _proximaEtapa() {
-    if (_etapaAtual == 0 && !_validarEtapaIdentificacao()) return;
-    if (_etapaAtual == 1 && !_validarEtapaCaracteristicas()) return;
+    if (!_validarEtapa(_etapaAtual)) return;
     if (_etapaAtual < _totalEtapas - 1) {
       _irParaEtapa(_etapaAtual + 1);
     } else {
       _salvar();
-    }
-  }
-
-  void _etapaAnterior() {
-    if (_etapaAtual > 0) {
-      _irParaEtapa(_etapaAtual - 1);
-    } else {
-      Navigator.pop(context);
     }
   }
 
@@ -138,13 +109,11 @@ class _FormAnimalState extends State<FormAnimal> {
         sexo: _sexo,
         categoria: _categoria,
         dataNascimento: _dataNascimento,
-        pesoAtualKg:
-            double.tryParse(_pesoController.text.replaceAll(',', '.')) ?? 0.0,
+        pesoAtualKg: double.tryParse(_pesoController.text.replaceAll(',', '.')) ?? 0.0,
         isAtivo: true,
       );
 
       final db = BancoDadosServico.instancia;
-
       if (widget.animalExistente != null) {
         await db.updateAnimal(novoAnimal);
       } else {
@@ -152,40 +121,14 @@ class _FormAnimalState extends State<FormAnimal> {
       }
 
       await provedor.carregarAnimais(provedor.propriedadeAtiva!.id);
-
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.animalExistente != null
-                  ? 'Animal atualizado com sucesso!'
-                  : 'Animal criado com sucesso!',
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sucesso!'), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating));
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro: $e')));
-      }
+      if (mounted) _erro('Erro: $e');
     } finally {
       if (mounted) setState(() => _salvando = false);
-    }
-  }
-
-  Future<void> _selecionarData() async {
-    final data = await showDatePicker(
-      context: context,
-      initialDate: _dataNascimento,
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
-    );
-    if (data != null) {
-      setState(() => _dataNascimento = data);
     }
   }
 
@@ -194,329 +137,176 @@ class _FormAnimalState extends State<FormAnimal> {
     final theme = Theme.of(context);
     final isEdicao = widget.animalExistente != null;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _etapaAnterior();
-      },
-      child: Scaffold(
-        backgroundColor: theme.colorScheme.surface,
-        appBar: AppBar(
-          backgroundColor: theme.colorScheme.surface,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              _etapaAtual == 0 ? Icons.close : Icons.arrow_back,
-              color: theme.colorScheme.onSurface,
-            ),
-            onPressed: _etapaAnterior,
-          ),
-          title: Text(
-            isEdicao ? 'Editar Animal' : 'Novo Animal',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-          centerTitle: true,
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(80),
-            child: _buildBarraProgresso(theme),
-          ),
-        ),
-        body: PageView(
-          controller: _pageController,
-          physics: const NeverScrollableScrollPhysics(),
-          children: [
-            _PaginaIdentificacao(
-              brincoController: _brincoController,
-              nomeController: _nomeController,
-              loteSelecionadoId: _loteSelecionadoId,
-              onLoteChanged: (v) => setState(() => _loteSelecionadoId = v),
-              onChanged: () => setState(() {}),
-            ),
-            _PaginaCaracteristicas(
-              racaController: _racaController,
-              sexo: _sexo,
-              categoria: _categoria,
-              categorias: _categorias,
-              dataNascimento: _dataNascimento,
-              onSexoChanged: (v) => setState(() => _sexo = v),
-              onCategoriaChanged: (v) => setState(() => _categoria = v),
-              onDataNascimentoTap: _selecionarData,
-            ),
-            _PaginaConfirmacao(
-              pesoController: _pesoController,
-              brinco: _brincoController.text,
-              nome: _nomeController.text,
-              sexo: _sexo,
-              raca: _racaController.text,
-              categoria: _categoria,
-              dataNascimento: _dataNascimento,
-              loteSelecionadoId: _loteSelecionadoId,
-            ),
-          ],
-        ),
-        bottomNavigationBar: _buildBotoes(theme, isEdicao),
-      ),
-    );
-  }
-
-  Widget _buildBarraProgresso(ThemeData theme) {
-    final titulos = ['Identificação', 'Características', 'Confirmação'];
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-      child: Column(
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      appBar: AppBarPadrao(titulo: isEdicao ? 'Editar Animal' : 'Novo Animal', centralizar: true),
+      body: Column(
         children: [
-          Row(
-            children: List.generate(_totalEtapas, (i) {
-              final bool ativo = i <= _etapaAtual;
-              return Expanded(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        height: 4,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(2),
-                          color: ativo
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.outlineVariant,
-                        ),
-                      ),
-                    ),
-                    if (i < _totalEtapas - 1) const SizedBox(width: 6),
-                  ],
+          _BarraProgressoModerno(etapaAtual: _etapaAtual, total: _totalEtapas),
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                _PaginaIdentificacao(
+                  brincoController: _brincoController,
+                  nomeController: _nomeController,
+                  loteSelecionadoId: _loteSelecionadoId,
+                  onLoteChanged: (v) => setState(() => _loteSelecionadoId = v),
                 ),
-              );
-            }),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(_totalEtapas, (i) {
-              final bool ativo = i <= _etapaAtual;
-              final bool atual = i == _etapaAtual;
-              return GestureDetector(
-                onTap: () {
-                  if (i < _etapaAtual) {
-                    _irParaEtapa(i);
-                  }
-                },
-                child: AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 200),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: atual ? FontWeight.bold : FontWeight.normal,
-                    color: atual
-                        ? theme.colorScheme.primary
-                        : ativo
-                        ? theme.colorScheme.onSurface
-                        : theme.colorScheme.outline,
-                  ),
-                  child: Text(titulos[i]),
+                _PaginaCaracteristicas(
+                  racaController: _racaController,
+                  sexo: _sexo,
+                  categoria: _categoria,
+                  categorias: _categorias,
+                  dataNascimento: _dataNascimento,
+                  onSexoChanged: (v) => setState(() => _sexo = v),
+                  onCategoriaChanged: (v) => setState(() => _categoria = v),
+                  onDataTap: () async {
+                    final d = await showDatePicker(context: context, initialDate: _dataNascimento, firstDate: DateTime(2000), lastDate: DateTime.now());
+                    if (d != null) setState(() => _dataNascimento = d);
+                  },
                 ),
-              );
-            }),
+                _PaginaRevisao(
+                  pesoController: _pesoController,
+                  brinco: _brincoController.text,
+                  raca: _racaController.text,
+                  loteId: _loteSelecionadoId,
+                ),
+              ],
+            ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildBotoes(ThemeData theme, bool isEdicao) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-        child: Row(
-          children: [
-            if (_etapaAtual > 0)
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: OutlinedButton.icon(
-                  onPressed: _etapaAnterior,
-                  icon: const Icon(Icons.arrow_back, size: 20),
-                  label: const Text('VOLTAR'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(0, 56),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ),
-              ),
-            Expanded(
-              child: SizedBox(
-                height: 56,
-                child: FilledButton(
-                  onPressed: _salvando ? null : _proximaEtapa,
-                  style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: _salvando
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              _etapaAtual == _totalEtapas - 1
-                                  ? IconesApp.salvar
-                                  : Icons.arrow_forward,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _etapaAtual == _totalEtapas - 1
-                                  ? (isEdicao
-                                        ? 'SALVAR ALTERAÇÕES'
-                                        : 'CADASTRAR ANIMAL')
-                                  : 'PRÓXIMO',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-              ),
-            ),
-          ],
-        ),
+      bottomNavigationBar: _BotoesNavegacao(
+        etapaAtual: _etapaAtual,
+        total: _totalEtapas,
+        salvando: _salvando,
+        onVoltar: () => _etapaAtual == 0 ? Navigator.pop(context) : _irParaEtapa(_etapaAtual - 1),
+        onProximo: _proximaEtapa,
       ),
     );
   }
 }
 
-// ============================================================================
-// PÁGINA 1 — IDENTIFICAÇÃO
-// ============================================================================
+// --- SUB-WIDGETS COMPARTILHADOS ---
+
+class _BarraProgressoModerno extends StatelessWidget {
+  final int etapaAtual;
+  final int total;
+  const _BarraProgressoModerno({required this.etapaAtual, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
+        children: List.generate(total, (i) {
+          final ativo = i <= etapaAtual;
+          return Expanded(
+            child: AnimatedContainer(
+              duration: 400.ms,
+              height: 6,
+              margin: EdgeInsets.only(right: i == total - 1 ? 0 : 8),
+              decoration: BoxDecoration(
+                color: ativo ? theme.colorScheme.primary : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class _BotoesNavegacao extends StatelessWidget {
+  final int etapaAtual;
+  final int total;
+  final bool salvando;
+  final VoidCallback onVoltar;
+  final VoidCallback onProximo;
+
+  const _BotoesNavegacao({required this.etapaAtual, required this.total, required this.salvando, required this.onVoltar, required this.onProximo});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: BotaoPadrao(
+              label: 'VOLTAR',
+              outlined: true,
+              onPressed: salvando ? null : onVoltar,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            flex: 2,
+            child: BotaoPadrao(
+              label: etapaAtual == total - 1 ? 'FINALIZAR' : 'PRÓXIMO',
+              icone: etapaAtual == total - 1 ? IconesApp.salvar : Icons.arrow_forward_rounded,
+              onPressed: salvando ? null : onProximo,
+              carregando: salvando,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// --- PÁGINAS DO FORMULÁRIO ---
 
 class _PaginaIdentificacao extends StatelessWidget {
   final TextEditingController brincoController;
   final TextEditingController nomeController;
   final String? loteSelecionadoId;
   final ValueChanged<String?> onLoteChanged;
-  final VoidCallback onChanged;
 
-  const _PaginaIdentificacao({
-    required this.brincoController,
-    required this.nomeController,
-    required this.loteSelecionadoId,
-    required this.onLoteChanged,
-    required this.onChanged,
-  });
+  const _PaginaIdentificacao({required this.brincoController, required this.nomeController, required this.loteSelecionadoId, required this.onLoteChanged});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final lotes = context.watch<ProvedorFazenda>().lotes;
-    final completo =
-        brincoController.text.isNotEmpty && loteSelecionadoId != null;
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Identificação do Animal',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
+          const SecaoTitulo(texto: 'Onde o animal está?', icone: IconesApp.lote),
+          CartaoPadrao(
+            child: DropdownPadrao<String>(
+              label: 'Lote / Pasto *',
+              icone: IconesApp.lote,
+              valorSelecionado: loteSelecionadoId,
+              itens: lotes.map((l) => DropdownMenuItem(value: l.id, child: Text(l.nome))).toList(),
+              onChanged: onLoteChanged,
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Preencha os dados básicos de identificação',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          TextFormField(
-            controller: brincoController,
-            onChanged: (_) => onChanged(),
-            decoration: InputDecoration(
-              labelText: 'Brinco (Identificação) *',
-              prefixIcon: const Icon(Icons.tag),
-              hintText: 'Ex: 001, A-123',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          TextFormField(
-            controller: nomeController,
-            decoration: InputDecoration(
-              labelText: 'Nome (Opcional)',
-              prefixIcon: const Icon(Icons.text_fields),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          DropdownButtonFormField<String>(
-            value: loteSelecionadoId,
-            decoration: InputDecoration(
-              labelText: 'Lote / Pasto *',
-              prefixIcon: const Icon(IconesApp.lote),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            items: lotes
-                .map((l) => DropdownMenuItem(value: l.id, child: Text(l.nome)))
-                .toList(),
-            onChanged: onLoteChanged,
           ),
           const SizedBox(height: 24),
-
-          if (completo)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.check_circle,
-                    color: Colors.green.shade600,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Identificação completa',
-                    style: TextStyle(
-                      color: Colors.green.shade700,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
+          const SecaoTitulo(texto: 'Identificação Única', icone: Icons.tag),
+          CartaoPadrao(
+            child: Column(
+              children: [
+                CampoFormularioPadrao(label: 'Nº do Brinco *', icone: Icons.tag, controller: brincoController, tipoTeclado: TextInputType.text),
+                const SizedBox(height: 16),
+                CampoFormularioPadrao(label: 'Nome (Opcional)', icone: Icons.abc, controller: nomeController),
+              ],
             ),
+          ),
         ],
-      ),
+      ).animate().fadeIn().slideX(begin: 0.05, end: 0),
     );
   }
 }
-
-// ============================================================================
-// PÁGINA 2 — CARACTERÍSTICAS
-// ============================================================================
 
 class _PaginaCaracteristicas extends StatelessWidget {
   final TextEditingController racaController;
@@ -526,363 +316,178 @@ class _PaginaCaracteristicas extends StatelessWidget {
   final DateTime dataNascimento;
   final ValueChanged<String> onSexoChanged;
   final ValueChanged<String> onCategoriaChanged;
-  final VoidCallback onDataNascimentoTap;
+  final VoidCallback onDataTap;
 
-  const _PaginaCaracteristicas({
-    required this.racaController,
-    required this.sexo,
-    required this.categoria,
-    required this.categorias,
-    required this.dataNascimento,
-    required this.onSexoChanged,
-    required this.onCategoriaChanged,
-    required this.onDataNascimentoTap,
-  });
+  const _PaginaCaracteristicas({required this.racaController, required this.sexo, required this.categoria, required this.categorias, required this.dataNascimento, required this.onSexoChanged, required this.onCategoriaChanged, required this.onDataTap});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Características',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Informe os detalhes do animal',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          Text(
-            'Sexo',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _OpcaoSexo(
-                  icone: Icons.male,
-                  rotulo: 'Macho',
-                  valor: 'M',
-                  selecionado: sexo == 'M',
-                  corAtiva: Colors.blue,
-                  onTap: () => onSexoChanged('M'),
+          const SecaoTitulo(texto: 'Genética e Tipo', icone: IconesApp.animal),
+          CartaoPadrao(
+            child: Column(
+              children: [
+                _SeletorSexo(sexo: sexo, onChanged: onSexoChanged),
+                const SizedBox(height: 20),
+                CampoFormularioPadrao(label: 'Raça *', icone: Icons.pets, controller: racaController),
+                const SizedBox(height: 16),
+                DropdownPadrao<String>(
+                  label: 'Categoria',
+                  icone: Icons.category_outlined,
+                  valorSelecionado: categoria,
+                  itens: categorias.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                  onChanged: (v) => onCategoriaChanged(v!),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _OpcaoSexo(
-                  icone: Icons.female,
-                  rotulo: 'Fêmea',
-                  valor: 'F',
-                  selecionado: sexo == 'F',
-                  corAtiva: Colors.pink,
-                  onTap: () => onSexoChanged('F'),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 24),
-
-          TextFormField(
-            controller: racaController,
-            decoration: InputDecoration(
-              labelText: 'Raça *',
-              prefixIcon: const Icon(IconesApp.animal),
-              hintText: 'Ex: Nelore, Angus, Girolando',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          DropdownButtonFormField<String>(
-            value: categoria,
-            decoration: InputDecoration(
-              labelText: 'Categoria',
-              prefixIcon: const Icon(Icons.category_outlined),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            items: categorias
-                .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                .toList(),
-            onChanged: (v) => onCategoriaChanged(v!),
-          ),
-          const SizedBox(height: 20),
-
-          InkWell(
-            onTap: onDataNascimentoTap,
-            borderRadius: BorderRadius.circular(16),
-            child: InputDecorator(
-              decoration: InputDecoration(
-                labelText: 'Data de Nascimento',
-                prefixIcon: const Icon(Icons.calendar_today),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              child: Text(DateFormat('dd/MM/yyyy').format(dataNascimento)),
+          const SecaoTitulo(texto: 'Cronologia', icone: Icons.calendar_today),
+          CartaoPadrao(
+            child: CampoFormularioPadrao(
+              label: 'Nascimento',
+              icone: Icons.cake_outlined,
+              soLeitura: true,
+              controller: TextEditingController(text: DateFormat('dd/MM/yyyy').format(dataNascimento)),
+              onTap: onDataTap,
             ),
           ),
         ],
-      ),
+      ).animate().fadeIn().slideX(begin: 0.05, end: 0),
     );
   }
 }
 
-class _OpcaoSexo extends StatelessWidget {
-  final IconData icone;
-  final String rotulo;
-  final String valor;
-  final bool selecionado;
-  final Color corAtiva;
-  final VoidCallback onTap;
-
-  const _OpcaoSexo({
-    required this.icone,
-    required this.rotulo,
-    required this.valor,
-    required this.selecionado,
-    required this.corAtiva,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(
-          color: selecionado
-              ? corAtiva.withValues(alpha: 0.1)
-              : theme.colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selecionado
-                ? corAtiva
-                : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-            width: selecionado ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icone,
-              size: 32,
-              color: selecionado ? corAtiva : theme.colorScheme.outline,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              rotulo,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-                color: selecionado ? corAtiva : theme.colorScheme.onSurface,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ============================================================================
-// PÁGINA 3 — CONFIRMAÇÃO
-// ============================================================================
-
-class _PaginaConfirmacao extends StatelessWidget {
+class _PaginaRevisao extends StatelessWidget {
   final TextEditingController pesoController;
   final String brinco;
-  final String nome;
-  final String sexo;
   final String raca;
-  final String categoria;
-  final DateTime dataNascimento;
-  final String? loteSelecionadoId;
+  final String? loteId;
 
-  const _PaginaConfirmacao({
-    required this.pesoController,
-    required this.brinco,
-    required this.nome,
-    required this.sexo,
-    required this.raca,
-    required this.categoria,
-    required this.dataNascimento,
-    required this.loteSelecionadoId,
-  });
+  const _PaginaRevisao({required this.pesoController, required this.brinco, required this.raca, required this.loteId});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final lotes = context.watch<ProvedorFazenda>().lotes;
-    final nomeLote = lotes
-        .where((l) => l.id == loteSelecionadoId)
-        .map((l) => l.nome)
-        .firstOrNull;
+    final loteNome = context.watch<ProvedorFazenda>().lotes.firstWhere((l) => l.id == loteId, orElse: () => throw 'Lote não encontrado').nome;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Peso e Confirmação',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
+          const SecaoTitulo(texto: 'Peso de Entrada', icone: IconesApp.peso),
+          CartaoPadrao(
+            child: CampoFormularioPadrao(
+              label: 'Peso Inicial (Kg)',
+              icone: IconesApp.peso,
+              controller: pesoController,
+              tipoTeclado: const TextInputType.numberWithOptions(decimal: true),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Informe o peso e revise os dados antes de salvar',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          TextFormField(
-            controller: pesoController,
-            decoration: InputDecoration(
-              labelText: 'Peso (Kg)',
-              prefixIcon: const Icon(IconesApp.peso),
-              suffixText: 'kg',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-          const SizedBox(height: 32),
-
-          Text(
-            'RESUMO DOS DADOS',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-              ),
-            ),
+          const SizedBox(height: 24),
+          const SecaoTitulo(texto: 'Resumo do Cadastro', icone: Icons.fact_check_outlined),
+          CartaoPadrao(
             child: Column(
               children: [
-                _linhaResumo(context, Icons.tag, 'Brinco', brinco),
-                if (nome.isNotEmpty)
-                  _linhaResumo(context, Icons.text_fields, 'Nome', nome),
-                _linhaResumo(
-                  context,
-                  sexo == 'M' ? Icons.male : Icons.female,
-                  'Sexo',
-                  sexo == 'M' ? 'Macho' : 'Fêmea',
-                ),
-                _linhaResumo(context, IconesApp.animal, 'Raça', raca),
-                _linhaResumo(
-                  context,
-                  Icons.category_outlined,
-                  'Categoria',
-                  categoria,
-                ),
-                _linhaResumo(
-                  context,
-                  Icons.calendar_today,
-                  'Nascimento',
-                  DateFormat('dd/MM/yyyy').format(dataNascimento),
-                ),
-                _linhaResumo(
-                  context,
-                  IconesApp.lote,
-                  'Lote',
-                  nomeLote ?? 'Não selecionado',
-                ),
-                if (pesoController.text.isNotEmpty)
-                  _linhaResumo(
-                    context,
-                    IconesApp.peso,
-                    'Peso',
-                    '${pesoController.text} kg',
-                    isUltimo: true,
-                  ),
+                _ItemResumo(label: 'Brinco', valor: brinco, icon: Icons.tag),
+                _ItemResumo(label: 'Raça', valor: raca, icon: Icons.pets),
+                _ItemResumo(label: 'Lote', valor: loteNome, icon: IconesApp.lote, isUltimo: true),
               ],
             ),
           ),
         ],
-      ),
+      ).animate().fadeIn().slideX(begin: 0.05, end: 0),
     );
   }
+}
 
-  Widget _linhaResumo(
-    BuildContext context,
-    IconData icone,
-    String rotulo,
-    String valor, {
-    bool isUltimo = false,
-  }) {
-    final theme = Theme.of(context);
+// --- COMPONENTES AUXILIARES ---
 
-    return Column(
+class _SeletorSexo extends StatelessWidget {
+  final String sexo;
+  final ValueChanged<String> onChanged;
+  const _SeletorSexo({required this.sexo, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
+        _BotaoSexo(label: 'MACHO', icon: Icons.male, selecionado: sexo == 'M', cor: Colors.blue, onTap: () => onChanged('M')),
+        const SizedBox(width: 12),
+        _BotaoSexo(label: 'FÊMEA', icon: Icons.female, selecionado: sexo == 'F', cor: Colors.pink, onTap: () => onChanged('F')),
+      ],
+    );
+  }
+}
+
+class _BotaoSexo extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selecionado;
+  final Color cor;
+  final VoidCallback onTap;
+
+  const _BotaoSexo({required this.label, required this.icon, required this.selecionado, required this.cor, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: 300.ms,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: selecionado ? cor.withValues(alpha: 0.1) : theme.colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: selecionado ? cor : theme.colorScheme.outlineVariant, width: selecionado ? 2 : 1),
+          ),
+          child: Column(
             children: [
-              Icon(icone, size: 20, color: theme.colorScheme.primary),
-              const SizedBox(width: 12),
-              Text(
-                rotulo,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const Spacer(),
-              Flexible(
-                child: Text(
-                  valor,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.end,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+              Icon(icon, color: selecionado ? cor : theme.colorScheme.outline, size: 24),
+              const SizedBox(height: 4),
+              Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: selecionado ? cor : theme.colorScheme.onSurfaceVariant)),
             ],
           ),
         ),
-        if (!isUltimo)
-          Divider(
-            height: 1,
-            indent: 48,
-            endIndent: 16,
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+      ),
+    );
+  }
+}
+
+class _ItemResumo extends StatelessWidget {
+  final String label;
+  final String valor;
+  final IconData icon;
+  final bool isUltimo;
+
+  const _ItemResumo({required this.label, required this.valor, required this.icon, this.isUltimo = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: Colors.grey),
+              const SizedBox(width: 12),
+              Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+              const Spacer(),
+              Text(valor, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            ],
           ),
+        ),
+        if (!isUltimo) Divider(color: Colors.grey.withValues(alpha: 0.1)),
       ],
     );
   }

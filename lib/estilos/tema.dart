@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class TemaApp {
   static const double _raioBorda = 16.0;
@@ -623,6 +624,57 @@ class EstadoVazioPadrao extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// NOVO COMPONENTE: Botão Flutuante com Seta Animada
+class BotaoFlutuanteBovi extends StatelessWidget {
+  final String label;
+  final IconData icone;
+  final VoidCallback onPressed;
+  final bool comSeta;
+
+  const BotaoFlutuanteBovi({
+    super.key,
+    required this.label,
+    required this.icone,
+    required this.onPressed,
+    this.comSeta = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (comSeta)
+          Padding(
+            padding: const EdgeInsets.only(right: 24, bottom: 8),
+            child: Icon(
+              Icons.arrow_downward_rounded,
+              color: theme.colorScheme.primary,
+              size: 28,
+            )
+            .animate(onPlay: (controller) => controller.repeat())
+            .moveY(begin: -10, end: 0, duration: 800.ms, curve: Curves.easeInOut)
+            .fadeIn(),
+          ),
+        FloatingActionButton.extended(
+          onPressed: onPressed,
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: theme.colorScheme.onPrimary,
+          elevation: 6,
+          icon: Icon(icone),
+          label: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+          ),
+        ).animate().scale(delay: 400.ms, curve: Curves.easeOutBack),
+      ],
     );
   }
 }

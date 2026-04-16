@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../../estilos/icones.dart';
-import '../../modelos/animal.dart';
-import '../../modelos/eventos/evento_reprodutivo.dart';
-import '../../provedores/provedor_fazenda.dart';
-import '../../servicos/banco_dados_servico.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../../../estilos/icones.dart';
+import '../../../estilos/tema.dart';
+import '../../../modelos/animal.dart';
+import '../../../modelos/eventos/evento_reprodutivo.dart';
+import '../../../provedores/provedor_fazenda.dart';
+import '../../../servicos/banco_dados_servico.dart';
 
 class FormReprodutivo extends StatefulWidget {
   final Animal? animalPreSelecionado;
@@ -22,9 +24,6 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
   final _obsController = TextEditingController();
   final _dataController = TextEditingController();
   
-  late ScrollController _scrollController;
-  bool _isCollapsed = false;
-
   late DateTime _dataSelecionada;
   String? _animalIdSelecionado;
   String _tipoSelecionado = 'Inseminação (IA)';
@@ -42,9 +41,6 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_scrollListener);
-    
     _dataSelecionada = DateTime.now();
     _dataController.text = DateFormat('dd/MM/yyyy').format(_dataSelecionada);
 
@@ -55,21 +51,10 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_scrollListener);
-    _scrollController.dispose();
     _resultadoController.dispose();
     _obsController.dispose();
     _dataController.dispose();
     super.dispose();
-  }
-
-  void _scrollListener() {
-    if (_scrollController.hasClients) {
-      bool deveColapsar = _scrollController.offset > 90;
-      if (deveColapsar != _isCollapsed) {
-        setState(() => _isCollapsed = deveColapsar);
-      }
-    }
   }
 
   Future<void> _selecionarData() async {
@@ -90,9 +75,7 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
     if (_animalIdSelecionado == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecione uma fêmea'))
-      );
+      _mostrarErro('Selecione uma fêmea');
       return;
     }
 
@@ -100,7 +83,6 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
 
     try {
       final evento = EventoReprodutivo(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
         animalId: _animalIdSelecionado!,
         data: _dataSelecionada,
         tipo: _tipoSelecionado,
@@ -112,23 +94,26 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
 
       if (mounted) {
         context.read<ProvedorFazenda>().carregarPropriedades();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Evento salvo com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        _mostrarSucesso('Evento reprodutivo registrado!');
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
-        );
-      }
+      if (mounted) _mostrarErro('Erro ao salvar: $e');
     } finally {
       if (mounted) setState(() => _salvando = false);
     }
+  }
+
+  void _mostrarErro(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red.shade800, behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  void _mostrarSucesso(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.green.shade800, behavior: SnackBarBehavior.floating),
+    );
   }
 
   @override
@@ -137,187 +122,141 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
     final provedor = context.watch<ProvedorFazenda>();
     final femeas = provedor.animais.where((a) => a.sexo == 'F').toList();
 
-    final Color corAppBarBg =
-        _isCollapsed ? theme.colorScheme.primary : theme.colorScheme.surface;
-    final Color corElementos =
-        _isCollapsed ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
-    final EdgeInsets paddingTitulo = _isCollapsed
-        ? const EdgeInsets.only(left: 72, bottom: 16)
-        : const EdgeInsets.only(left: 16, bottom: 16);
-
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 140,
-            backgroundColor: corAppBarBg,
-            foregroundColor: corElementos,
-            iconTheme: IconThemeData(color: corElementos),
-            surfaceTintColor: Colors.transparent,
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: false,
-              titlePadding: paddingTitulo,
-              expandedTitleScale: 1.6,
-              title: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  color: corElementos,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-                child: const Text('Reprodução'),
-              ),
-              background: Container(
-                color: theme.colorScheme.surface,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      appBar: const AppBarPadrao(titulo: 'Manejo Reprodutivo', centralizar: true),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- CARD 1: DATA E ANIMAL ---
+              const SecaoTitulo(texto: 'Identificação', icone: Icons.calendar_today_outlined),
+              CartaoPadrao(
+                child: Column(
+                  children: [
+                    CampoFormularioPadrao(
+                      label: 'Data do Evento',
+                      icone: Icons.calendar_today_outlined,
+                      controller: _dataController,
+                      soLeitura: true,
+                      onTap: _selecionarData,
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    if (widget.animalPreSelecionado == null)
+                      DropdownPadrao<String>(
+                        label: 'Fêmea',
+                        icone: IconesApp.animal,
+                        valorSelecionado: _animalIdSelecionado,
+                        itens: femeas.map((a) {
+                          return DropdownMenuItem(
+                            value: a.id,
+                            child: Text('${a.brinco} - ${a.nome ?? "S/N"}'),
+                          );
+                        }).toList(),
+                        onChanged: (v) => setState(() => _animalIdSelecionado = v),
+                        validador: (v) => v == null ? 'Obrigatório' : null,
+                      )
+                    else
+                      _WidgetInformativo(
+                        icone: IconesApp.animal,
+                        titulo: 'Fêmea Selecionada',
+                        valor: '${widget.animalPreSelecionado!.brinco} - ${widget.animalPreSelecionado!.nome ?? "Sem nome"}',
+                      ),
+                  ],
                 ),
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.all(20),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _secaoTitulo('Data'),
-                      const SizedBox(height: 12),
-                      
-                      TextFormField(
-                        controller: _dataController,
-                        readOnly: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Data do Evento',
-                          prefixIcon: Icon(Icons.calendar_today),
-                        ),
-                        onTap: _selecionarData,
-                      ),
-                      
-                      const SizedBox(height: 24),
-                      _secaoTitulo('Animal'),
-                      const SizedBox(height: 12),
+              ).animate().fadeIn().slideY(begin: 0.1, end: 0),
 
-                      if (widget.animalPreSelecionado == null)
-                        DropdownButtonFormField<String>(
-                          value: _animalIdSelecionado,
-                          decoration: const InputDecoration(
-                            labelText: 'Fêmea',
-                            prefixIcon: Icon(IconesApp.animal),
-                          ),
-                          items: femeas
-                              .map((a) => DropdownMenuItem(value: a.id, child: Text(a.brinco)))
-                              .toList(),
-                          onChanged: (v) => setState(() => _animalIdSelecionado = v),
-                          validator: (v) => v == null ? 'Obrigatório' : null,
-                        )
-                      else
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(IconesApp.animal, color: theme.colorScheme.primary),
-                              const SizedBox(width: 12),
-                              Text(
-                                widget.animalPreSelecionado!.brinco,
-                                style: theme.textTheme.titleMedium,
-                              ),
-                            ],
-                          ),
-                        ),
+              const SizedBox(height: 24),
 
-                      const SizedBox(height: 24),
-                      _secaoTitulo('Detalhes'),
-                      const SizedBox(height: 12),
-
-                      DropdownButtonFormField<String>(
-                        value: _tipoSelecionado,
-                        decoration: const InputDecoration(
-                          labelText: 'Tipo de Evento',
-                          prefixIcon: Icon(IconesApp.reproducao),
-                        ),
-                        items: _tipos
-                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                            .toList(),
-                        onChanged: (v) => setState(() => _tipoSelecionado = v!),
-                      ),
-                      const SizedBox(height: 16),
-
-                      TextFormField(
-                        controller: _resultadoController,
-                        decoration: const InputDecoration(
-                          labelText: 'Resultado',
-                          prefixIcon: Icon(Icons.info_outline),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      TextFormField(
-                        controller: _obsController,
-                        decoration: const InputDecoration(
-                          labelText: 'Observação',
-                          prefixIcon: Icon(Icons.notes),
-                        ),
-                        maxLines: 2,
-                      ),
-
-                      const SizedBox(height: 32),
-
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: FilledButton(
-                          onPressed: _salvando ? null : _salvar,
-                          child: _salvando
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(IconesApp.salvar),
-                                    const SizedBox(width: 8),
-                                    const Text('SALVAR EVENTO'),
-                                  ],
-                                ),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 50),
-                    ],
-                  ),
+              // --- CARD 2: DETALHES DO EVENTO ---
+              const SecaoTitulo(texto: 'Dados Reprodutivos', icone: IconesApp.reproducao),
+              CartaoPadrao(
+                child: Column(
+                  children: [
+                    DropdownPadrao<String>(
+                      label: 'Tipo de Evento',
+                      icone: IconesApp.reproducao,
+                      valorSelecionado: _tipoSelecionado,
+                      itens: _tipos.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                      onChanged: (v) => setState(() => _tipoSelecionado = v!),
+                    ),
+                    const SizedBox(height: 16),
+                    CampoFormularioPadrao(
+                      label: 'Resultado (Ex: Positivo, Confirmado)',
+                      icone: Icons.info_outline_rounded,
+                      controller: _resultadoController,
+                    ),
+                  ],
                 ),
-              ]),
-            ),
+              ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1, end: 0),
+
+              const SizedBox(height: 24),
+
+              // --- CARD 3: OBSERVAÇÕES ---
+              const SecaoTitulo(texto: 'Observações', icone: Icons.notes_rounded),
+              CartaoPadrao(
+                child: CampoFormularioPadrao(
+                  label: 'Notas adicionais (Opcional)',
+                  controller: _obsController,
+                  maxLinhas: 3,
+                ),
+              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
+
+              const SizedBox(height: 40),
+
+              // --- BOTÃO SALVAR ---
+              BotaoPadrao(
+                label: 'REGISTRAR EVENTO',
+                icone: IconesApp.salvar,
+                onPressed: _salvando ? null : _salvar,
+                carregando: _salvando,
+                expandido: true,
+              ).animate().scale(delay: 300.ms),
+              
+              const SizedBox(height: 40),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
+}
 
-  Widget _secaoTitulo(String texto) {
+class _WidgetInformativo extends StatelessWidget {
+  final IconData icone;
+  final String titulo;
+  final String valor;
+
+  const _WidgetInformativo({required this.icone, required this.titulo, required this.valor});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Text(
-      texto.toUpperCase(),
-      style: theme.textTheme.labelLarge?.copyWith(
-        color: theme.colorScheme.primary,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 1.2,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          Icon(icone, color: theme.colorScheme.primary),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(titulo, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary)),
+                Text(valor, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
