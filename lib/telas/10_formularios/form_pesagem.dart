@@ -28,6 +28,7 @@ class _FormPesagemState extends State<FormPesagem> {
   late DateTime _dataSelecionada;
   String? _animalIdSelecionado;
   bool _salvando = false;
+  bool _salvo = false;
 
   @override
   void initState() {
@@ -89,7 +90,8 @@ class _FormPesagemState extends State<FormPesagem> {
           await p.carregarAnimais(p.propriedadeAtiva!.id);
         }
         _mostrarSucesso('Pesagem registrada com sucesso!');
-        if (mounted) Navigator.pop(context);
+        _salvo = true;
+      if (mounted) Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) _mostrarErro('Erro ao salvar: $e');
@@ -115,7 +117,24 @@ class _FormPesagemState extends State<FormPesagem> {
     final theme = Theme.of(context);
     final provedor = context.watch<ProvedorFazenda>();
 
-    return Scaffold(
+    return PopScope(
+      canPop: _salvo || (_pesoController.text.isEmpty && _obsController.text.isEmpty),
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Descartar dados?'),
+              content: const Text('Há informações não salvas. Deseja realmente sair?'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CONTINUAR')),
+                TextButton(onPressed: () { Navigator.pop(ctx); Navigator.pop(context); }, child: const Text('SAIR')),
+              ],
+            ),
+          );
+        }
+      },
+      child: Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: const AppBarPadrao(titulo: 'Registrar Pesagem', centralizar: true),
       body: SingleChildScrollView(
@@ -227,6 +246,7 @@ class _FormPesagemState extends State<FormPesagem> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

@@ -30,6 +30,7 @@ class _FormSanitarioState extends State<FormSanitario> {
   String? _animalIdSelecionado;
   String _tipoEvento = 'Vacinação';
   bool _salvando = false;
+  bool _salvo = false;
 
   final List<String> _tipos = ['Vacinação', 'Doença', 'Tratamento', 'Vermifugação', 'Exame', 'Cirurgia', 'Outro'];
 
@@ -71,6 +72,7 @@ class _FormSanitarioState extends State<FormSanitario> {
         if (provedor.propriedadeAtiva != null) {
           await provedor.carregarAnimais(provedor.propriedadeAtiva!.id);
         }
+        _salvo = true;
         _msg('Evento sanitário registrado!');
         if (mounted) Navigator.pop(context);
       }
@@ -90,7 +92,26 @@ class _FormSanitarioState extends State<FormSanitario> {
     final theme = Theme.of(context);
     final provedor = context.watch<ProvedorFazenda>();
 
-    return Scaffold(
+    final vazio = _medicamentoController.text.isEmpty && _doseController.text.isEmpty && _obsController.text.isEmpty && widget.animalPreSelecionado == null && _animalIdSelecionado == null;
+
+    return PopScope(
+      canPop: _salvo || vazio,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Descartar dados?'),
+              content: const Text('Há informações não salvas. Deseja realmente sair?'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CONTINUAR')),
+                TextButton(onPressed: () { Navigator.pop(ctx); Navigator.pop(context); }, child: const Text('SAIR')),
+              ],
+            ),
+          );
+        }
+      },
+      child: Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: const AppBarPadrao(titulo: 'Manejo Sanitário', centralizar: true),
       body: SingleChildScrollView(
@@ -161,6 +182,7 @@ class _FormSanitarioState extends State<FormSanitario> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../estilos/icones.dart';
 import '../../../estilos/tema.dart';
 import '../../../modelos/animal.dart';
+import '../../../modelos/piquete.dart';
 import '../../../provedores/provedor_fazenda.dart';
 import '../../../servicos/banco_dados_servico.dart';
 
@@ -33,6 +34,7 @@ class _FormAnimalState extends State<FormAnimal> {
   String _categoria = 'Bezerro';
   DateTime _dataNascimento = DateTime.now();
   bool _salvando = false;
+  bool _salvo = false;
 
   final List<String> _categorias = [
     'Bezerro', 'Bezerra', 'Novilho', 'Novilha', 'Boi', 'Vaca', 'Touro', 'Outro',
@@ -121,6 +123,7 @@ class _FormAnimalState extends State<FormAnimal> {
       }
 
       await provedor.carregarAnimais(provedor.propriedadeAtiva!.id);
+      _salvo = true;
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sucesso!'), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating));
@@ -137,7 +140,30 @@ class _FormAnimalState extends State<FormAnimal> {
     final theme = Theme.of(context);
     final isEdicao = widget.animalExistente != null;
 
-    return Scaffold(
+    final camposPreenchidos = _brincoController.text.isNotEmpty ||
+        _nomeController.text.isNotEmpty ||
+        _racaController.text.isNotEmpty ||
+        _pesoController.text.isNotEmpty ||
+        _piqueteSelecionadoId != null;
+
+    return PopScope(
+      canPop: _salvo || !camposPreenchidos,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Descartar dados?'),
+              content: const Text('Há informações não salvas. Deseja realmente sair?'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CONTINUAR')),
+                TextButton(onPressed: () { Navigator.pop(ctx); Navigator.pop(context); }, child: const Text('SAIR')),
+              ],
+            ),
+          );
+        }
+      },
+      child: Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBarPadrao(titulo: isEdicao ? 'Editar Animal' : 'Novo Animal', centralizar: true),
       body: Column(
@@ -183,6 +209,7 @@ class _FormAnimalState extends State<FormAnimal> {
         total: _totalEtapas,
         salvando: _salvando,
         onProximo: _proximaEtapa,
+      ),
       ),
     );
   }
@@ -361,7 +388,7 @@ class _PaginaRevisao extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final piqueteNome = context.watch<ProvedorFazenda>().piquetes.firstWhere((p) => p.id == loteId, orElse: () => throw 'Piquete não encontrado').nome;
+    final piqueteNome = context.watch<ProvedorFazenda>().piquetes.firstWhere((p) => p.id == loteId, orElse: () => Piquete(id: loteId, fazendaId: '', nome: '—', tipo: '', capacidade: 0)).nome;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),

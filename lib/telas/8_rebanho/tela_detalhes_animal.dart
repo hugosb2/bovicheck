@@ -115,7 +115,7 @@ class _TelaDetalhesAnimalState extends State<TelaDetalhesAnimal> {
 
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-            child: _gridFicha(theme, animalAtual),
+            child: _gridFicha(theme, animalAtual, piquete),
           ).animate().fadeIn(delay: 200.ms),
 
           const SizedBox(height: 32),
@@ -279,7 +279,7 @@ class _TelaDetalhesAnimalState extends State<TelaDetalhesAnimal> {
 
   // ---- GRID FICHA TÉCNICA ----
 
-  Widget _gridFicha(ThemeData theme, Animal animal) {
+  Widget _gridFicha(ThemeData theme, Animal animal, Piquete? piquete) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -287,7 +287,7 @@ class _TelaDetalhesAnimalState extends State<TelaDetalhesAnimal> {
         const SizedBox(height: 14),
         Row(
           children: [
-            Expanded(child: _fichaItem(theme, IconesApp.piquete, 'Piquete', animal.loteId.substring(0, 6), cor: Colors.orange)),
+            Expanded(child: _fichaItem(theme, IconesApp.piquete, 'Piquete', piquete?.nome ?? '—', cor: Colors.orange)),
             const SizedBox(width: 12),
             Expanded(child: _fichaItem(theme, IconesApp.iconAnimalSvg, 'Raça', animal.raca)),
             const SizedBox(width: 12),
@@ -414,7 +414,7 @@ class _TelaDetalhesAnimalState extends State<TelaDetalhesAnimal> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        'ID: ${animal.id.substring(0, 8)}...',
+                        'ID: ${animal.id.length > 8 ? '${animal.id.substring(0, 8)}...' : animal.id}',
                         style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: theme.colorScheme.primary.withValues(alpha: 0.6)),
                       ),
                     ),

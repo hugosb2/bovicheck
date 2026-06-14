@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -18,6 +17,7 @@ class TelaExportacaoAvancada extends StatefulWidget {
 }
 
 class _TelaExportacaoAvancadaState extends State<TelaExportacaoAvancada> {
+  final _camposObrigatorios = <String>{'brinco', 'fazendaId', 'loteId'};
   bool _carregando = true;
   bool _tudoSelecionado = false;
   List<Propriedade> _fazendas = [];
@@ -42,6 +42,8 @@ class _TelaExportacaoAvancadaState extends State<TelaExportacaoAvancada> {
     'pesoAtualKg': 'Peso Atual',
     'dataObito': 'Data de Óbito',
     'isAtivo': 'Status Ativo',
+    'fazendaId': 'ID da Fazenda',
+    'loteId': 'ID do Lote',
   };
 
   @override
@@ -191,11 +193,6 @@ class _TelaExportacaoAvancadaState extends State<TelaExportacaoAvancada> {
       );
 
       if (outputFile != null) {
-        final file = File(outputFile);
-        if (!(await file.exists()) || (await file.length()) == 0) {
-          await file.writeAsBytes(bytes);
-        }
-        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Arquivo gerado com sucesso!'), backgroundColor: Colors.green),
@@ -360,7 +357,7 @@ class _TelaExportacaoAvancadaState extends State<TelaExportacaoAvancada> {
               if (value) {
                 _camposAnimalSelecionados.add(entry.key);
               } else {
-                if (entry.key != 'brinco') { // Brinco é obrigatório
+                if (!_camposObrigatorios.contains(entry.key)) {
                   _camposAnimalSelecionados.remove(entry.key);
                 }
               }

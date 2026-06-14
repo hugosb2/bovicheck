@@ -28,6 +28,7 @@ class _FormAbateState extends State<FormAbate> {
   late DateTime _dataAbate;
   String? _animalIdSelecionado;
   bool _salvando = false;
+  bool _salvo = false;
 
   @override
   void initState() {
@@ -85,6 +86,7 @@ class _FormAbateState extends State<FormAbate> {
       await provedor.carregarAnimais(provedor.propriedadeAtiva!.id);
 
       if (!mounted) return;
+      _salvo = true;
       _mostrarSucesso('Abate registrado com sucesso!');
       Navigator.pop(context);
     } catch (e) {
@@ -111,7 +113,26 @@ class _FormAbateState extends State<FormAbate> {
     final theme = Theme.of(context);
     final provedor = context.watch<ProvedorFazenda>();
 
-    return Scaffold(
+    final vazio = _pesoVivoController.text.isEmpty && _pesoCarcacaController.text.isEmpty && _observacaoController.text.isEmpty && widget.animalPreSelecionado == null && _animalIdSelecionado == null;
+
+    return PopScope(
+      canPop: _salvo || vazio,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Descartar dados?'),
+              content: const Text('Há informações não salvas. Deseja realmente sair?'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CONTINUAR')),
+                TextButton(onPressed: () { Navigator.pop(ctx); Navigator.pop(context); }, child: const Text('SAIR')),
+              ],
+            ),
+          );
+        }
+      },
+      child: Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: const AppBarPadrao(titulo: 'Registrar Abate', centralizar: true),
       body: SingleChildScrollView(
@@ -228,6 +249,7 @@ class _FormAbateState extends State<FormAbate> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

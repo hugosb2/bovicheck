@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../estilos/tema.dart';
 
 class TelaSobre extends StatefulWidget {
@@ -31,13 +30,6 @@ class _TelaSobreState extends State<TelaSobre> {
     });
   }
 
-  Future<void> _abrirLink(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -50,26 +42,7 @@ class _TelaSobreState extends State<TelaSobre> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  shape: BoxShape.circle,
-                  image: const DecorationImage(
-                    image: AssetImage('assets/icon.png'),
-                    fit: BoxFit.scaleDown,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.colorScheme.shadow.withValues(alpha: 0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-              ).animate().scale(curve: Curves.elasticOut, duration: 800.ms),
+              Image.asset('assets/iflogo.png', height: 100, fit: BoxFit.contain),
 
               const SizedBox(height: 24),
 
@@ -90,25 +63,38 @@ class _TelaSobreState extends State<TelaSobre> {
                 ),
               ),
 
-              const SizedBox(height: 48),
+              const SizedBox(height: 32),
 
-              // Cards de Informação
-              _CardCredito(
-                icone: Icons.person_outline,
+              _CardInfo(
                 titulo: 'Desenvolvedor',
-                valor: 'BoviCheck Team',
+                valor: 'Hugo Santos Barros',
+                subtitulo: 'hugobs4987@gmail.com',
               ),
-              _CardCredito(
-                icone: Icons.email_outlined,
-                titulo: 'Contato',
-                valor: 'suporte@bovicheck.com',
-                onTap: () => _abrirLink('mailto:suporte@bovicheck.com'),
+              _CardInfo(
+                titulo: 'Orientador',
+                valor: 'Francisco Hélio de Oliveira',
+                subtitulo: 'francisco.oliveira@ifbaiano.edu.br',
               ),
-              _CardCredito(
-                icone: Icons.policy_outlined,
-                titulo: 'Política de Privacidade',
-                valor: 'Ler documentos',
-                onTap: () => _abrirLink('https://bovicheck.com/privacy'),
+              _CardInfo(
+                titulo: 'Coorientador',
+                valor: 'Hudson Barros Oliveira',
+                subtitulo: 'hudson.barros@ifbaiano.edu.br',
+              ),
+              _CardInfo(
+                titulo: 'Colaboradora',
+                valor: 'Jacqueline Firmino de Sá',
+                subtitulo: 'Aguardando contato',
+              ),
+
+              const SizedBox(height: 24),
+
+              Text(
+                'Hugo é estudante. Os demais são docentes do '
+                'Instituto Federal Baiano — Campus Itapetinga.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
 
               const SizedBox(height: 48),
@@ -126,36 +112,34 @@ class _TelaSobreState extends State<TelaSobre> {
   }
 }
 
-class _CardCredito extends StatelessWidget {
-  final IconData icone;
+class _CardInfo extends StatelessWidget {
   final String titulo;
   final String valor;
-  final VoidCallback? onTap;
+  final String subtitulo;
 
-  const _CardCredito({
-    required this.icone,
+  const _CardInfo({
     required this.titulo,
     required this.valor,
-    this.onTap,
+    required this.subtitulo,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Card(
       elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceContainer,
-      margin: const EdgeInsets.only(bottom: 12),
+      color: theme.colorScheme.surfaceContainer,
+      margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Icon(icone, color: Theme.of(context).colorScheme.primary),
         title: Text(titulo, style: const TextStyle(fontSize: 12)),
-        subtitle: Text(
-          valor,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text(valor, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(subtitulo, style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant)),
+          ],
         ),
-        trailing: onTap != null
-            ? const Icon(Icons.open_in_new, size: 16)
-            : null,
-        onTap: onTap,
       ),
     ).animate().slideX(begin: 0.2, end: 0, duration: 400.ms);
   }

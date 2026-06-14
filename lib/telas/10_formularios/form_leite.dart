@@ -29,6 +29,7 @@ class _FormLeiteState extends State<FormLeite> {
   String? _animalIdSelecionado;
   String _periodoSelecionado = 'Manhã';
   bool _salvando = false;
+  bool _salvo = false;
 
   final List<String> _periodos = ['Manhã', 'Tarde', 'Noite'];
 
@@ -93,6 +94,7 @@ class _FormLeiteState extends State<FormLeite> {
         if (provedor.propriedadeAtiva != null) {
           await provedor.carregarAnimais(provedor.propriedadeAtiva!.id);
         }
+        _salvo = true;
         _mostrarSucesso('Produção de leite salva com sucesso!');
         if (mounted) Navigator.pop(context);
       }
@@ -121,7 +123,26 @@ class _FormLeiteState extends State<FormLeite> {
     final provedor = context.watch<ProvedorFazenda>();
     final femeas = provedor.animais.where((a) => a.sexo == 'F').toList();
 
-    return Scaffold(
+    final vazio = _litrosController.text.isEmpty && _obsController.text.isEmpty && widget.animalPreSelecionado == null && _animalIdSelecionado == null;
+
+    return PopScope(
+      canPop: _salvo || vazio,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Descartar dados?'),
+              content: const Text('Há informações não salvas. Deseja realmente sair?'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CONTINUAR')),
+                TextButton(onPressed: () { Navigator.pop(ctx); Navigator.pop(context); }, child: const Text('SAIR')),
+              ],
+            ),
+          );
+        }
+      },
+      child: Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: const AppBarPadrao(titulo: 'Produção de Leite', centralizar: true),
       body: SingleChildScrollView(
@@ -241,6 +262,7 @@ class _FormLeiteState extends State<FormLeite> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

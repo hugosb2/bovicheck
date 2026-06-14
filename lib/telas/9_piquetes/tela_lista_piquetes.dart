@@ -82,7 +82,7 @@ class _TelaListaPiquetesState extends State<TelaListaPiquetes> {
           // 2. Lista de Piquetes
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async => await provedor.carregarPropriedades(),
+              onRefresh: () async => await provedor.carregarPiquetes(provedor.propriedadeAtiva!.id),
               child: provedor.piquetes.isEmpty
                   ? _EstadoVazioPiquetes(theme: theme)
                   : piquetesFiltrados.isEmpty

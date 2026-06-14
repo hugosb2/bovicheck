@@ -44,7 +44,8 @@ class ProvedorFazenda extends ChangeNotifier {
             (e) =>
                 e.animalId == a.id &&
                 (e.tipo.toLowerCase().contains('doença') || e.tipo.toLowerCase().contains('tratamento')) &&
-                !e.data.isBefore(inicioSemana),
+                !e.data.isBefore(inicioSemana) &&
+                !e.data.isAfter(agora),
           );
     }).length;
   }
@@ -53,7 +54,7 @@ class ProvedorFazenda extends ChangeNotifier {
     final agora = DateTime.now();
     final inicioAno = DateTime(agora.year, 1, 1);
     return _eventosReprodutivos
-        .where((e) => e.tipo == 'Parto' && !e.data.isBefore(inicioAno))
+        .where((e) => e.tipo == 'Parto' && !e.data.isBefore(inicioAno) && !e.data.isAfter(agora))
         .length;
   }
 
@@ -61,7 +62,7 @@ class ProvedorFazenda extends ChangeNotifier {
     final agora = DateTime.now();
     final inicioMes = DateTime(agora.year, agora.month, 1);
     return _producaoLeite
-        .where((e) => !e.data.isBefore(inicioMes))
+        .where((e) => !e.data.isBefore(inicioMes) && !e.data.isAfter(agora))
         .fold(0.0, (sum, item) => sum + item.litros);
   }
 
@@ -167,7 +168,11 @@ class ProvedorFazenda extends ChangeNotifier {
 
   // --- CRUD PIQUETES ---
   Future<void> carregarPiquetes(String fazendaId) async {
-    _piquetes = await BancoDadosServico.instancia.getPiquetesPorFazenda(fazendaId);
+    try {
+      _piquetes = await BancoDadosServico.instancia.getPiquetesPorFazenda(fazendaId);
+    } catch (e) {
+      debugPrint('Erro ao carregar piquetes: $e');
+    }
     notifyListeners();
   }
 
@@ -184,29 +189,16 @@ class ProvedorFazenda extends ChangeNotifier {
       final db = BancoDadosServico.instancia;
       _animais = await db.getAnimaisPorFazenda(fazendaId);
 
-      _eventosReprodutivos = [];
-      _eventosSanitarios = [];
-      _pesagens = [];
-      _producaoLeite = [];
+      final ids = _animais.map((a) => a.id).toList();
 
-      for (var animal in _animais) {
-        _eventosReprodutivos.addAll(
-          await db.getEventosReprodutivosPorAnimal(animal.id),
-        );
+      _eventosReprodutivos = await db.getEventosReprodutivosPorAnimais(ids);
 
-        final sanitariosMaps = await db.getEventosSanitariosPorAnimal(animal.id);
-        _eventosSanitarios.addAll(
-          sanitariosMaps.map((m) => EventoSanitario.fromMap(m)).toList(),
-        );
+      final sanitariosMaps = await db.getEventosSanitariosPorAnimais(ids);
+      _eventosSanitarios = sanitariosMaps.map((m) => EventoSanitario.fromMap(m)).toList();
 
-        _pesagens.addAll(
-          await db.getPesagensPorAnimal(animal.id),
-        );
+      _pesagens = await db.getPesagensPorAnimais(ids);
 
-        _producaoLeite.addAll(
-          await db.getProducaoLeitePorAnimal(animal.id),
-        );
-      }
+      _producaoLeite = await db.getProducaoLeitePorAnimais(ids);
     } catch (e) {
       debugPrint('Erro ao carregar animais/eventos: $e');
     }

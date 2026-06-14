@@ -24,6 +24,7 @@ class _FormPiqueteState extends State<FormPiquete> {
   String _tipoSelecionado = 'Pasto';
   String _sistemaProducao = 'Extensivo';
   bool _salvando = false;
+  bool _salvo = false;
 
   final List<String> _tipos = [
     'Pasto', 'Confinamento', 'Maternidade', 'Curral', 'Outro'
@@ -74,6 +75,7 @@ class _FormPiqueteState extends State<FormPiquete> {
       );
 
       await provedor.adicionarPiquete(novoPiquete);
+      _salvo = true;
 
       if (mounted) {
         Navigator.pop(context);
@@ -102,7 +104,26 @@ class _FormPiqueteState extends State<FormPiquete> {
     final theme = Theme.of(context);
     final isEdicao = widget.piqueteExistente != null;
 
-    return Scaffold(
+    final vazio = _nomeController.text.isEmpty && _descController.text.isEmpty && _capacidadeController.text.isEmpty && _areaController.text.isEmpty;
+
+    return PopScope(
+      canPop: _salvo || vazio,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Descartar dados?'),
+              content: const Text('Há informações não salvas. Deseja realmente sair?'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CONTINUAR')),
+                TextButton(onPressed: () { Navigator.pop(ctx); Navigator.pop(context); }, child: const Text('SAIR')),
+              ],
+            ),
+          );
+        }
+      },
+      child: Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBarPadrao(
         titulo: isEdicao ? 'Editar Piquete' : 'Novo Piquete',
@@ -183,6 +204,7 @@ class _FormPiqueteState extends State<FormPiquete> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

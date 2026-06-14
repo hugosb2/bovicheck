@@ -93,7 +93,12 @@ class _TelaDashboardState extends State<TelaDashboard> {
         titulo: "BoviCheck",
       ),
       body: RefreshIndicator(
-        onRefresh: () async => await provedor.carregarPropriedades(),
+        onRefresh: () async {
+          final id = provedor.propriedadeAtiva!.id;
+          await provedor.carregarPropriedades();
+          await provedor.carregarAnimais(id);
+          await provedor.carregarPiquetes(id);
+        },
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),

@@ -244,11 +244,6 @@ class BancoDadosServico {
     final db = await database;
     await db.delete('animais', where: 'fazendaId = ?', whereArgs: [id]);
     await db.delete('lotes', where: 'fazendaId = ?', whereArgs: [id]);
-    await db.delete(
-      'pesagens',
-      where: 'animalId IN (SELECT id FROM animais WHERE fazendaId = ?)',
-      whereArgs: [id],
-    );
     await db.delete('propriedades', where: 'id = ?', whereArgs: [id]);
   }
 
@@ -335,6 +330,19 @@ class BancoDadosServico {
     return res.map((x) => Pesagem.fromMap(x)).toList();
   }
 
+  Future<List<Pesagem>> getPesagensPorAnimais(List<String> animalIds) async {
+    if (animalIds.isEmpty) return [];
+    final db = await database;
+    final ph = List.filled(animalIds.length, '?').join(',');
+    final res = await db.query(
+      'pesagens',
+      where: 'animalId IN ($ph)',
+      whereArgs: animalIds,
+      orderBy: 'data DESC',
+    );
+    return res.map((x) => Pesagem.fromMap(x)).toList();
+  }
+
   Future<void> salvarEventoReprodutivo(EventoReprodutivo evento) async {
     final db = await database;
     await db.insert(
@@ -357,6 +365,21 @@ class BancoDadosServico {
     return res.map((x) => EventoReprodutivo.fromMap(x)).toList();
   }
 
+  Future<List<EventoReprodutivo>> getEventosReprodutivosPorAnimais(
+    List<String> animalIds,
+  ) async {
+    if (animalIds.isEmpty) return [];
+    final db = await database;
+    final ph = List.filled(animalIds.length, '?').join(',');
+    final res = await db.query(
+      'eventos_reprodutivos',
+      where: 'animalId IN ($ph)',
+      whereArgs: animalIds,
+      orderBy: 'data DESC',
+    );
+    return res.map((x) => EventoReprodutivo.fromMap(x)).toList();
+  }
+
   Future<void> salvarProducaoLeite(ProducaoLeite evento) async {
     final db = await database;
     await db.insert(
@@ -372,6 +395,21 @@ class BancoDadosServico {
       'producao_leite',
       where: 'animalId = ?',
       whereArgs: [animalId],
+      orderBy: 'data DESC',
+    );
+    return res.map((x) => ProducaoLeite.fromMap(x)).toList();
+  }
+
+  Future<List<ProducaoLeite>> getProducaoLeitePorAnimais(
+    List<String> animalIds,
+  ) async {
+    if (animalIds.isEmpty) return [];
+    final db = await database;
+    final ph = List.filled(animalIds.length, '?').join(',');
+    final res = await db.query(
+      'producao_leite',
+      where: 'animalId IN ($ph)',
+      whereArgs: animalIds,
       orderBy: 'data DESC',
     );
     return res.map((x) => ProducaoLeite.fromMap(x)).toList();
@@ -403,6 +441,20 @@ class BancoDadosServico {
       'eventos_sanitarios',
       where: 'animalId = ?',
       whereArgs: [animalId],
+      orderBy: 'data DESC',
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getEventosSanitariosPorAnimais(
+    List<String> animalIds,
+  ) async {
+    if (animalIds.isEmpty) return [];
+    final db = await database;
+    final ph = List.filled(animalIds.length, '?').join(',');
+    return await db.query(
+      'eventos_sanitarios',
+      where: 'animalId IN ($ph)',
+      whereArgs: animalIds,
       orderBy: 'data DESC',
     );
   }
@@ -563,8 +615,10 @@ class BancoDadosServico {
             filtered[campo] = a[campo];
           }
         }
-        // Mantém ID para os eventos encontrarem
-        filtered['id'] = a['id']; 
+        // Mantém campos obrigatórios para a integridade do banco
+        filtered['id'] = a['id'];
+        filtered['fazendaId'] = a['fazendaId'];
+        filtered['loteId'] = a['loteId'];
         return filtered;
       }).toList();
     }

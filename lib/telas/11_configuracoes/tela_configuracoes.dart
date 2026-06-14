@@ -14,6 +14,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../servicos/banco_dados_servico.dart';
+import 'subtelas/tela_config_dados.dart';
 
 class TelaConfiguracoes extends StatefulWidget {
   const TelaConfiguracoes({super.key});
@@ -32,7 +33,7 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
       final jsonStr = await BancoDadosServico.instancia.exportarFazendaJson(fazenda.id);
       final bytes = utf8.encode(jsonStr);
       final dataStr = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final nomeArquivo = 'BoviCheck_Fazenda_${fazenda.nomeFazenda}_$dataStr.fbvk';
+      final nomeArquivo = 'BoviCheck_Fazenda_${fazenda.nomeFazenda}_$dataStr.bvk';
 
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/$nomeArquivo');
@@ -99,6 +100,18 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
             corIcone: Colors.blue,
             onTap: () => _exportarFazenda(context),
             delay: 100,
+          ),
+
+          _CardMenu(
+            titulo: 'Exportar / Importar Dados',
+            descricao: 'Backup completo, exportação seletiva e restauração de arquivos .bvk.',
+            icone: Icons.cloud_sync_outlined,
+            corIcone: Colors.teal,
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const TelaConfigDados())),
+            delay: 150,
           ),
           _cabecalho(theme, 'Aplicativo'),
 

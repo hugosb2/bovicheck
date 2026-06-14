@@ -91,17 +91,16 @@ class _TelaRestaurarState extends State<TelaRestaurar> {
       await provedor.carregarPropriedades();
 
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const TelaSelecionarFazenda()),
-        (route) => false,
-      );
-
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Dados restaurados com sucesso!'),
             backgroundColor: Colors.green),
+      );
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const TelaSelecionarFazenda()),
+        (route) => false,
       );
     } catch (e) {
       if (mounted) {

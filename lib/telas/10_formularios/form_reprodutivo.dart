@@ -29,6 +29,7 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
   String? _animalIdSelecionado;
   String _tipoSelecionado = 'Inseminação (IA)';
   bool _salvando = false;
+  bool _salvo = false;
 
   final List<String> _tipos = [
     'Inseminação (IA)',
@@ -100,6 +101,7 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
           await provedor.carregarAnimais(provedor.propriedadeAtiva!.id);
         }
         _mostrarSucesso('Evento reprodutivo registrado!');
+        _salvo = true;
         if (mounted) Navigator.pop(context);
       }
     } catch (e) {
@@ -129,7 +131,27 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
         ? provedor.animais
         : provedor.animais.where((a) => a.sexo == 'F').toList();
 
-    return Scaffold(
+    final formVazio = _resultadoController.text.isEmpty && _obsController.text.isEmpty
+        && widget.animalPreSelecionado == null && _animalIdSelecionado == null;
+
+    return PopScope(
+      canPop: _salvo || formVazio,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Descartar dados?'),
+              content: const Text('Há informações não salvas. Deseja realmente sair?'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CONTINUAR')),
+                TextButton(onPressed: () { Navigator.pop(ctx); Navigator.pop(context); }, child: const Text('SAIR')),
+              ],
+            ),
+          );
+        }
+      },
+      child: Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: const AppBarPadrao(titulo: 'Manejo Reprodutivo', centralizar: true),
       body: SingleChildScrollView(
@@ -238,6 +260,7 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
