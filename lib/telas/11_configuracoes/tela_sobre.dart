@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../estilos/icones.dart';
 import '../../estilos/tema.dart';
 
 class TelaSobre extends StatefulWidget {
@@ -42,7 +43,16 @@ class _TelaSobreState extends State<TelaSobre> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('assets/iflogo.png', height: 100, fit: BoxFit.contain),
+              Container(
+                width: 100,
+                height: 100,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Image.asset(IconesApp.logoApp, fit: BoxFit.contain),
+              ),
 
               const SizedBox(height: 24),
 
@@ -67,35 +77,38 @@ class _TelaSobreState extends State<TelaSobre> {
 
               _CardInfo(
                 titulo: 'Desenvolvedor',
-                valor: 'Hugo Santos Barros',
+                valor: 'Hugo Santos Barros (Estudante)',
                 subtitulo: 'hugobs4987@gmail.com',
               ),
               _CardInfo(
                 titulo: 'Orientador',
-                valor: 'Francisco Hélio de Oliveira',
+                valor: 'Francisco Hélio de Oliveira (Docente)',
                 subtitulo: 'francisco.oliveira@ifbaiano.edu.br',
               ),
               _CardInfo(
                 titulo: 'Coorientador',
-                valor: 'Hudson Barros Oliveira',
+                valor: 'Hudson Barros Oliveira (Docente)',
                 subtitulo: 'hudson.barros@ifbaiano.edu.br',
               ),
               _CardInfo(
                 titulo: 'Colaboradora',
-                valor: 'Jacqueline Firmino de Sá',
+                valor: 'Jacqueline Firmino de Sá (Docente)',
                 subtitulo: 'Aguardando contato',
               ),
 
               const SizedBox(height: 24),
 
               Text(
-                'Hugo é estudante. Os demais são docentes do '
-                'Instituto Federal Baiano — Campus Itapetinga.',
+                'Instituto Federal Baiano — Campus Itapetinga',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
+
+              const SizedBox(height: 16),
+
+              Image.asset('assets/iflogo.png', height: 60, fit: BoxFit.contain),
 
               const SizedBox(height: 48),
 
