@@ -36,6 +36,12 @@ class _FormAnimalState extends State<FormAnimal> {
   bool _salvando = false;
   bool _salvo = false;
 
+  String _status = 'Ativo';
+  DateTime? _dataObito;
+  final _causaObitoController = TextEditingController();
+  DateTime? _dataSaida;
+  final _motivoSaidaController = TextEditingController();
+
   final List<String> _categorias = [
     'Bezerro', 'Bezerra', 'Novilho', 'Novilha', 'Boi', 'Vaca', 'Touro', 'Outro',
   ];
@@ -53,6 +59,11 @@ class _FormAnimalState extends State<FormAnimal> {
       _sexo = a.sexo;
       _categoria = a.categoria;
       _dataNascimento = a.dataNascimento;
+      _status = a.status;
+      _dataObito = a.dataObito;
+      _causaObitoController.text = a.causaObito ?? '';
+      _dataSaida = a.dataSaida;
+      _motivoSaidaController.text = a.motivoSaida ?? '';
     }
   }
 
@@ -63,6 +74,8 @@ class _FormAnimalState extends State<FormAnimal> {
     _nomeController.dispose();
     _racaController.dispose();
     _pesoController.dispose();
+    _causaObitoController.dispose();
+    _motivoSaidaController.dispose();
     super.dispose();
   }
 
@@ -112,7 +125,12 @@ class _FormAnimalState extends State<FormAnimal> {
         categoria: _categoria,
         dataNascimento: _dataNascimento,
         pesoAtualKg: double.tryParse(_pesoController.text.replaceAll(',', '.')) ?? 0.0,
-        isAtivo: true,
+        isAtivo: _status == 'Ativo',
+        status: _status,
+        dataObito: _dataObito,
+        causaObito: _causaObitoController.text.isEmpty ? null : _causaObitoController.text,
+        dataSaida: _dataSaida,
+        motivoSaida: _motivoSaidaController.text.isEmpty ? null : _motivoSaidaController.text,
       );
 
       final db = BancoDadosServico.instancia;
@@ -198,6 +216,20 @@ class _FormAnimalState extends State<FormAnimal> {
                   brinco: _brincoController.text,
                   raca: _racaController.text,
                   loteId: _piqueteSelecionadoId,
+                  status: _status,
+                  dataObito: _dataObito,
+                  causaObitoController: _causaObitoController,
+                  dataSaida: _dataSaida,
+                  motivoSaidaController: _motivoSaidaController,
+                  onStatusChanged: (v) => setState(() => _status = v),
+                  onDataObitoTap: () async {
+                    final d = await showDatePicker(context: context, initialDate: _dataObito ?? DateTime.now(), firstDate: DateTime(2000), lastDate: DateTime.now());
+                    if (d != null) setState(() => _dataObito = d);
+                  },
+                  onDataSaidaTap: () async {
+                    final d = await showDatePicker(context: context, initialDate: _dataSaida ?? DateTime.now(), firstDate: DateTime(2000), lastDate: DateTime.now());
+                    if (d != null) setState(() => _dataSaida = d);
+                  },
                 ),
               ],
             ),
@@ -383,8 +415,29 @@ class _PaginaRevisao extends StatelessWidget {
   final String brinco;
   final String raca;
   final String? loteId;
+  final String status;
+  final DateTime? dataObito;
+  final TextEditingController causaObitoController;
+  final DateTime? dataSaida;
+  final TextEditingController motivoSaidaController;
+  final ValueChanged<String> onStatusChanged;
+  final VoidCallback onDataObitoTap;
+  final VoidCallback onDataSaidaTap;
 
-  const _PaginaRevisao({required this.pesoController, required this.brinco, required this.raca, required this.loteId});
+  const _PaginaRevisao({
+    required this.pesoController,
+    required this.brinco,
+    required this.raca,
+    required this.loteId,
+    required this.status,
+    required this.dataObito,
+    required this.causaObitoController,
+    required this.dataSaida,
+    required this.motivoSaidaController,
+    required this.onStatusChanged,
+    required this.onDataObitoTap,
+    required this.onDataSaidaTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -405,12 +458,72 @@ class _PaginaRevisao extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
+          const SecaoTitulo(texto: 'Status do Animal', icone: Icons.info_outline),
+          CartaoPadrao(
+            child: DropdownPadrao<String>(
+              label: 'Status',
+              icone: Icons.info_outline,
+              valorSelecionado: status,
+              itens: const [
+                DropdownMenuItem(value: 'Ativo', child: Text('Ativo')),
+                DropdownMenuItem(value: 'Morto', child: Text('Morto')),
+                DropdownMenuItem(value: 'Vendido', child: Text('Vendido')),
+              ],
+              onChanged: (v) => onStatusChanged(v!),
+            ),
+          ),
+          if (status == 'Morto') ...[
+            const SizedBox(height: 16),
+            CartaoPadrao(
+              child: Column(
+                children: [
+                  CampoFormularioPadrao(
+                    label: 'Data do Óbito *',
+                    icone: Icons.calendar_today,
+                    soLeitura: true,
+                    controller: TextEditingController(text: dataObito != null ? DateFormat('dd/MM/yyyy').format(dataObito!) : 'Selecionar data'),
+                    onTap: onDataObitoTap,
+                  ),
+                  const SizedBox(height: 16),
+                  CampoFormularioPadrao(
+                    label: 'Causa do Óbito',
+                    icone: Icons.medical_services_outlined,
+                    controller: causaObitoController,
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (status == 'Vendido') ...[
+            const SizedBox(height: 16),
+            CartaoPadrao(
+              child: Column(
+                children: [
+                  CampoFormularioPadrao(
+                    label: 'Data da Saída *',
+                    icone: Icons.calendar_today,
+                    soLeitura: true,
+                    controller: TextEditingController(text: dataSaida != null ? DateFormat('dd/MM/yyyy').format(dataSaida!) : 'Selecionar data'),
+                    onTap: onDataSaidaTap,
+                  ),
+                  const SizedBox(height: 16),
+                  CampoFormularioPadrao(
+                    label: 'Motivo da Saída',
+                    icone: Icons.description_outlined,
+                    controller: motivoSaidaController,
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
           const SecaoTitulo(texto: 'Resumo do Cadastro', icone: Icons.fact_check_outlined),
           CartaoPadrao(
             child: Column(
               children: [
                 _ItemResumo(label: 'Brinco', valor: brinco, icon: Icons.tag),
                 _ItemResumo(label: 'Raça', valor: raca, svgIcon: IconesApp.iconAnimalSvg),
+                _ItemResumo(label: 'Status', valor: status, icon: status == 'Ativo' ? Icons.check_circle : Icons.cancel),
                 _ItemResumo(label: 'Piquete', valor: piqueteNome, icon: IconesApp.piquete, isUltimo: true),
               ],
             ),
