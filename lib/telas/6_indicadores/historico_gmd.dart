@@ -52,6 +52,8 @@ class _TelaHistoricoGMDState extends State<TelaHistoricoGMD> {
       porAnimal.putIfAbsent(p.animalId, () => []).add(p);
     }
 
+    final totalCom2ouMaisPesagens = porAnimal.values.where((l) => l.length >= 2).length;
+
     // Calcula GMD para cada animal com 2+ pesagens
     final gmds = <double>[];
     final gmdsPorMes = <String, List<double>>{};
@@ -85,7 +87,7 @@ class _TelaHistoricoGMDState extends State<TelaHistoricoGMD> {
       body: ListView(
         padding: const EdgeInsets.only(bottom: 100),
         children: [
-          _heroGMD(theme, gmdMedio, gmds.length),
+          _heroGMD(theme, gmdMedio, totalCom2ouMaisPesagens),
           const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
