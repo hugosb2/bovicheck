@@ -3,8 +3,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/icones.dart';
 import '../../estilos/tema.dart';
 import 'subtelas/tela_config_aparencia.dart';
-import 'subtelas/tela_config_sistema.dart';
 import 'subtelas/tela_detalhes_fazenda.dart';
+import 'tela_sobre.dart';
 
 import 'dart:io';
 import 'dart:convert';
@@ -123,7 +123,7 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
             onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (_) => const TelaConfigSistema())),
+                    builder: (_) => const TelaSobre())),
             delay: 200,
           ),
 
