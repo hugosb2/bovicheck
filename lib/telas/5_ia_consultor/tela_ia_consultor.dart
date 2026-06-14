@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/icones.dart';
 import '../../estilos/tema.dart';
@@ -54,7 +54,7 @@ class _TelaIAConsultorState extends State<TelaIAConsultor> {
           'machos': provedor.animais.where((a) => a.sexo == 'M').length,
           'femeas': provedor.animais.where((a) => a.sexo == 'F').length,
         },
-        'lotes': provedor.lotes.map((l) => l.nome).toList(),
+        'lotes': provedor.piquetes.map((p) => p.nome).toList(),
       };
 
       final resultado = await IAGeminiCliente().analisarRebanho(dadosParaIA);

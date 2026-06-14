@@ -48,9 +48,9 @@ class Animal {
   /// Retorna a idade do animal em meses completos.
   int calcularIdadeMeses() {
     final hoje = DateTime.now();
-    final meses =
-        (hoje.year - dataNascimento.year) * 12 +
+    int meses = (hoje.year - dataNascimento.year) * 12 +
         (hoje.month - dataNascimento.month);
+    if (hoje.day < dataNascimento.day) meses--;
     return meses > 0 ? meses : 0;
   }
 

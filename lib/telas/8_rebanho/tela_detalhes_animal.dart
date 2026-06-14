@@ -6,7 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/icones.dart';
 import '../../estilos/tema.dart';
 import '../../modelos/animal.dart';
-import '../../modelos/lote.dart';
+import '../../modelos/piquete.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../servicos/banco_dados_servico.dart';
 import '../10_formularios/form_pesagem.dart';
@@ -78,415 +78,348 @@ class _TelaDetalhesAnimalState extends State<TelaDetalhesAnimal> {
     final provedor = context.watch<ProvedorFazenda>();
     final animalAtual = provedor.animais
         .firstWhere((a) => a.id == widget.animal.id, orElse: () => widget.animal);
-    final Lote? lote = provedor.lotes.isEmpty
+    final Piquete? piquete = provedor.piquetes.isEmpty
         ? null
-        : provedor.lotes.cast<Lote?>().firstWhere(
-            (l) => l?.id == animalAtual.loteId,
+        : provedor.piquetes.cast<Piquete?>().firstWhere(
+            (p) => p?.id == animalAtual.loteId,
             orElse: () => null,
           );
+    final bool inativo = !animalAtual.isAtivo;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBarPadrao(
-        titulo: animalAtual.nome != null && animalAtual.nome!.isNotEmpty
-            ? animalAtual.nome!
-            : 'Detalhes do Animal',
+        titulo: animalAtual.nome ?? 'Animal #${animalAtual.brinco}',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => FormAnimal(animalExistente: animalAtual)),
+              );
+            },
+          ),
+        ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(bottom: 100),
         children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.primary,
-                  theme.colorScheme.primary.withValues(alpha: 0.8),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.onPrimary.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: SvgPicture.asset(
-                    IconesApp.iconAnimalSvg,
-                    width: 40,
-                    height: 48,
-                    colorFilter: ColorFilter.mode(
-                      theme.colorScheme.onPrimary,
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Brinco: ${animalAtual.brinco}',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onPrimary,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _badge(
-                      animalAtual.sexo == 'M' ? 'Macho' : 'Fêmea',
-                      Colors.white,
-                      theme,
-                    ),
-                    const SizedBox(width: 8),
-                    _badge(animalAtual.categoria, Colors.white, theme),
-                  ],
-                ),
-              ],
-            ),
-          ).animate().fadeIn().scale(),
+          _heroAnimal(theme, animalAtual, piquete, inativo).animate().fadeIn(duration: 300.ms),
 
-          const SizedBox(height: 24),
-
-          if (!animalAtual.isAtivo)
-            Container(
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.red.shade100,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded, color: Colors.red),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Este animal está inativo/morto.',
-                      style: TextStyle(
-                        color: Colors.red.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          if (inativo)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: _avisoInativo(theme),
             ).animate().fadeIn(),
 
-          _cartaoInfo(
-            theme: theme,
-            icon: Icons.fence_outlined,
-            titulo: 'Lote',
-            valor: lote?.nome ?? 'Lote não encontrado',
-            subtitulo: lote?.tipo,
-          ).animate().fadeIn(delay: 100.ms).slideX(begin: 0.1, end: 0),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+            child: _gridFicha(theme, animalAtual),
+          ).animate().fadeIn(delay: 200.ms),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 32),
 
-          Row(
-            children: [
-              Expanded(
-                child: _cartaoInfo(
-                  theme: theme,
-                  icon: IconesApp.animal,
-                  titulo: 'Raça',
-                  valor: animalAtual.raca,
-                ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.1, end: 0),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _cartaoInfo(
-                  theme: theme,
-                  icon: Icons.cake_outlined,
-                  titulo: 'Idade',
-                  valor: '${animalAtual.calcularIdadeMeses()} meses',
-                ).animate().fadeIn(delay: 250.ms).slideX(begin: 0.1, end: 0),
-              ),
-            ],
-          ),
+          _blocoPeso(theme, animalAtual).animate().fadeIn(delay: 300.ms),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
-          Text(
-            'PESO',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ).animate().fadeIn(delay: 300.ms),
-
-          const SizedBox(height: 12),
-
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: theme.colorScheme.primary.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  IconesApp.peso,
-                  size: 32,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 16),
-                Column(
-                  children: [
-                    Text(
-                      '${animalAtual.pesoAtualKg}',
-                      style: theme.textTheme.headlineLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    Text(
-                      'kg',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ).animate().fadeIn(delay: 350.ms).scale(begin: const Offset(0.9, 0.9), end: const Offset(1, 1)),
-
-          const SizedBox(height: 24),
-
-          Text(
-            'DATAS',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _blocoAcoes(context, theme, animalAtual),
           ).animate().fadeIn(delay: 400.ms),
 
-          const SizedBox(height: 12),
-
-          _cartaoInfo(
-            theme: theme,
-            icon: Icons.calendar_today,
-            titulo: 'Data de Nascimento',
-            valor: DateFormat('dd/MM/yyyy').format(animalAtual.dataNascimento),
-          ).animate().fadeIn(delay: 450.ms).slideX(begin: 0.1, end: 0),
-
-          const SizedBox(height: 12),
-
-          _cartaoInfo(
-            theme: theme,
-            icon: Icons.numbers,
-            titulo: 'ID do Animal',
-            valor: animalAtual.id,
-            pequeno: true,
-          ).animate().fadeIn(delay: 500.ms).slideX(begin: 0.1, end: 0),
-
           const SizedBox(height: 32),
 
-          Text(
-            'AÇÕES RÁPIDAS',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ).animate().fadeIn(delay: 550.ms),
-          const SizedBox(height: 12),
-          
-          SizedBox(
-            height: 100,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _botaoAcao(
-                  theme: theme,
-                  icone: IconesApp.peso,
-                  label: 'Pesagem',
-                  onTap: () async {
-                    await Navigator.push(context, MaterialPageRoute(builder: (_) => FormPesagem(animalPreSelecionado: animalAtual)));
-                    _carregarHistorico();
-                  },
-                ).animate().fadeIn(delay: 600.ms),
-                const SizedBox(width: 12),
-                _botaoAcao(
-                  theme: theme,
-                  icone: Icons.favorite,
-                  label: 'Reprodutivo',
-                  onTap: () async {
-                    await Navigator.push(context, MaterialPageRoute(builder: (_) => FormReprodutivo(animalPreSelecionado: animalAtual)));
-                    _carregarHistorico();
-                  },
-                ).animate().fadeIn(delay: 650.ms),
-                const SizedBox(width: 12),
-                if (animalAtual.sexo == 'F') ...[
-                  _botaoAcao(
-                    theme: theme,
-                    icone: Icons.water_drop,
-                    label: 'Leite',
-                    onTap: () async {
-                      await Navigator.push(context, MaterialPageRoute(builder: (_) => FormLeite(animalPreSelecionado: animalAtual)));
-                      _carregarHistorico();
-                    },
-                  ).animate().fadeIn(delay: 700.ms),
-                  const SizedBox(width: 12),
-                ],
-                _botaoAcao(
-                  theme: theme,
-                  icone: Icons.medical_services,
-                  label: 'Sanitário',
-                  onTap: () async {
-                    await Navigator.push(context, MaterialPageRoute(builder: (_) => const FormSanitario()));
-                    _carregarHistorico();
-                  },
-                ).animate().fadeIn(delay: 750.ms),
-              ],
-            ),
-          ),
+          _blocoRegistros(context, theme).animate().fadeIn(delay: 500.ms),
 
-          const SizedBox(height: 32),
-          
-          Text(
-            'REGISTROS POR CATEGORIA',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ).animate().fadeIn(delay: 800.ms),
-          const SizedBox(height: 24),
-
-          if (_carregandoHistorico)
-            const Center(child: Padding(
-              padding: EdgeInsets.all(32.0),
-              child: CircularProgressIndicator(),
-            ))
-          else if (_historico.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
-              ),
-              child: const Center(
-                child: Text('Nenhum registro encontrado.'),
-              ),
-            )
-          else ...[
-            _buildCategoriaRegistro('Pesagens', IconesApp.peso, 'Pesagem', theme),
-            _buildCategoriaRegistro('Reprodutivo', Icons.favorite, 'Reprodutivo', theme),
-            _buildCategoriaRegistro('Produção de Leite', Icons.water_drop, 'Leite', theme),
-            _buildCategoriaRegistro('Sanitário', Icons.medical_services, 'Sanitário', theme),
-            _buildCategoriaRegistro('Abates', Icons.restaurant, 'Abate', theme),
-          ],
-
-          const SizedBox(height: 100),
+          const SizedBox(height: 40),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => FormAnimal(animalExistente: animalAtual),
-            ),
-          );
-        },
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormAnimal(animalExistente: animalAtual))),
         icon: const Icon(Icons.edit),
         label: const Text('EDITAR'),
       ),
     );
   }
 
-  Widget _badge(String texto, Color cor, ThemeData theme) {
+  // ---- HEADER HERO ----
+
+  Widget _heroAnimal(ThemeData theme, Animal animal, Piquete? piquete, bool inativo) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       decoration: BoxDecoration(
-        color: cor.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: cor.withValues(alpha: 0.5)),
+        gradient: LinearGradient(
+          colors: [
+            inativo ? Colors.grey.shade700 : theme.colorScheme.primary,
+            inativo ? Colors.grey.shade500 : theme.colorScheme.primary.withValues(alpha: 0.75),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+        boxShadow: [
+          BoxShadow(
+            color: (inativo ? Colors.grey : theme.colorScheme.primary).withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Text(
-        texto,
-        style: TextStyle(
-          color: cor,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        animal.nome ?? 'Animal #${animal.brinco}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Brinco ${animal.brinco}',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: SvgPicture.asset(
+                      IconesApp.iconAnimalSvg,
+                      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                _heroBadge(animal.sexo == 'M' ? 'Macho' : 'Fêmea', Colors.white, theme, animal.sexo == 'M' ? Colors.blue : Colors.pink),
+                const SizedBox(width: 8),
+                _heroBadge(animal.categoria, Colors.white, theme, Colors.amber.shade400),
+                const SizedBox(width: 8),
+                if (piquete != null)
+                  _heroBadge(piquete.nome, Colors.white, theme, Colors.green.shade400),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _cartaoInfo({
-    required ThemeData theme,
-    required IconData icon,
-    required String titulo,
-    required String valor,
-    String? subtitulo,
-    bool pequeno = false,
-  }) {
+  Widget _heroBadge(String texto, Color corTexto, ThemeData theme, Color corFundo) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: corFundo.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: corFundo.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        texto,
+        style: TextStyle(
+          color: corTexto,
+          fontWeight: FontWeight.w700,
+          fontSize: 13,
+        ),
+      ),
+    );
+  }
+
+  // ---- AVISO INATIVO ----
+
+  Widget _avisoInativo(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
+        color: Colors.red.shade50,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
+        border: Border.all(color: Colors.red.shade200),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: theme.colorScheme.primary, size: 20),
-          ),
+          Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 24),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Text(
+              'Este animal está inativo/morto.',
+              style: TextStyle(color: Colors.red.shade800, fontWeight: FontWeight.w600, fontSize: 15),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---- GRID FICHA TÉCNICA ----
+
+  Widget _gridFicha(ThemeData theme, Animal animal) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SecaoLabel(texto: 'Ficha Técnica'),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(child: _fichaItem(theme, IconesApp.piquete, 'Piquete', animal.loteId.substring(0, 6), cor: Colors.orange)),
+            const SizedBox(width: 12),
+            Expanded(child: _fichaItem(theme, IconesApp.iconAnimalSvg, 'Raça', animal.raca)),
+            const SizedBox(width: 12),
+            Expanded(child: _fichaItem(theme, Icons.cake_outlined, 'Idade', '${animal.calcularIdadeMeses()} meses', cor: Colors.purple)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _fichaItem(ThemeData theme, dynamic icone, String rotulo, String valor, {Color? cor}) {
+    cor ??= theme.colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cor.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        children: [
+          icone is IconData
+              ? Icon(icone, color: cor, size: 24)
+              : SvgPicture.asset(
+                  icone as String,
+                  width: 24,
+                  height: 24,
+                  colorFilter: ColorFilter.mode(cor, BlendMode.srcIn),
+                ),
+          const SizedBox(height: 8),
+          Text(
+            valor,
+            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            rotulo,
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---- BLOCO PESO ----
+
+  Widget _blocoPeso(ThemeData theme, Animal animal) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SecaoLabel(texto: 'Peso Atual'),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+                  theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  titulo,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  valor,
-                  style: pequeno
-                      ? theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'monospace',
-                        )
-                      : theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+                Icon(IconesApp.peso, size: 40, color: theme.colorScheme.primary),
+                const SizedBox(width: 20),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          animal.pesoAtualKg.toStringAsFixed(1),
+                          style: theme.textTheme.displayMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: theme.colorScheme.primary,
+                            height: 1,
+                          ),
                         ),
-                ),
-                if (subtitulo != null)
-                  Text(
-                    subtitulo,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                        const SizedBox(width: 6),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Text(
+                            'kg',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.7),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_today, size: 14, color: theme.colorScheme.onSurfaceVariant),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Nascimento: ${DateFormat('dd/MM/yyyy').format(animal.dataNascimento)}',
+                          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'ID: ${animal.id.substring(0, 8)}...',
+                        style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: theme.colorScheme.primary.withValues(alpha: 0.6)),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -495,111 +428,226 @@ class _TelaDetalhesAnimalState extends State<TelaDetalhesAnimal> {
     );
   }
 
-  Widget _buildCategoriaRegistro(String titulo, IconData icone, String tipoEvento, ThemeData theme) {
-    final eventosFiltrados = _historico.where((e) => e['tipo'] == tipoEvento).toList();
-    if (eventosFiltrados.isEmpty) return const SizedBox.shrink();
+  // ---- BLOCO AÇÕES RÁPIDAS ----
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icone, color: theme.colorScheme.primary, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                titulo.toUpperCase(),
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ...eventosFiltrados.map((evento) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        evento['desc'],
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      DateFormat('dd/MM/yyyy').format(evento['data'] as DateTime),
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
+  Widget _blocoAcoes(BuildContext context, ThemeData theme, Animal animal) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SecaoLabel(texto: 'Ações Rápidas'),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(child: _acaoItem(context, theme, IconesApp.peso, 'Pesagem', Colors.indigo, () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => FormPesagem(animalPreSelecionado: animal)));
+              _carregarHistorico();
+            })),
+            const SizedBox(width: 12),
+            Expanded(child: _acaoItem(context, theme, Icons.favorite, 'Reprodutivo', Colors.pink, () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => FormReprodutivo(animalPreSelecionado: animal)));
+              _carregarHistorico();
+            })),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            if (animal.sexo == 'F')
+              Expanded(child: _acaoItem(context, theme, Icons.water_drop, 'Leite', Colors.cyan, () async {
+                await Navigator.push(context, MaterialPageRoute(builder: (_) => FormLeite(animalPreSelecionado: animal)));
+                _carregarHistorico();
+              }))
+            else
+              const Expanded(child: SizedBox.shrink()),
+            const SizedBox(width: 12),
+            Expanded(child: _acaoItem(context, theme, Icons.medical_services, 'Sanitário', Colors.red, () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const FormSanitario()));
+              _carregarHistorico();
+            })),
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _botaoAcao({
-    required ThemeData theme,
-    required IconData icone,
-    required String label,
-    required VoidCallback onTap,
-  }) {
+  Widget _acaoItem(BuildContext context, ThemeData theme, IconData icone, String label, Color cor, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        width: 100,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+          color: theme.colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+          border: Border.all(color: cor.withValues(alpha: 0.2)),
         ),
-        child: Column(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icone, color: theme.colorScheme.primary, size: 28),
-            const SizedBox(height: 8),
+            Icon(icone, color: cor, size: 22),
+            const SizedBox(width: 8),
             Text(
               label,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              style: TextStyle(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                overflow: TextOverflow.ellipsis,
-              ),
+              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: theme.colorScheme.onSurface),
             ),
           ],
         ),
       ),
     );
   }
+
+  // ---- BLOCO REGISTROS ----
+
+  Widget _blocoRegistros(BuildContext context, ThemeData theme) {
+    final categorias = [
+      _CatReg('Pesagens', IconesApp.peso, 'Pesagem', Colors.indigo),
+      _CatReg('Reprodutivo', Icons.favorite, 'Reprodutivo', Colors.pink),
+      _CatReg('Produção de Leite', Icons.water_drop, 'Leite', Colors.cyan),
+      _CatReg('Sanitário', Icons.medical_services, 'Sanitário', Colors.red),
+      _CatReg('Abates', Icons.restaurant, 'Abate', Colors.brown),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SecaoLabel(texto: 'Registros por Categoria'),
+          const SizedBox(height: 14),
+          if (_carregandoHistorico)
+            const Center(child: Padding(
+              padding: EdgeInsets.all(32),
+              child: CircularProgressIndicator(),
+            ))
+          else if (_historico.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.inbox_outlined, size: 48, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
+                  const SizedBox(height: 12),
+                  Text('Nenhum registro encontrado',
+                      style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                ],
+              ),
+            )
+          else
+            ...categorias.map((cat) => _cardCategoria(theme, cat)),
+        ],
+      ),
+    );
+  }
+
+  Widget _cardCategoria(ThemeData theme, _CatReg cat) {
+    final eventos = _historico.where((e) => e['tipo'] == cat.tipo).toList();
+    if (eventos.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: cat.cor.withValues(alpha: 0.15)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: cat.cor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(cat.icone, color: cat.cor, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    cat.titulo,
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: theme.colorScheme.onSurface),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: cat.cor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${eventos.length}',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: cat.cor),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ...eventos.map((e) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2)),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(e['desc'], style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                    ),
+                    Text(
+                      DateFormat('dd/MM').format(e['data'] as DateTime),
+                      style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            )),
+            const SizedBox(height: 6),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SecaoLabel extends StatelessWidget {
+  final String texto;
+  const _SecaoLabel({required this.texto});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Container(width: 4, height: 20, decoration: BoxDecoration(
+          color: theme.colorScheme.primary,
+          borderRadius: BorderRadius.circular(2),
+        )),
+        const SizedBox(width: 10),
+        Text(
+          texto,
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+        ),
+      ],
+    );
+  }
+}
+
+class _CatReg {
+  final String titulo;
+  final IconData icone;
+  final String tipo;
+  final Color cor;
+  const _CatReg(this.titulo, this.icone, this.tipo, this.cor);
 }

@@ -20,7 +20,7 @@ Baseado nos dados fornecidos (${dadosRebanho['totalAnimais']} animais), o rebanh
 * **Sanidade**: Foram registrados ${dadosRebanho['animaisDoentes'] ?? 0} casos recentes que exigem monitoramento.
 
 ### ✅ Recomendações
-1.  🥩 **Suplementação**: Reforçar proteinado no cocho para o Lote de Engorda.
+1.  🥩 **Suplementação**: Reforçar proteinado no cocho para o Piquete de Engorda.
 2.  💉 **Vacinação**: Revisar calendário de Clostridiose.
 3.  📊 **Dados**: Aumentar a frequência de pesagens para melhorar a precisão do GMD.
       ''';

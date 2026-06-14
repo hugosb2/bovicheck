@@ -36,27 +36,29 @@ class _TelaConfigAparenciaState extends State<TelaConfigAparencia> {
             ),
             child: Column(
               children: [
-                RadioListTile<ThemeMode>(
-                  title: const Text('Automático (Sistema)'),
-                  subtitle:
-                      const Text('Segue as configurações do seu celular'),
-                  value: ThemeMode.system,
+                RadioGroup<ThemeMode>(
                   groupValue: provedorTema.modoTema,
                   onChanged: (v) => provedorTema.alterarModoTema(v!),
-                ),
-                const Divider(height: 1),
-                RadioListTile<ThemeMode>(
-                  title: const Text('Modo Claro'),
-                  value: ThemeMode.light,
-                  groupValue: provedorTema.modoTema,
-                  onChanged: (v) => provedorTema.alterarModoTema(v!),
-                ),
-                const Divider(height: 1),
-                RadioListTile<ThemeMode>(
-                  title: const Text('Modo Escuro'),
-                  value: ThemeMode.dark,
-                  groupValue: provedorTema.modoTema,
-                  onChanged: (v) => provedorTema.alterarModoTema(v!),
+                  child: Column(
+                    children: [
+                      RadioListTile<ThemeMode>(
+                        title: const Text('Automático (Sistema)'),
+                        subtitle:
+                            const Text('Segue as configurações do seu celular'),
+                        value: ThemeMode.system,
+                      ),
+                      const Divider(height: 1),
+                      RadioListTile<ThemeMode>(
+                        title: const Text('Modo Claro'),
+                        value: ThemeMode.light,
+                      ),
+                      const Divider(height: 1),
+                      RadioListTile<ThemeMode>(
+                        title: const Text('Modo Escuro'),
+                        value: ThemeMode.dark,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -92,7 +94,7 @@ class _TelaConfigAparenciaState extends State<TelaConfigAparencia> {
                     alignment: WrapAlignment.center,
                     children: CoresApp.opcoesTema.map((cor) {
                       final isSelected =
-                          provedorTema.corSemente.value == cor.value;
+                          provedorTema.corSemente == cor;
                       return GestureDetector(
                         onTap: () => provedorTema.alterarCorSemente(cor),
                         child: AnimatedContainer(

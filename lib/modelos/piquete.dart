@@ -1,7 +1,7 @@
 import 'package:uuid/uuid.dart';
 import 'animal.dart';
 
-class Lote {
+class Piquete {
   final String id;
   final String fazendaId;
   final String nome;
@@ -11,7 +11,7 @@ class Lote {
   final String sistemaProducao;
   final double areaHectares;
 
-  Lote({
+  Piquete({
     String? id,
     required this.fazendaId,
     required this.nome,
@@ -29,14 +29,12 @@ class Lote {
     return [...animais, animal];
   }
 
-  /// Calcula a taxa de mortalidade do lote dado uma lista de animais.
   double calcularTaxaMortalidade(List<Animal> animais) {
     if (animais.isEmpty) return 0.0;
     final mortos = animais.where((a) => a.status == 'Morto').length;
     return (mortos / animais.length) * 100;
   }
 
-  /// Calcula a taxa de desmame (% de bezerros desmamados em relação às fêmeas paridas).
   double calcularTaxaDesmame(List<Animal> animais) {
     final femeas = animais.where((a) => a.sexo == 'F').length;
     if (femeas == 0) return 0.0;
@@ -45,7 +43,6 @@ class Lote {
     return (desmamados / femeas) * 100;
   }
 
-  /// Retorna a média de peso (kg) dos animais ativos do lote.
   double getMediaPeso(List<Animal> animais) {
     final ativos = animais.where((a) => a.isAtivo).toList();
     if (ativos.isEmpty) return 0.0;
@@ -53,7 +50,6 @@ class Lote {
     return soma / ativos.length;
   }
 
-  /// Retorna a lista de animais cujo peso está abaixo de um limite (padrão: 80% da média).
   List<Animal> getAnimaisAbaixoPeso(List<Animal> animais,
       {double? limiteKg}) {
     final media = getMediaPeso(animais);
@@ -76,8 +72,8 @@ class Lote {
     };
   }
 
-  factory Lote.fromMap(Map<String, dynamic> map) {
-    return Lote(
+  factory Piquete.fromMap(Map<String, dynamic> map) {
+    return Piquete(
       id: map['id'],
       fazendaId: map['fazendaId'] ?? '',
       nome: map['nome'] ?? '',

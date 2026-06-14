@@ -8,7 +8,6 @@ import '../../modelos/animal.dart';
 import '../../modelos/eventos/pesagem.dart';
 import '../../modelos/eventos/evento_reprodutivo.dart';
 import '../../modelos/eventos/producao_leite.dart';
-import '../../servicos/banco_dados_servico.dart';
 import 'historico_reproducao.dart';
 import 'historico_leite.dart';
 import 'historico_pesagem.dart';
@@ -29,50 +28,22 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
     end: DateTime.now(),
   );
   String? _loteSelecionadoId;
-  bool _carregando = true;
-
-  // Cache de dados brutos
-  List<Animal> _todosAnimais = [];
-  List<Pesagem> _todasPesagens = [];
-  List<EventoReprodutivo> _todosEventosReprodutivos = [];
-  List<ProducaoLeite> _todaProducaoLeite = [];
+  bool _inicializado = false;
 
   @override
   void initState() {
     super.initState();
-    // Carrega dados após o build inicial
-    WidgetsBinding.instance.addPostFrameCallback((_) => _carregarDados());
-  }
-
-  Future<void> _carregarDados() async {
-    final provedor = context.read<ProvedorFazenda>();
-    if (provedor.propriedadeAtiva == null) return;
-
-    setState(() => _carregando = true);
-    final db = BancoDadosServico.instancia;
-    await provedor.carregarPropriedades();
-
-    final animais = provedor.animais;
-    List<Pesagem> pesagens = [];
-    List<EventoReprodutivo> reprodutivos = [];
-    List<ProducaoLeite> leite = [];
-
-    // Carrega histórico completo para permitir filtragem local rápida
-    for (var animal in animais) {
-      pesagens.addAll(await db.getPesagensPorAnimal(animal.id));
-      reprodutivos.addAll(await db.getEventosReprodutivosPorAnimal(animal.id));
-      leite.addAll(await db.getProducaoLeitePorAnimal(animal.id));
-    }
-
-    if (mounted) {
-      setState(() {
-        _todosAnimais = animais;
-        _todasPesagens = pesagens;
-        _todosEventosReprodutivos = reprodutivos;
-        _todaProducaoLeite = leite;
-        _carregando = false;
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final provedor = context.read<ProvedorFazenda>();
+        if (provedor.propriedadeAtiva != null) {
+          if (provedor.animais.isEmpty || provedor.eventosReprodutivos.isEmpty) {
+            await provedor.carregarAnimais(provedor.propriedadeAtiva!.id);
+          }
+        }
+      } catch (_) {}
+      if (mounted) setState(() => _inicializado = true);
+    });
   }
 
   void _atualizarPeriodo(int dias) {
@@ -89,22 +60,29 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
     final theme = Theme.of(context);
     final provedor = context.watch<ProvedorFazenda>();
 
+    if (!_inicializado || provedor.propriedadeAtiva == null) {
+      return Scaffold(
+        backgroundColor: theme.colorScheme.surface,
+        appBar: const AppBarPadrao(titulo: 'Performance'),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     // --- LÓGICA DE FILTRAGEM ---
     final animaisFiltrados = _loteSelecionadoId == null
-        ? _todosAnimais
-        : _todosAnimais.where((a) => a.loteId == _loteSelecionadoId).toList();
+        ? provedor.animais
+        : provedor.animais.where((a) => a.loteId == _loteSelecionadoId).toList();
 
     final idsAnimais = animaisFiltrados.map((a) => a.id).toSet();
 
-    // Filtra eventos baseados nos animais selecionados
     final calc = _CalculadoraAvancada(
       animais: animaisFiltrados,
       pesagens:
-          _todasPesagens.where((e) => idsAnimais.contains(e.animalId)).toList(),
-      reprodutivos: _todosEventosReprodutivos
+          provedor.pesagens.where((e) => idsAnimais.contains(e.animalId)).toList(),
+      reprodutivos: provedor.eventosReprodutivos
           .where((e) => idsAnimais.contains(e.animalId))
           .toList(),
-      leite: _todaProducaoLeite
+      leite: provedor.producaoLeite
           .where((e) => idsAnimais.contains(e.animalId))
           .toList(),
       inicio: _periodoSelecionado.start,
@@ -116,16 +94,14 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
       appBar: const AppBarPadrao(
         titulo: 'Performance',
       ),
-      body: _carregando
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
+      body: ListView(
               padding: const EdgeInsets.all(16.0),
               children: [
                 // 2. Filtros
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Dropdown Lote Estilizado
+                    // Dropdown Piquete Estilizado
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       decoration: BoxDecoration(
@@ -135,13 +111,13 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String?>(
                           value: _loteSelecionadoId,
-                          hint: const Text("Todos os Lotes"),
+                          hint: const Text("Todos os Piquetes"),
                           isExpanded: true,
                           icon: const Icon(Icons.keyboard_arrow_down_rounded),
                           items: [
                             const DropdownMenuItem(
                                 value: null, child: Text("Rebanho Geral")),
-                            ...provedor.lotes.map((l) => DropdownMenuItem(
+                            ...provedor.piquetes.map((l) => DropdownMenuItem(
                                 value: l.id, child: Text(l.nome))),
                           ],
                           onChanged: (v) =>
@@ -232,12 +208,12 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
                 const _TituloSecao('Produção & Ganho'),
 
                 _CardProducaoDetalhado(
-                  titulo: 'GMD (Nascimento-Desmame)',
+                  titulo: 'GMD Médio',
                   valor: '${calc.gmdNascDesmame.toStringAsFixed(3)} kg/dia',
                   icone: Icons.show_chart_rounded,
                   cor: Colors.blue,
                   status: calc.getStatusGMD(),
-                  subtitulo: 'Ganho de peso diário dos bezerros',
+                  subtitulo: 'Primeira e última pesagem de cada animal',
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaHistoricoGMD())),
                 ),
                 const SizedBox(height: 12),
@@ -287,7 +263,7 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
                     Expanded(
                       child: _CardMetricaSimples(
                         label: 'Pesagens',
-                        valor: '${_todasPesagens.length} registros',
+                        valor: '${provedor.pesagens.length} registros',
                         meta: 'Total registrado',
                         status: _Status.neutro,
                         icone: Icons.monitor_weight,
@@ -298,7 +274,7 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
                     Expanded(
                       child: _CardMetricaSimples(
                         label: 'Eventos Reprod.',
-                        valor: '${_todosEventosReprodutivos.length} eventos',
+                        valor: '${provedor.eventosReprodutivos.length} eventos',
                         meta: 'Total registrado',
                         status: _Status.neutro,
                         icone: Icons.favorite_border,
@@ -466,10 +442,10 @@ class _CardMetricaSimples extends StatelessWidget {
     Widget card = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -607,7 +583,6 @@ class _CardSanidade extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isRuim = status == _Status.ruim;
-    final color = isRuim ? theme.colorScheme.error : theme.colorScheme.primary;
 
     Widget card = Container(
       padding: const EdgeInsets.all(20),
@@ -737,88 +712,6 @@ class _PeriodoChip extends StatelessWidget {
   }
 }
 
-class _CardNavegacao extends StatelessWidget {
-  final String titulo;
-  final String? descricao;
-  final String? valor;
-  final IconData icone;
-  final Color cor;
-  final VoidCallback onTap;
-
-  const _CardNavegacao({
-    required this.titulo,
-    this.descricao,
-    this.valor,
-    required this.icone,
-    required this.cor,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: cor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icone, color: cor, size: 28),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      titulo,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    if (descricao != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        descricao!,
-                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              if (valor != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: cor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    valor!,
-                    style: TextStyle(color: cor, fontWeight: FontWeight.bold, fontSize: 12),
-                  ),
-                ),
-              Icon(Icons.chevron_right, color: theme.colorScheme.outline),
-            ],
-          ),
-        ),
-      ),
-    ).animate().fadeIn().slideX(begin: 0.1, end: 0);
-  }
-}
-
 Color _getCorStatus(_Status s) {
   switch (s) {
     case _Status.bom:
@@ -858,7 +751,7 @@ class _CalculadoraAvancada {
   double get taxaNatalidade {
     final nascimentos = reprodutivos
         .where((e) =>
-            e.tipo == 'Parto' && e.data.isAfter(inicio) && e.data.isBefore(fim))
+            e.tipo == 'Parto' && !e.data.isAfter(fim) && !e.data.isBefore(inicio))
         .length;
     final femeasAptas =
         animais.where((a) => a.sexo == 'F' && a.calcularIdadeMeses() >= 24).length;
@@ -870,8 +763,8 @@ class _CalculadoraAvancada {
     final diagnosticos = reprodutivos
         .where((e) =>
             e.tipo.contains('Diagnóstico') &&
-            e.data.isAfter(inicio) &&
-            e.data.isBefore(fim))
+            !e.data.isAfter(fim) &&
+            !e.data.isBefore(inicio))
         .toList();
     if (diagnosticos.isEmpty) return 0.0;
     final positivos = diagnosticos
@@ -886,8 +779,9 @@ class _CalculadoraAvancada {
     Map<String, List<DateTime>> partosPorVaca = {};
     for (var evento in reprodutivos) {
       if (evento.tipo == 'Parto') {
-        if (!partosPorVaca.containsKey(evento.animalId))
+        if (!partosPorVaca.containsKey(evento.animalId)) {
           partosPorVaca[evento.animalId] = [];
+        }
         partosPorVaca[evento.animalId]!.add(evento.data);
       }
     }
@@ -896,8 +790,11 @@ class _CalculadoraAvancada {
       if (datas.length >= 2) {
         datas.sort();
         for (int i = 0; i < datas.length - 1; i++) {
-          final diff = datas[i + 1].difference(datas[i]).inDays;
-          if (diff > 250) intervalosDias.add(diff);
+          final partoAtual = datas[i + 1];
+          if (!partoAtual.isAfter(fim) && !partoAtual.isBefore(inicio)) {
+            final diff = partoAtual.difference(datas[i]).inDays;
+            if (diff > 250) intervalosDias.add(diff);
+          }
         }
       }
     });
@@ -914,9 +811,12 @@ class _CalculadoraAvancada {
           .toList()
         ..sort((a, b) => a.data.compareTo(b.data));
       if (partos.isNotEmpty) {
-        final idadeDias =
-            partos.first.data.difference(animal.dataNascimento).inDays;
-        if (idadeDias > 500) idadesMeses.add(idadeDias / 30.44);
+        final primeiroParto = partos.first;
+        if (!primeiroParto.data.isAfter(fim) && !primeiroParto.data.isBefore(inicio)) {
+          final idadeDias =
+              primeiroParto.data.difference(animal.dataNascimento).inDays;
+          if (idadeDias > 500) idadesMeses.add(idadeDias / 30.44);
+        }
       }
     }
     if (idadesMeses.isEmpty) return 0.0;
@@ -924,42 +824,39 @@ class _CalculadoraAvancada {
   }
 
   double get gmdNascDesmame {
-    Map<String, Map<String, Pesagem>> mapaPesos = {};
+    Map<String, List<Pesagem>> porAnimal = {};
     for (var p in pesagens) {
-      if (p.etapa == 'Nascimento' || p.etapa == 'Desmame') {
-        if (!mapaPesos.containsKey(p.animalId)) mapaPesos[p.animalId] = {};
-        mapaPesos[p.animalId]![p.etapa] = p;
-      }
+      porAnimal.putIfAbsent(p.animalId, () => []).add(p);
     }
     List<double> gmds = [];
-    mapaPesos.forEach((id, etapas) {
-      if (etapas.containsKey('Nascimento') && etapas.containsKey('Desmame')) {
-        final nasc = etapas['Nascimento']!;
-        final desm = etapas['Desmame']!;
-        final dias = desm.data.difference(nasc.data).inDays;
-        final ganho = desm.pesoKg - nasc.pesoKg;
-        if (dias > 60 && ganho > 0) gmds.add(ganho / dias);
-      }
-    });
+    for (var lista in porAnimal.values) {
+      if (lista.length < 2) continue;
+      lista.sort((a, b) => a.data.compareTo(b.data));
+      final ultima = lista.last;
+      if (ultima.data.isAfter(fim) || ultima.data.isBefore(inicio)) continue;
+      final primeira = lista.first;
+      final dias = ultima.data.difference(primeira.data).inDays;
+      if (dias < 7) continue;
+      final ganho = ultima.pesoKg - primeira.pesoKg;
+      gmds.add(ganho / dias);
+    }
     if (gmds.isEmpty) return 0.0;
     return gmds.reduce((a, b) => a + b) / gmds.length;
   }
 
   double get taxaDesmame {
-    final nascidos = reprodutivos
+    final idsNascidosPeriodo = reprodutivos
         .where((e) =>
-            e.tipo == 'Parto' && e.data.isAfter(inicio) && e.data.isBefore(fim))
-        .length;
-    final desmamados = pesagens
-        .where((e) =>
-            e.etapa == 'Desmame' &&
-            e.data.isAfter(inicio) &&
-            e.data.isBefore(fim))
-        .length;
-    if (nascidos == 0) return 0.0;
-    return (desmamados / nascidos) * 100 > 100
-        ? 100.0
-        : (desmamados / nascidos) * 100;
+            e.tipo == 'Parto' && !e.data.isAfter(fim) && !e.data.isBefore(inicio))
+        .map((e) => e.animalId)
+        .toSet();
+    if (idsNascidosPeriodo.isEmpty) return 0.0;
+    final idsDesmamados = reprodutivos
+        .where((e) => e.tipo == 'Desmame')
+        .map((e) => e.animalId)
+        .toSet();
+    final desmamados = idsNascidosPeriodo.where((id) => idsDesmamados.contains(id)).length;
+    return (desmamados / idsNascidosPeriodo.length) * 100;
   }
 
   double get taxaMortalidade {
@@ -967,41 +864,50 @@ class _CalculadoraAvancada {
         .where((a) =>
             !a.isAtivo &&
             a.dataObito != null &&
-            a.dataObito!.isAfter(inicio) &&
-            a.dataObito!.isBefore(fim))
+            !a.dataObito!.isAfter(fim) &&
+            !a.dataObito!.isBefore(inicio))
         .length;
     final total = animais.length;
     if (total == 0) return 0.0;
-    return (obitos / (total + obitos)) * 100;
+    return (obitos / total) * 100;
   }
 
   double get mediaLeiteDia {
     final registros = leite
-        .where((l) => l.data.isAfter(inicio) && l.data.isBefore(fim))
+        .where((l) => !l.data.isAfter(fim) && !l.data.isBefore(inicio))
         .toList();
     if (registros.isEmpty) return 0.0;
-    return registros.fold(0.0, (sum, item) => sum + item.litros) /
-        registros.length;
+    Map<String, Map<String, double>> producaoPorVacaDia = {};
+    for (var r in registros) {
+      final chaveDia = '${r.animalId}_${r.data.toIso8601String().substring(0, 10)}';
+      producaoPorVacaDia[chaveDia] ??= {r.animalId: 0.0};
+      producaoPorVacaDia[chaveDia]![r.animalId] =
+          (producaoPorVacaDia[chaveDia]![r.animalId] ?? 0.0) + r.litros;
+    }
+    if (producaoPorVacaDia.isEmpty) return 0.0;
+    final totalLitros =
+        producaoPorVacaDia.values.fold(0.0, (sum, map) => sum + map.values.first);
+    return totalLitros / producaoPorVacaDia.length;
   }
 
-  _Status getStatusNatalidade() => taxaNatalidade >= 80
-      ? _Status.bom
-      : (taxaNatalidade >= 60 ? _Status.atencao : _Status.ruim);
-  _Status getStatusPrenhez() => taxaPrenhez >= 85
-      ? _Status.bom
-      : (taxaPrenhez >= 70 ? _Status.atencao : _Status.ruim);
-  _Status getStatusIEP() => (iepMeses > 0 && iepMeses <= 14)
-      ? _Status.bom
-      : (iepMeses <= 16 ? _Status.atencao : _Status.ruim);
-  _Status getStatusIdadeParto() =>
-      (idadePrimeiroPartoMeses > 0 && idadePrimeiroPartoMeses <= 30)
-          ? _Status.bom
-          : (idadePrimeiroPartoMeses <= 36 ? _Status.atencao : _Status.ruim);
-  _Status getStatusGMD() => gmdNascDesmame >= 0.700
-      ? _Status.bom
-      : (gmdNascDesmame >= 0.500 ? _Status.atencao : _Status.ruim);
-  _Status getStatusDesmame() =>
-      taxaDesmame >= 85 ? _Status.bom : _Status.atencao;
+  _Status getStatusNatalidade() => taxaNatalidade <= 0
+      ? _Status.neutro
+      : (taxaNatalidade >= 80 ? _Status.bom : (taxaNatalidade >= 60 ? _Status.atencao : _Status.ruim));
+  _Status getStatusPrenhez() => taxaPrenhez <= 0
+      ? _Status.neutro
+      : (taxaPrenhez >= 85 ? _Status.bom : (taxaPrenhez >= 70 ? _Status.atencao : _Status.ruim));
+  _Status getStatusIEP() => iepMeses <= 0
+      ? _Status.neutro
+      : (iepMeses <= 14 ? _Status.bom : (iepMeses <= 16 ? _Status.atencao : _Status.ruim));
+  _Status getStatusIdadeParto() => idadePrimeiroPartoMeses <= 0
+      ? _Status.neutro
+      : (idadePrimeiroPartoMeses <= 30 ? _Status.bom : (idadePrimeiroPartoMeses <= 36 ? _Status.atencao : _Status.ruim));
+  _Status getStatusGMD() => gmdNascDesmame <= 0
+      ? _Status.neutro
+      : (gmdNascDesmame >= 0.700 ? _Status.bom : (gmdNascDesmame >= 0.500 ? _Status.atencao : _Status.ruim));
+  _Status getStatusDesmame() => taxaDesmame <= 0
+      ? _Status.neutro
+      : (taxaDesmame >= 85 ? _Status.bom : (taxaDesmame >= 50 ? _Status.atencao : _Status.ruim));
   _Status getStatusMortalidade() => taxaMortalidade <= 3
       ? _Status.bom
       : (taxaMortalidade <= 5 ? _Status.atencao : _Status.ruim);

@@ -9,12 +9,14 @@ class IconesApp {
   // ÍCONE DE ANIMAL (SVG) - Boi/Vaca
   static const String iconAnimalSvg = 'assets/icons/boicon.svg';
 
+  // ÍCONE DE PROPRIEDADE (SVG) - Fazenda
+  static const String iconPropriedadeSvg = 'assets/icons/propriedaderural.svg';
+
   // --- Ícones de Fonte (Material Icons) ---
-  static const IconData animal = Icons.agriculture; // Ícone de agro/gado
   
   static const IconData dashboard = Icons.dashboard_outlined;
-  static const IconData rebanho = Icons.agriculture;
-  static const IconData lote = Icons.fence_outlined;
+  static const IconData rebanho = Icons.groups_outlined; // Representa o conjunto
+  static const IconData piquete = Icons.fence_outlined; // Cerca para o piquete
   static const IconData indicadores = Icons.bar_chart_rounded;
   static const IconData iaConsultor = Icons.auto_awesome;
   static const IconData configuracoes = Icons.settings_outlined;
@@ -26,7 +28,7 @@ class IconesApp {
   static const IconData voltar = Icons.arrow_back;
   static const IconData salvar = Icons.check;
 
-  static const IconData fazenda = Icons.agriculture;
+  static const IconData fazenda = Icons.cottage_outlined; // Ícone de sede/fazenda
   static const IconData proprietario = Icons.person_outline;
   static const IconData localizacao = Icons.location_on_outlined;
 

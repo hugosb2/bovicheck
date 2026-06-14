@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'tema.dart';
 
 class TelaPadrao extends StatefulWidget {
@@ -35,8 +34,9 @@ class _TelaPadraoState extends State<TelaPadrao> {
       ),
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 24),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: widget.corpo,
         ),
       ),

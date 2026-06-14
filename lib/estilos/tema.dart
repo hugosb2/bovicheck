@@ -1,12 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class TemaApp {
   static const double _raioBorda = 16.0;
-  static const double _raioBordaPequeno = 12.0;
+
+  static const double _tamanhoMinimoToque = 48.0;
+  static const double _alturaBotao = 56.0;
+  static const double _paddingFormulario = 18.0;
+
+  /// Cria um [TextTheme] com todas as fontes 2dp maiores que o padrão M3,
+  /// preservando pesos e tracking originais.
+  static TextTheme _textThemeComFontesMaiores() {
+    final base = ThemeData.light().textTheme;
+    TextStyle maior(TextStyle? style, double padrao) {
+      final s = style ?? TextStyle(fontSize: padrao);
+      return s.copyWith(fontSize: (s.fontSize ?? padrao) + 2);
+    }
+    return TextTheme(
+      displayLarge: maior(base.displayLarge, 57),
+      displayMedium: maior(base.displayMedium, 45),
+      displaySmall: maior(base.displaySmall, 36),
+      headlineLarge: maior(base.headlineLarge, 32),
+      headlineMedium: maior(base.headlineMedium, 28),
+      headlineSmall: maior(base.headlineSmall, 24),
+      titleLarge: maior(base.titleLarge, 22),
+      titleMedium: maior(base.titleMedium, 16),
+      titleSmall: maior(base.titleSmall, 14),
+      bodyLarge: maior(base.bodyLarge, 16),
+      bodyMedium: maior(base.bodyMedium, 14),
+      bodySmall: maior(base.bodySmall, 12),
+      labelLarge: maior(base.labelLarge, 14),
+      labelMedium: maior(base.labelMedium, 12),
+      labelSmall: maior(base.labelSmall, 11),
+    );
+  }
 
   static ThemeData _construirTemaBase(ColorScheme esquemaCores) {
-    // Forçamos a cor primária a ser a cor pura do esquema (vibrante)
     final Color corPrimariaPura = esquemaCores.primary;
     final Color corFonteNoPrimario = corPrimariaPura.computeLuminance() > 0.5 ? Colors.black : Colors.white;
 
@@ -20,6 +50,7 @@ class TemaApp {
       useMaterial3: true,
       fontFamily: 'Roboto',
       brightness: esquemaCores.brightness,
+      textTheme: _textThemeComFontesMaiores(),
     );
 
     return base.copyWith(
@@ -30,35 +61,31 @@ class TemaApp {
         backgroundColor: corPrimariaPura,
         foregroundColor: corFonteNoPrimario,
         surfaceTintColor: Colors.transparent,
-        iconTheme: IconThemeData(color: corFonteNoPrimario),
+        iconTheme: IconThemeData(color: corFonteNoPrimario, size: 26),
         titleTextStyle: TextStyle(
           color: corFonteNoPrimario,
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
         ),
       ),
 
       scaffoldBackgroundColor: esquemaCores.surface,
 
       cardTheme: CardThemeData(
-        elevation: 0,
-        shadowColor: Colors.black.withValues(alpha: 0.08),
+        elevation: 1,
+        shadowColor: Colors.black.withValues(alpha: 0.1),
         color: esquemaCores.surfaceContainerLow,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(_raioBorda),
-          side: BorderSide(
-            color: esquemaCores.outlineVariant.withValues(alpha: 0.5),
-            width: 1,
-          ),
         ),
-        margin: const EdgeInsets.symmetric(vertical: 6),
+        margin: const EdgeInsets.symmetric(vertical: 8),
       ),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: esquemaCores.surfaceContainerHighest.withValues(alpha: 0.4),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        fillColor: esquemaCores.surfaceContainerHighest.withValues(alpha: 0.5),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: _paddingFormulario),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_raioBorda),
           borderSide: BorderSide.none,
@@ -66,7 +93,7 @@ class TemaApp {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_raioBorda),
           borderSide: BorderSide(
-            color: esquemaCores.outlineVariant.withValues(alpha: 0.4),
+            color: esquemaCores.outlineVariant.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -94,9 +121,11 @@ class TemaApp {
         labelStyle: TextStyle(
           color: esquemaCores.onSurfaceVariant,
           fontWeight: FontWeight.w500,
+          fontSize: 16,
         ),
         hintStyle: TextStyle(
-          color: esquemaCores.onSurfaceVariant.withValues(alpha: 0.7),
+          color: esquemaCores.onSurfaceVariant.withValues(alpha: 0.6),
+          fontSize: 16,
         ),
         prefixIconColor: esquemaCores.onSurfaceVariant,
         suffixIconColor: esquemaCores.onSurfaceVariant,
@@ -105,16 +134,17 @@ class TemaApp {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 2,
-          shadowColor: esquemaCores.primary.withValues(alpha: 0.3),
-          backgroundColor: esquemaCores.primary,
-          foregroundColor: esquemaCores.onPrimary,
+          shadowColor: corPrimariaPura.withValues(alpha: 0.3),
+          backgroundColor: corPrimariaPura,
+          foregroundColor: corFonteNoPrimario,
+          minimumSize: const Size(double.infinity, _alturaBotao),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(_raioBorda),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 28),
           textStyle: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 16,
+            fontSize: 17,
           ),
         ),
       ),
@@ -122,67 +152,79 @@ class TemaApp {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           elevation: 2,
-          shadowColor: esquemaCores.primary.withValues(alpha: 0.3),
-          backgroundColor: esquemaCores.primary,
-          foregroundColor: esquemaCores.onPrimary,
+          shadowColor: corPrimariaPura.withValues(alpha: 0.3),
+          backgroundColor: corPrimariaPura,
+          foregroundColor: corFonteNoPrimario,
+          minimumSize: const Size(double.infinity, _alturaBotao),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(_raioBorda),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 28),
           textStyle: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 16,
+            fontSize: 17,
           ),
         ),
       ),
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: esquemaCores.primary,
-          side: BorderSide(color: esquemaCores.primary),
+          foregroundColor: corPrimariaPura,
+          side: BorderSide(color: corPrimariaPura),
+          minimumSize: const Size(double.infinity, _alturaBotao),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(_raioBorda),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 28),
           textStyle: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 16,
+            fontSize: 17,
           ),
         ),
       ),
 
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: esquemaCores.primary,
+          foregroundColor: corPrimariaPura,
+          minimumSize: const Size(_tamanhoMinimoToque, _tamanhoMinimoToque),
           textStyle: const TextStyle(
             fontWeight: FontWeight.w600,
-            fontSize: 14,
+            fontSize: 15,
           ),
         ),
       ),
 
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: esquemaCores.primaryContainer,
-        foregroundColor: esquemaCores.onPrimaryContainer,
+        backgroundColor: corPrimariaPura,
+        foregroundColor: corFonteNoPrimario,
         elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(_raioBorda),
         ),
       ),
 
-      dividerTheme: DividerThemeData(
-        color: esquemaCores.outlineVariant.withValues(alpha: 0.4),
+      dividerTheme: const DividerThemeData(
         thickness: 1,
         space: 1,
       ),
 
       listTileTheme: ListTileThemeData(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        minVerticalPadding: 12,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(_raioBordaPequeno),
+          borderRadius: BorderRadius.circular(12),
         ),
         iconColor: esquemaCores.onSurfaceVariant,
         textColor: esquemaCores.onSurface,
+        titleTextStyle: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: esquemaCores.onSurface,
+        ),
+        subtitleTextStyle: TextStyle(
+          fontSize: 14,
+          color: esquemaCores.onSurfaceVariant,
+        ),
       ),
 
       dialogTheme: DialogThemeData(
@@ -196,12 +238,20 @@ class TemaApp {
           fontSize: 22,
           fontWeight: FontWeight.bold,
         ),
+        contentTextStyle: TextStyle(
+          color: esquemaCores.onSurfaceVariant,
+          fontSize: 16,
+          height: 1.4,
+        ),
       ),
 
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: esquemaCores.inverseSurface,
-        contentTextStyle: TextStyle(color: esquemaCores.onInverseSurface),
+        contentTextStyle: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -210,7 +260,7 @@ class TemaApp {
       dropdownMenuTheme: DropdownMenuThemeData(
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: esquemaCores.surfaceContainerHighest.withValues(alpha: 0.4),
+          fillColor: esquemaCores.surfaceContainerHighest.withValues(alpha: 0.5),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(_raioBorda),
           ),
@@ -220,7 +270,7 @@ class TemaApp {
       radioTheme: RadioThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return esquemaCores.primary;
+            return corPrimariaPura;
           }
           return esquemaCores.onSurfaceVariant;
         }),
@@ -229,42 +279,47 @@ class TemaApp {
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return esquemaCores.primary;
+            return corPrimariaPura;
           }
           return Colors.transparent;
         }),
-        checkColor: WidgetStateProperty.all(esquemaCores.onPrimary),
+        checkColor: WidgetStateProperty.all(corFonteNoPrimario),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(4),
         ),
       ),
 
       progressIndicatorTheme: ProgressIndicatorThemeData(
-        color: esquemaCores.primary,
+        color: corPrimariaPura,
         linearTrackColor: esquemaCores.primaryContainer,
         circularTrackColor: esquemaCores.primaryContainer,
+        linearMinHeight: 6,
       ),
 
       tabBarTheme: TabBarThemeData(
-        labelColor: esquemaCores.primary,
+        labelColor: corPrimariaPura,
         unselectedLabelColor: esquemaCores.onSurfaceVariant,
-        indicatorColor: esquemaCores.primary,
+        indicatorColor: corPrimariaPura,
         dividerColor: Colors.transparent,
+        labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        unselectedLabelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
       ),
 
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: esquemaCores.surface,
-        selectedItemColor: esquemaCores.primary,
+        selectedItemColor: corPrimariaPura,
         unselectedItemColor: esquemaCores.onSurfaceVariant,
         type: BottomNavigationBarType.fixed,
         elevation: 8,
+        selectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
       ),
 
       drawerTheme: DrawerThemeData(
         backgroundColor: esquemaCores.surface,
-        elevation: 1,
+        elevation: 2,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.horizontal(right: Radius.circular(16)),
+          borderRadius: BorderRadius.horizontal(right: Radius.circular(20)),
         ),
       ),
     );
@@ -312,7 +367,7 @@ class AppBarPadrao extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 4);
 
   @override
   Widget build(BuildContext context) {
@@ -330,7 +385,7 @@ class AppBarPadrao extends StatelessWidget implements PreferredSizeWidget {
         titulo,
         style: TextStyle(
           fontWeight: FontWeight.bold,
-          fontSize: 18,
+          fontSize: 20,
           color: theme.colorScheme.onPrimary,
         ),
       ),
@@ -341,6 +396,7 @@ class AppBarPadrao extends StatelessWidget implements PreferredSizeWidget {
 class CampoFormularioPadrao extends StatelessWidget {
   final String label;
   final IconData? icone;
+  final String? svgIcone;
   final TextEditingController? controller;
   final String? Function(String?)? validador;
   final TextInputType? tipoTeclado;
@@ -354,6 +410,7 @@ class CampoFormularioPadrao extends StatelessWidget {
     super.key,
     required this.label,
     this.icone,
+    this.svgIcone,
     this.controller,
     this.validador,
     this.tipoTeclado,
@@ -366,10 +423,12 @@ class CampoFormularioPadrao extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     if (child != null) {
       return child!;
     }
-    
+
     return TextFormField(
       controller: controller,
       validator: validador,
@@ -378,14 +437,24 @@ class CampoFormularioPadrao extends StatelessWidget {
       readOnly: soLeitura,
       onChanged: onChanged,
       onTap: onTap,
+      style: const TextStyle(fontSize: 17),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: icone != null ? Icon(icone) : null,
+        prefixIcon: svgIcone != null
+            ? Padding(
+                padding: const EdgeInsets.all(14),
+                child: SvgPicture.asset(
+                  svgIcone!,
+                  width: 22,
+                  height: 22,
+                  colorFilter: ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn),
+                ),
+              )
+            : (icone != null ? Icon(icone, size: 22) : null),
       ),
     );
   }
 }
-
 class DropdownPadrao<T> extends StatelessWidget {
   final String label;
   final T? valorSelecionado;
@@ -393,6 +462,7 @@ class DropdownPadrao<T> extends StatelessWidget {
   final void Function(T?) onChanged;
   final String? Function(T?)? validador;
   final IconData? icone;
+  final String? svgIcone;
 
   const DropdownPadrao({
     super.key,
@@ -402,20 +472,38 @@ class DropdownPadrao<T> extends StatelessWidget {
     required this.onChanged,
     this.validador,
     this.icone,
+    this.svgIcone,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final corTexto = theme.colorScheme.onSurface;
+    final corFundoMenu = theme.colorScheme.surfaceContainerHigh;
+
     return DropdownButtonFormField<T>(
-      value: valorSelecionado,
+      initialValue: valorSelecionado,
       items: itens,
       onChanged: onChanged,
       validator: validador,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: icone != null ? Icon(icone) : null,
+        prefixIcon: svgIcone != null
+            ? Padding(
+                padding: const EdgeInsets.all(14),
+                child: SvgPicture.asset(
+                  svgIcone!,
+                  width: 22,
+                  height: 22,
+                  colorFilter: ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn),
+                ),
+              )
+            : (icone != null ? Icon(icone, size: 22) : null),
       ),
       isExpanded: true,
+      style: TextStyle(fontSize: 17, color: corTexto),
+      dropdownColor: corFundoMenu,
+      menuMaxHeight: 300,
     );
   }
 }
@@ -447,10 +535,10 @@ class BotaoPadrao extends StatelessWidget {
     Widget conteudo() {
       if (carregando) {
         return SizedBox(
-          height: 20,
-          width: 20,
+          height: 22,
+          width: 22,
           child: CircularProgressIndicator(
-            strokeWidth: 2,
+            strokeWidth: 2.5,
             color: outlined ? theme.colorScheme.primary : Colors.white,
           ),
         );
@@ -460,8 +548,8 @@ class BotaoPadrao extends StatelessWidget {
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icone, size: 20),
-            const SizedBox(width: 8),
+            Icon(icone, size: 22),
+            const SizedBox(width: 10),
             Text(label),
           ],
         );
@@ -483,8 +571,8 @@ class BotaoPadrao extends StatelessWidget {
             child: conteudo(),
           );
 
-    return expandido 
-        ? SizedBox(width: double.infinity, height: 56, child: botao) 
+    return expandido
+        ? SizedBox(width: double.infinity, child: botao)
         : botao;
   }
 }
@@ -513,7 +601,7 @@ class CartaoPadrao extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: padding ?? const EdgeInsets.all(16),
+          padding: padding ?? const EdgeInsets.all(20),
           child: child,
         ),
       ),
@@ -524,11 +612,13 @@ class CartaoPadrao extends StatelessWidget {
 class SecaoTitulo extends StatelessWidget {
   final String texto;
   final IconData? icone;
+  final String? svgIcone;
 
   const SecaoTitulo({
     super.key,
     required this.texto,
     this.icone,
+    this.svgIcone,
   });
 
   @override
@@ -536,16 +626,24 @@ class SecaoTitulo extends StatelessWidget {
     final theme = Theme.of(context);
     
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12, top: 8),
+      padding: const EdgeInsets.only(bottom: 12, top: 12),
       child: Row(
         children: [
-          if (icone != null) ...[
-            Icon(icone, size: 20, color: theme.colorScheme.primary),
-            const SizedBox(width: 8),
+          if (svgIcone != null) ...[
+            SvgPicture.asset(
+              svgIcone!,
+              width: 22,
+              height: 22,
+              colorFilter: ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn),
+            ),
+            const SizedBox(width: 10),
+          ] else if (icone != null) ...[
+            Icon(icone, size: 22, color: theme.colorScheme.primary),
+            const SizedBox(width: 10),
           ],
           Text(
             texto.toUpperCase(),
-            style: theme.textTheme.labelLarge?.copyWith(
+            style: theme.textTheme.titleSmall?.copyWith(
               color: theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.2,
@@ -558,7 +656,8 @@ class SecaoTitulo extends StatelessWidget {
 }
 
 class EstadoVazioPadrao extends StatelessWidget {
-  final IconData icone;
+  final IconData? icone;
+  final String? svgIcone;
   final String titulo;
   final String? mensagem;
   final String? textoBotao;
@@ -566,7 +665,8 @@ class EstadoVazioPadrao extends StatelessWidget {
 
   const EstadoVazioPadrao({
     super.key,
-    required this.icone,
+    this.icone,
+    this.svgIcone,
     required this.titulo,
     this.mensagem,
     this.textoBotao,
@@ -579,46 +679,57 @@ class EstadoVazioPadrao extends StatelessWidget {
     
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(40),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
                 color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icone,
-                size: 64,
-                color: theme.colorScheme.primary,
-              ),
+              child: svgIcone != null
+                  ? SvgPicture.asset(
+                      svgIcone!,
+                      width: 72,
+                      height: 72,
+                      colorFilter: ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn),
+                    )
+                  : Icon(
+                      icone ?? Icons.help_outline,
+                      size: 72,
+                      color: theme.colorScheme.primary,
+                    ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Text(
               titulo,
-              style: theme.textTheme.titleLarge?.copyWith(
+              style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,
             ),
             if (mensagem != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
                 mensagem!,
-                style: theme.textTheme.bodyMedium?.copyWith(
+                style: theme.textTheme.bodyLarge?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.4,
                 ),
                 textAlign: TextAlign.center,
               ),
             ],
             if (textoBotao != null && onPressedBotao != null) ...[
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: onPressedBotao,
-                icon: const Icon(Icons.add),
-                label: Text(textoBotao!),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: 260,
+                child: FilledButton.icon(
+                  onPressed: onPressedBotao,
+                  icon: const Icon(Icons.add, size: 22),
+                  label: Text(textoBotao!),
+                ),
               ),
             ],
           ],

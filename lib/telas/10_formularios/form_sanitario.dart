@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -30,7 +31,7 @@ class _FormSanitarioState extends State<FormSanitario> {
   String _tipoEvento = 'Vacinação';
   bool _salvando = false;
 
-  final List<String> _tipos = ['Vacinação', 'Medicamento', 'Vermifugação', 'Exame', 'Cirurgia', 'Outro'];
+  final List<String> _tipos = ['Vacinação', 'Doença', 'Tratamento', 'Vermifugação', 'Exame', 'Cirurgia', 'Outro'];
 
   @override
   void initState() {
@@ -60,14 +61,18 @@ class _FormSanitarioState extends State<FormSanitario> {
         data: _dataSelecionada,
         tipo: _tipoEvento,
         nomeMedicamento: _medicamentoController.text.isEmpty ? null : _medicamentoController.text,
+        dose: _doseController.text.isEmpty ? null : _doseController.text,
         observacao: _obsController.text.isEmpty ? null : _obsController.text,
       );
 
       await BancoDadosServico.instancia.salvarEventoSanitario(evento.toMap());
       if (mounted) {
-        context.read<ProvedorFazenda>().carregarPropriedades();
+        final provedor = context.read<ProvedorFazenda>();
+        if (provedor.propriedadeAtiva != null) {
+          await provedor.carregarAnimais(provedor.propriedadeAtiva!.id);
+        }
         _msg('Evento sanitário registrado!');
-        Navigator.pop(context);
+        if (mounted) Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) _msg('Erro: $e', erro: true);
@@ -113,13 +118,13 @@ class _FormSanitarioState extends State<FormSanitario> {
                     if (widget.animalPreSelecionado == null)
                       DropdownPadrao<String>(
                         label: 'Animal',
-                        icone: IconesApp.animal,
+                        svgIcone: IconesApp.iconAnimalSvg,
                         valorSelecionado: _animalIdSelecionado,
                         itens: provedor.animais.map((a) => DropdownMenuItem(value: a.id, child: Text('${a.brinco} - ${a.nome ?? "S/N"}'))).toList(),
                         onChanged: (v) => setState(() => _animalIdSelecionado = v),
                       )
                     else
-                      _BoxInformativo(icon: IconesApp.animal, label: 'Animal', value: '${widget.animalPreSelecionado!.brinco} - ${widget.animalPreSelecionado!.nome ?? "S/N"}'),
+                      _BoxInformativo(svgIcon: IconesApp.iconAnimalSvg, label: 'Animal', value: '${widget.animalPreSelecionado!.brinco} - ${widget.animalPreSelecionado!.nome ?? "S/N"}'),
                   ],
                 ),
               ).animate().fadeIn().slideY(begin: 0.1, end: 0),
@@ -162,10 +167,10 @@ class _FormSanitarioState extends State<FormSanitario> {
 }
 
 class _BoxInformativo extends StatelessWidget {
-  final IconData icon;
+  final String? svgIcon;
   final String label;
   final String value;
-  const _BoxInformativo({required this.icon, required this.label, required this.value});
+  const _BoxInformativo({this.svgIcon, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -175,7 +180,8 @@ class _BoxInformativo extends StatelessWidget {
       decoration: BoxDecoration(color: theme.colorScheme.primaryContainer.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(16)),
       child: Row(
         children: [
-          Icon(icon, color: theme.colorScheme.primary),
+          if (svgIcon != null)
+            SvgPicture.asset(svgIcon!, width: 24, height: 24, colorFilter: ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn)),
           const SizedBox(width: 16),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary)),

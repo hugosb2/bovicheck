@@ -50,6 +50,6 @@ class ProvedorTema extends ChangeNotifier {
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_chaveCorSemente, novaCor.value);
+    await prefs.setInt(_chaveCorSemente, novaCor.toARGB32());
   }
 }

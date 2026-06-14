@@ -1,18 +1,13 @@
-import 'dart:io';
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../estilos/icones.dart';
 import '../../../estilos/tema.dart';
 import '../../../modelos/propriedade.dart';
 import '../../../provedores/provedor_fazenda.dart';
 import '../../../servicos/banco_dados_servico.dart';
 
-// Importando o arquivo original do formulário
 import '../../2_configuracao_inicial/form_dados_fazenda.dart';
 
 class TelaDetalhesFazenda extends StatefulWidget {
@@ -23,33 +18,6 @@ class TelaDetalhesFazenda extends StatefulWidget {
 }
 
 class _TelaDetalhesFazendaState extends State<TelaDetalhesFazenda> {
-  Future<void> _exportarFazenda(BuildContext context, Propriedade fazenda) async {
-    try {
-      final jsonStr = await BancoDadosServico.instancia.exportarFazendaJson(fazenda.id);
-      final bytes = utf8.encode(jsonStr);
-      final dataStr = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final nomeArquivo = 'BoviCheck_Fazenda_${fazenda.nomeFazenda}_$dataStr.fbvk';
-
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/$nomeArquivo');
-      await file.writeAsBytes(bytes);
-
-      if (context.mounted) {
-        final xFile = XFile(file.path);
-        await Share.shareXFiles(
-          [xFile],
-          text: 'Backup da fazenda ${fazenda.nomeFazenda}',
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao exportar fazenda: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -63,169 +31,136 @@ class _TelaDetalhesFazendaState extends State<TelaDetalhesFazenda> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBarPadrao(
-        titulo: fazenda.nomeFazenda,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share),
-            tooltip: 'Exportar Fazenda',
-            onPressed: () => _exportarFazenda(context, fazenda),
-          ),
-        ],
-      ),
+      appBar: const AppBarPadrao(titulo: 'Dados da Propriedade'),
       body: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
         children: [
-          // Cabeçalho Simplificado (estilo Detalhes Animal)
-          Container(
+          CartaoPadrao(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.primary,
-                  theme.colorScheme.primary.withValues(alpha: 0.8),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Column(
+            child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.onPrimary.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: theme.colorScheme.onPrimary.withValues(alpha: 0.5),
-                      width: 2,
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: SvgPicture.asset(
+                    IconesApp.iconPropriedadeSvg,
+                    width: 40,
+                    height: 40,
+                    colorFilter: ColorFilter.mode(
+                      theme.colorScheme.primary,
+                      BlendMode.srcIn,
                     ),
                   ),
-                  child: Center(
-                    child: Text(
-                      fazenda.nomeFazenda.isNotEmpty
-                          ? fazenda.nomeFazenda[0].toUpperCase()
-                          : 'F',
-                      style: TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onPrimary,
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        fazenda.nomeFazenda,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${fazenda.cidade}${fazenda.estado.isNotEmpty ? '/${fazenda.estado}' : ''}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
-                ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
-                const SizedBox(height: 16),
-                Text(
-                  fazenda.nomeFazenda,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onPrimary,
-                  ),
-                ).animate().fadeIn(delay: 200.ms),
+                ),
               ],
             ),
-          ),
-
-          const SizedBox(height: 32),
-
-          // Dados da Fazenda
-          _InfoCard(
-            label: "Nome da Fazenda",
-            valor: fazenda.nomeFazenda,
-            icon: IconesApp.fazenda,
-          ),
-
-          const SizedBox(height: 16),
-
-          _InfoCard(
-            label: "Proprietário",
-            valor: fazenda.nomeProprietario,
-            icon: Icons.person,
-          ),
-
-          const SizedBox(height: 16),
-
-          Row(
-            children: [
-              Expanded(
-                child: _InfoCard(
-                  label: "Cidade",
-                  valor: fazenda.cidade,
-                  icon: Icons.location_city,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _InfoCard(
-                  label: "UF",
-                  valor: fazenda.estado,
-                  icon: Icons.map,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          Row(
-            children: [
-              Expanded(
-                child: _InfoCard(
-                  label: "Sistema",
-                  valor: fazenda.sistemaProducao,
-                  icon: Icons.settings_input_component,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _InfoCard(
-                  label: "Área (ha)",
-                  valor: fazenda.areaTotalHectares
-                      .toString()
-                      .replaceAll('.', ','),
-                  icon: Icons.aspect_ratio,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 40),
-
-          Center(
-            child: SelectableText(
-              "ID: ${fazenda.id}",
-              style: TextStyle(
-                  color: Colors.grey.withValues(alpha: 0.5),
-                  fontSize: 12),
-            ),
-          ),
+          ).animate().fadeIn().slideY(begin: 0.1, end: 0),
 
           const SizedBox(height: 24),
 
-          _botaoDanger(theme, fazenda),
-
-          const SizedBox(height: 100),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              // Usa o formulário original para editar
-              builder: (_) => FormDadosFazenda(propriedadeExistente: fazenda),
+          const SecaoTitulo(texto: 'Informações'),
+          const SizedBox(height: 8),
+          CartaoPadrao(
+            child: Column(
+              children: [
+                _LinhaInfo(
+                  rotulo: 'Proprietário',
+                  valor: fazenda.nomeProprietario,
+                  icone: Icons.person_outline,
+                ),
+                const Divider(height: 1),
+                _LinhaInfo(
+                  rotulo: 'Sistema de Produção',
+                  valor: fazenda.sistemaProducao,
+                  icone: IconesApp.piquete,
+                ),
+                const Divider(height: 1),
+                _LinhaInfo(
+                  rotulo: 'Área Total',
+                  valor: '${fazenda.areaTotalHectares.toString().replaceAll('.', ',')} ha',
+                  icone: Icons.straighten,
+                ),
+              ],
             ),
-          );
-        },
-        icon: const Icon(Icons.edit),
-        label: const Text("EDITAR DADOS"),
+          ).animate().fadeIn(delay: 100.ms),
+
+          const SizedBox(height: 24),
+
+          const SecaoTitulo(texto: 'Localização'),
+          const SizedBox(height: 8),
+          CartaoPadrao(
+            child: Column(
+              children: [
+                _LinhaInfo(
+                  rotulo: 'CEP',
+                  valor: fazenda.cep?.isNotEmpty == true ? fazenda.cep! : 'Não informado',
+                  icone: Icons.mail_outline,
+                ),
+                const Divider(height: 1),
+                _LinhaInfo(
+                  rotulo: 'Cidade',
+                  valor: fazenda.cidade,
+                  icone: Icons.location_city,
+                ),
+                const Divider(height: 1),
+                _LinhaInfo(
+                  rotulo: 'Estado',
+                  valor: fazenda.estado.isNotEmpty ? fazenda.estado : 'Não informado',
+                  icone: Icons.map,
+                ),
+              ],
+            ),
+          ).animate().fadeIn(delay: 200.ms),
+
+          const SizedBox(height: 32),
+
+          BotaoPadrao(
+            label: 'EDITAR DADOS',
+            icone: Icons.edit,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => FormDadosFazenda(propriedadeExistente: fazenda),
+                ),
+              );
+            },
+            expandido: true,
+          ).animate().fadeIn(delay: 300.ms),
+
+          const SizedBox(height: 16),
+
+          _botaoDeletar(theme, fazenda).animate().fadeIn(delay: 350.ms),
+        ],
       ),
     );
   }
 
-  Widget _botaoDanger(ThemeData theme, Propriedade fazenda) {
+  Widget _botaoDeletar(ThemeData theme, Propriedade fazenda) {
     return Card(
       elevation: 0,
       color: Colors.red.withValues(alpha: 0.05),
@@ -275,7 +210,7 @@ class _TelaDetalhesFazendaState extends State<TelaDetalhesFazenda> {
           ),
         ),
       ),
-    ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1, end: 0);
+    );
   }
 
   void _confirmarDelecao(BuildContext context, Propriedade fazenda) async {
@@ -304,78 +239,64 @@ class _TelaDetalhesFazendaState extends State<TelaDetalhesFazenda> {
     if (confirmar != true || !mounted) return;
 
     await BancoDadosServico.instancia.deletePropriedade(fazenda.id);
-    
+
     if (!mounted) return;
-    
     final provedor = context.read<ProvedorFazenda>();
     await provedor.carregarPropriedades();
-    
+
     if (!mounted) return;
     Navigator.of(context).popUntil((route) => route.isFirst);
+
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('"${fazenda.nomeFazenda}" deletada')),
     );
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  final String label;
+class _LinhaInfo extends StatelessWidget {
+  final String rotulo;
   final String valor;
-  final IconData icon;
+  final IconData icone;
 
-  const _InfoCard(
-      {required this.label, required this.valor, required this.icon});
+  const _LinhaInfo({
+    required this.rotulo,
+    required this.valor,
+    required this.icone,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      elevation: 0,
-      color: theme.colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+      child: Row(
+        children: [
+          Icon(icone, size: 20, color: theme.colorScheme.primary),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, size: 16, color: theme.colorScheme.primary),
-                ),
-                const SizedBox(width: 10),
                 Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
+                  rotulo,
+                  style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  valor,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              valor,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-    ).animate().fadeIn().slideY(begin: 0.1, end: 0);
+    );
   }
 }

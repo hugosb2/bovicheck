@@ -6,6 +6,7 @@ class EventoSanitario {
   final DateTime data;
   final String tipo;
   final String? nomeMedicamento;
+  final String? dose;
   final String? observacao;
 
   EventoSanitario({
@@ -14,6 +15,7 @@ class EventoSanitario {
     required this.data,
     required this.tipo,
     this.nomeMedicamento,
+    this.dose,
     this.observacao,
   }) : id = id ?? const Uuid().v4();
 
@@ -24,6 +26,7 @@ class EventoSanitario {
       'data': data.toIso8601String(),
       'tipo': tipo,
       'nomeMedicamento': nomeMedicamento,
+      'dose': dose,
       'observacao': observacao,
     };
   }
@@ -35,6 +38,7 @@ class EventoSanitario {
       data: DateTime.parse(map['data']),
       tipo: map['tipo'] ?? 'Outro',
       nomeMedicamento: map['nomeMedicamento'] ?? '',
+      dose: map['dose'],
       observacao: map['observacao'],
     );
   }

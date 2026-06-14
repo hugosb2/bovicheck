@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../estilos/cores.dart';
-import '../../estilos/icones.dart';
 import '../../estilos/tema.dart';
 
 class TelaSobre extends StatefulWidget {
@@ -65,7 +63,7 @@ class _TelaSobreState extends State<TelaSobre> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: theme.colorScheme.shadow.withOpacity(0.1),
+                      color: theme.colorScheme.shadow.withValues(alpha: 0.1),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),

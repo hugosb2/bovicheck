@@ -8,7 +8,6 @@ import '../../modelos/propriedade.dart';
 import '../4_dashboard/tela_dashboard.dart';
 import 'form_dados_fazenda.dart';
 import 'tela_restaurar.dart';
-import '../11_configuracoes/subtelas/tela_config_dados.dart';
 
 class TelaSelecionarFazenda extends StatefulWidget {
   const TelaSelecionarFazenda({super.key});
@@ -34,47 +33,44 @@ class _TelaSelecionarFazendaState extends State<TelaSelecionarFazenda> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
+      appBar: const AppBarPadrao(
+        titulo: 'BoviCheck',
+        centralizar: true,
+      ),
       body: RefreshIndicator(
         onRefresh: () => provedor.carregarPropriedades(),
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            // 1. Header Minimalista e Elegante
-            SliverAppBar(
-              expandedHeight: 200,
-              pinned: true,
-              stretch: true,
-              backgroundColor: theme.colorScheme.primary,
-              flexibleSpace: FlexibleSpaceBar(
-                stretchModes: const [StretchMode.zoomBackground],
-                background: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.8)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+            // 1. Header com Logo
+            SliverToBoxAdapter(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 40),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(28),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20)],
-                        ),
-                        child: Image.asset('assets/icon.png', width: 60, height: 60),
-                      ).animate().scale(curve: Curves.elasticOut, duration: 600.ms),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'BoviCheck',
-                        style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1),
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20)],
                       ),
-                    ],
-                  ),
+                      child: Image.asset('assets/icon.png', width: 50, height: 50),
+                    ).animate().scale(curve: Curves.elasticOut, duration: 600.ms),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Selecione sua Fazenda',
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -160,12 +156,6 @@ class _TelaSelecionarFazendaState extends State<TelaSelecionarFazenda> {
                   titulo: 'Importar Backup (.bvk)',
                   cor: Colors.orange,
                   onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaRestaurar())); },
-                ),
-                _ItemOpcao(
-                  icon: Icons.settings_backup_restore_rounded,
-                  titulo: 'Configurações de Dados',
-                  cor: Colors.blue,
-                  onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaConfigDados())); },
                 ),
               ],
             ),
@@ -259,7 +249,7 @@ class _EstadoVazioModerno extends StatelessWidget {
       padding: const EdgeInsets.all(40),
       child: Column(
         children: [
-          Icon(Icons.agriculture_rounded, size: 80, color: theme.colorScheme.outline.withValues(alpha: 0.2)),
+          Icon(IconesApp.fazenda, size: 80, color: theme.colorScheme.outline.withValues(alpha: 0.2)),
           const SizedBox(height: 16),
           const Text('Tudo pronto para começar!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           const SizedBox(height: 8),

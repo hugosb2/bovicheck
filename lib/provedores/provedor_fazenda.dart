@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../modelos/propriedade.dart';
-import '../modelos/lote.dart';
+import '../modelos/piquete.dart';
 import '../modelos/animal.dart';
 import '../modelos/eventos/evento_reprodutivo.dart';
 import '../modelos/eventos/evento_sanitario.dart';
@@ -11,7 +11,7 @@ import '../servicos/banco_dados_servico.dart';
 class ProvedorFazenda extends ChangeNotifier {
   Propriedade? _propriedadeAtiva;
   List<Propriedade> _propriedades = [];
-  List<Lote> _lotes = [];
+  List<Piquete> _piquetes = [];
   List<Animal> _animais = [];
   List<EventoReprodutivo> _eventosReprodutivos = [];
   List<EventoSanitario> _eventosSanitarios = [];
@@ -22,13 +22,18 @@ class ProvedorFazenda extends ChangeNotifier {
   // Getters Básicos
   Propriedade? get propriedadeAtiva => _propriedadeAtiva;
   List<Propriedade> get propriedades => _propriedades;
-  List<Lote> get lotes => _lotes;
+  List<Piquete> get piquetes => _piquetes;
   List<Animal> get animais => _animais;
   bool get isLoading => _isLoading;
 
+  // Getters de Dados Completos (Necessários para Indicadores)
+  List<Pesagem> get pesagens => _pesagens;
+  List<EventoReprodutivo> get eventosReprodutivos => _eventosReprodutivos;
+  List<ProducaoLeite> get producaoLeite => _producaoLeite;
+
   // Getters Calculados (Necessários para Dashboard e IA)
   int get totalAnimais => _animais.length;
-  int get totalLotes => _lotes.length;
+  int get totalPiquetes => _piquetes.length;
 
   int get totalAnimaisDoentes {
     final agora = DateTime.now();
@@ -39,7 +44,7 @@ class ProvedorFazenda extends ChangeNotifier {
             (e) =>
                 e.animalId == a.id &&
                 (e.tipo.toLowerCase().contains('doença') || e.tipo.toLowerCase().contains('tratamento')) &&
-                e.data.isAfter(inicioSemana),
+                !e.data.isBefore(inicioSemana),
           );
     }).length;
   }
@@ -48,7 +53,7 @@ class ProvedorFazenda extends ChangeNotifier {
     final agora = DateTime.now();
     final inicioAno = DateTime(agora.year, 1, 1);
     return _eventosReprodutivos
-        .where((e) => e.tipo == 'Parto' && e.data.isAfter(inicioAno))
+        .where((e) => e.tipo == 'Parto' && !e.data.isBefore(inicioAno))
         .length;
   }
 
@@ -56,7 +61,7 @@ class ProvedorFazenda extends ChangeNotifier {
     final agora = DateTime.now();
     final inicioMes = DateTime(agora.year, agora.month, 1);
     return _producaoLeite
-        .where((e) => e.data.isAfter(inicioMes))
+        .where((e) => !e.data.isBefore(inicioMes))
         .fold(0.0, (sum, item) => sum + item.litros);
   }
 
@@ -68,8 +73,6 @@ class ProvedorFazenda extends ChangeNotifier {
 
   double get mediaGMD {
     if (_pesagens.isEmpty) return 0.0;
-    
-    // Simplificado: média de todos os ganhos registrados
     Map<String, List<Pesagem>> pesagensPorAnimal = {};
     for (var p in _pesagens) {
       if (!pesagensPorAnimal.containsKey(p.animalId)) {
@@ -86,7 +89,7 @@ class ProvedorFazenda extends ChangeNotifier {
         final ultima = lista.last;
         final dias = ultima.data.difference(primeira.data).inDays;
         final ganho = ultima.pesoKg - primeira.pesoKg;
-        if (dias > 0 && ganho > 0) {
+        if (dias > 0) {
           gmds.add(ganho / dias);
         }
       }
@@ -140,10 +143,10 @@ class ProvedorFazenda extends ChangeNotifier {
     }
 
     if (_propriedadeAtiva != null) {
-      await carregarLotes(_propriedadeAtiva!.id);
+      await carregarPiquetes(_propriedadeAtiva!.id);
       await carregarAnimais(_propriedadeAtiva!.id);
     } else {
-      _lotes = [];
+      _piquetes = [];
       _animais = [];
       _eventosReprodutivos = [];
       _eventosSanitarios = [];
@@ -162,47 +165,50 @@ class ProvedorFazenda extends ChangeNotifier {
     await selecionarFazenda(p);
   }
 
-  // --- CRUD LOTES ---
-  Future<void> carregarLotes(String fazendaId) async {
-    _lotes = await BancoDadosServico.instancia.getLotesPorFazenda(fazendaId);
+  // --- CRUD PIQUETES ---
+  Future<void> carregarPiquetes(String fazendaId) async {
+    _piquetes = await BancoDadosServico.instancia.getPiquetesPorFazenda(fazendaId);
     notifyListeners();
   }
 
-  Future<void> adicionarLote(Lote lote) async {
-    await BancoDadosServico.instancia.adicionarLote(lote);
+  Future<void> adicionarPiquete(Piquete piquete) async {
+    await BancoDadosServico.instancia.adicionarPiquete(piquete);
     if (_propriedadeAtiva != null) {
-      await carregarLotes(_propriedadeAtiva!.id);
+      await carregarPiquetes(_propriedadeAtiva!.id);
     }
   }
 
   // --- CRUD ANIMAIS ---
   Future<void> carregarAnimais(String fazendaId) async {
-    final db = BancoDadosServico.instancia;
-    _animais = await db.getAnimaisPorFazenda(fazendaId);
+    try {
+      final db = BancoDadosServico.instancia;
+      _animais = await db.getAnimaisPorFazenda(fazendaId);
 
-    // Carrega todos os eventos para cálculo de indicadores no dashboard
-    _eventosReprodutivos = [];
-    _eventosSanitarios = [];
-    _pesagens = [];
-    _producaoLeite = [];
+      _eventosReprodutivos = [];
+      _eventosSanitarios = [];
+      _pesagens = [];
+      _producaoLeite = [];
 
-    for (var animal in _animais) {
-      _eventosReprodutivos.addAll(
-        await db.getEventosReprodutivosPorAnimal(animal.id),
-      );
-      
-      final sanitariosMaps = await db.getEventosSanitariosPorAnimal(animal.id);
-      _eventosSanitarios.addAll(
-        sanitariosMaps.map((m) => EventoSanitario.fromMap(m)).toList(),
-      );
+      for (var animal in _animais) {
+        _eventosReprodutivos.addAll(
+          await db.getEventosReprodutivosPorAnimal(animal.id),
+        );
 
-      _pesagens.addAll(
-        await db.getPesagensPorAnimal(animal.id),
-      );
+        final sanitariosMaps = await db.getEventosSanitariosPorAnimal(animal.id);
+        _eventosSanitarios.addAll(
+          sanitariosMaps.map((m) => EventoSanitario.fromMap(m)).toList(),
+        );
 
-      _producaoLeite.addAll(
-        await db.getProducaoLeitePorAnimal(animal.id),
-      );
+        _pesagens.addAll(
+          await db.getPesagensPorAnimal(animal.id),
+        );
+
+        _producaoLeite.addAll(
+          await db.getProducaoLeitePorAnimal(animal.id),
+        );
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar animais/eventos: $e');
     }
 
     notifyListeners();
@@ -211,7 +217,7 @@ class ProvedorFazenda extends ChangeNotifier {
   // Limpeza (Logout)
   void limparEstado() {
     _propriedadeAtiva = null;
-    _lotes = [];
+    _piquetes = [];
     _animais = [];
     _eventosReprodutivos = [];
     _eventosSanitarios = [];

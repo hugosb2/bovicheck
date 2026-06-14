@@ -86,22 +86,23 @@ class _TelaRestaurarState extends State<TelaRestaurar> {
       // O novo fluxo utiliza apenas importarFazendaJson que já lida com o formato .bvk (JSON)
       await BancoDadosServico.instancia.importarFazendaJson(_caminhoArquivo!);
 
-      if (mounted) {
-        final provedor = context.read<ProvedorFazenda>();
-        await provedor.carregarPropriedades();
+      if (!mounted) return;
+      final provedor = context.read<ProvedorFazenda>();
+      await provedor.carregarPropriedades();
 
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const TelaSelecionarFazenda()),
-          (route) => false,
-        );
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const TelaSelecionarFazenda()),
+        (route) => false,
+      );
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Dados restaurados com sucesso!'),
-              backgroundColor: Colors.green),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Dados restaurados com sucesso!'),
+            backgroundColor: Colors.green),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

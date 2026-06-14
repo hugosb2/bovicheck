@@ -4,17 +4,17 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/icones.dart';
 import '../../estilos/tema.dart';
 import '../../provedores/provedor_fazenda.dart';
-import 'form_lote.dart';
-import 'tela_detalhes_lote.dart';
+import 'form_piquete.dart';
+import 'tela_detalhes_piquete.dart';
 
-class TelaListaLotes extends StatefulWidget {
-  const TelaListaLotes({super.key});
+class TelaListaPiquetes extends StatefulWidget {
+  const TelaListaPiquetes({super.key});
 
   @override
-  State<TelaListaLotes> createState() => _TelaListaLotesState();
+  State<TelaListaPiquetes> createState() => _TelaListaPiquetesState();
 }
 
-class _TelaListaLotesState extends State<TelaListaLotes> {
+class _TelaListaPiquetesState extends State<TelaListaPiquetes> {
   final TextEditingController _buscaController = TextEditingController();
   String _filtroTexto = '';
 
@@ -39,15 +39,15 @@ class _TelaListaLotesState extends State<TelaListaLotes> {
     final theme = Theme.of(context);
     final provedor = context.watch<ProvedorFazenda>();
     
-    final lotesFiltrados = provedor.lotes.where((lote) {
-      return lote.nome.toLowerCase().contains(_filtroTexto) ||
-             lote.descricao.toLowerCase().contains(_filtroTexto) ||
-             lote.tipo.toLowerCase().contains(_filtroTexto);
+    final piquetesFiltrados = provedor.piquetes.where((piquete) {
+      return piquete.nome.toLowerCase().contains(_filtroTexto) ||
+             piquete.descricao.toLowerCase().contains(_filtroTexto) ||
+             piquete.tipo.toLowerCase().contains(_filtroTexto);
     }).toList();
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: const AppBarPadrao(titulo: 'Lotes & Pastos', centralizar: true),
+      appBar: const AppBarPadrao(titulo: 'Piquetes & Pastos', centralizar: true),
       body: Column(
         children: [
           // 1. Barra de Busca Moderna
@@ -56,7 +56,7 @@ class _TelaListaLotesState extends State<TelaListaLotes> {
             child: TextField(
               controller: _buscaController,
               decoration: InputDecoration(
-                hintText: 'Buscar lote ou pasto...',
+                hintText: 'Buscar piquete ou pasto...',
                 prefixIcon: const Icon(Icons.search_rounded, size: 20),
                 suffixIcon: _filtroTexto.isNotEmpty
                     ? IconButton(
@@ -79,22 +79,22 @@ class _TelaListaLotesState extends State<TelaListaLotes> {
             ),
           ),
 
-          // 2. Lista de Lotes
+          // 2. Lista de Piquetes
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async => await provedor.carregarPropriedades(),
-              child: provedor.lotes.isEmpty
-                  ? _EstadoVazioLotes(theme: theme)
-                  : lotesFiltrados.isEmpty
-                      ? _EstadoVazioBuscaLotes(filtro: _filtroTexto, theme: theme)
+              child: provedor.piquetes.isEmpty
+                  ? _EstadoVazioPiquetes(theme: theme)
+                  : piquetesFiltrados.isEmpty
+                      ? _EstadoVazioBuscaPiquetes(filtro: _filtroTexto, theme: theme)
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                           physics: const BouncingScrollPhysics(),
-                          itemCount: lotesFiltrados.length,
+                          itemCount: piquetesFiltrados.length,
                           itemBuilder: (context, index) {
-                            final lote = lotesFiltrados[index];
-                            final qtdAnimais = provedor.animais.where((a) => a.loteId == lote.id).length;
-                            return _CardLoteModerno(lote: lote, qtd: qtdAnimais, index: index);
+                            final piquete = piquetesFiltrados[index];
+                            final qtdAnimais = provedor.animais.where((a) => a.loteId == piquete.id).length;
+                            return _CardPiqueteModerno(piquete: piquete, qtd: qtdAnimais, index: index);
                           },
                         ),
             ),
@@ -102,20 +102,20 @@ class _TelaListaLotesState extends State<TelaListaLotes> {
         ],
       ),
       floatingActionButton: BotaoFlutuanteBovi(
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormLote())),
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormPiquete())),
         icone: Icons.add_location_alt_rounded,
-        label: 'NOVO LOTE',
+        label: 'NOVO PIQUETE',
       ),
     );
   }
 }
 
-class _CardLoteModerno extends StatelessWidget {
-  final dynamic lote;
+class _CardPiqueteModerno extends StatelessWidget {
+  final dynamic piquete;
   final int qtd;
   final int index;
 
-  const _CardLoteModerno({required this.lote, required this.qtd, required this.index});
+  const _CardPiqueteModerno({required this.piquete, required this.qtd, required this.index});
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +125,7 @@ class _CardLoteModerno extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TelaDetalhesLote(lote: lote))),
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TelaDetalhesPiquete(piquete: piquete))),
         borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -144,16 +144,16 @@ class _CardLoteModerno extends StatelessWidget {
                   color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(IconesApp.lote, color: theme.colorScheme.primary, size: 24),
+                child: Icon(IconesApp.piquete, color: theme.colorScheme.primary, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(lote.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(piquete.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 2),
-                    Text(lote.descricao.isNotEmpty ? lote.descricao : 'Tipo: ${lote.tipo}', 
+                    Text(piquete.descricao.isNotEmpty ? piquete.descricao : 'Tipo: ${piquete.tipo}', 
                       style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -198,9 +198,9 @@ class _CardLoteModerno extends StatelessWidget {
   }
 }
 
-class _EstadoVazioLotes extends StatelessWidget {
+class _EstadoVazioPiquetes extends StatelessWidget {
   final ThemeData theme;
-  const _EstadoVazioLotes({required this.theme});
+  const _EstadoVazioPiquetes({required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -212,14 +212,14 @@ class _EstadoVazioLotes extends StatelessWidget {
           children: [
             Icon(Icons.map_outlined, size: 80, color: theme.colorScheme.outline.withValues(alpha: 0.2)),
             const SizedBox(height: 16),
-            const Text('Nenhum lote ou pasto', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            const Text('Nenhum piquete ou pasto', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             const SizedBox(height: 8),
             const Text('Organize seu rebanho dividindo a fazenda em áreas de manejo.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 32),
             BotaoPadrao(
-              label: 'CRIAR LOTE AGORA',
+              label: 'CRIAR PIQUETE AGORA',
               icone: Icons.add_location_alt_rounded,
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormLote())),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormPiquete())),
             ),
           ],
         ),
@@ -228,10 +228,10 @@ class _EstadoVazioLotes extends StatelessWidget {
   }
 }
 
-class _EstadoVazioBuscaLotes extends StatelessWidget {
+class _EstadoVazioBuscaPiquetes extends StatelessWidget {
   final String filtro;
   final ThemeData theme;
-  const _EstadoVazioBuscaLotes({required this.filtro, required this.theme});
+  const _EstadoVazioBuscaPiquetes({required this.filtro, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -242,7 +242,7 @@ class _EstadoVazioBuscaLotes extends StatelessWidget {
           Icon(Icons.location_off_rounded, size: 64, color: theme.colorScheme.outline.withValues(alpha: 0.2)),
           const SizedBox(height: 16),
           Text(
-            'Nenhum lote encontrado para "$filtro"',
+            'Nenhum piquete encontrado para "$filtro"',
             style: TextStyle(color: theme.colorScheme.outline, fontWeight: FontWeight.w500),
           ),
         ],

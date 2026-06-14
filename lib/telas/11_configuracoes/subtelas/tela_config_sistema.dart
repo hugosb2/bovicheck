@@ -3,9 +3,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../estilos/icones.dart';
 import '../../../estilos/tema.dart';
-import '../../../servicos/banco_dados_servico.dart';
-import '../../2_configuracao_inicial/tela_decisao.dart';
-
 class TelaConfigSistema extends StatefulWidget {
   const TelaConfigSistema({super.key});
 

@@ -1,7 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../estilos/icones.dart';
 import '../../../estilos/tema.dart';
 import '../../2_configuracao_inicial/tela_restaurar.dart';
 import 'tela_exportacao_avancada.dart';
@@ -36,7 +34,7 @@ class _TelaConfigDadosState extends State<TelaConfigDados> {
             child: const Row(
               children: [
                 Icon(Icons.info_outline, color: Colors.blue),
-                const SizedBox(width: 16),
+                SizedBox(width: 16),
                 Expanded(
                   child: Text(
                     'Exporte seus dados para backup ou compartilhe registros específicos de fazendas e animais.',
@@ -52,7 +50,7 @@ class _TelaConfigDadosState extends State<TelaConfigDados> {
           // Card Exportar (Unificado)
           _CardAcaoDados(
             titulo: 'Exportar Dados (Backup)',
-            descricao: 'Crie um backup completo ou exporte apenas fazendas, lotes e animais selecionados.',
+            descricao: 'Crie um backup completo ou exporte apenas fazendas, piquetes e animais selecionados.',
             icone: Icons.cloud_upload_outlined,
             cor: Colors.blue,
             textoBotao: 'CONFIGURAR EXPORTAÇÃO',

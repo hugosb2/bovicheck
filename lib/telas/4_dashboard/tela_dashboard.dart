@@ -6,18 +6,16 @@ import '../../../estilos/icones.dart';
 import '../../../estilos/tema.dart';
 import '../../../provedores/provedor_fazenda.dart';
 
-// --- IMPORTS DOS FORMULÁRIOS ---
 import '../10_formularios/form_pesagem.dart';
 import '../10_formularios/form_sanitario.dart';
 import '../10_formularios/form_reprodutivo.dart';
 import '../10_formularios/form_leite.dart';
 import '../8_rebanho/form_animal.dart';
 import '../8_rebanho/tela_lista_animais.dart';
-import '../9_lotes/form_lote.dart';
-import '../9_lotes/tela_lista_lotes.dart';
+import '../9_piquetes/form_piquete.dart';
+import '../9_piquetes/tela_lista_piquetes.dart';
 import '../5_ia_consultor/tela_ia_consultor.dart';
 
-// Widgets locais
 import 'widgets/gaveta_menu.dart';
 
 class TelaDashboard extends StatefulWidget {
@@ -28,36 +26,12 @@ class TelaDashboard extends StatefulWidget {
 }
 
 class _TelaDashboardState extends State<TelaDashboard> {
-  final ScrollController _scrollController = ScrollController();
-  bool _exibirTitulo = false;
-
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_scrollListener);
-    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProvedorFazenda>().carregarPropriedades();
     });
-  }
-
-  void _scrollListener() {
-    if (_scrollController.hasClients) {
-      // Ativa o título um pouco antes de terminar de recolher a barra (140 é o expandedHeight)
-      final bool novoExibir = _scrollController.offset > 60;
-      if (novoExibir != _exibirTitulo) {
-        setState(() {
-          _exibirTitulo = novoExibir;
-        });
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_scrollListener);
-    _scrollController.dispose();
-    super.dispose();
   }
 
   @override
@@ -77,253 +51,83 @@ class _TelaDashboardState extends State<TelaDashboard> {
     }
 
     if (!temFazenda) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
-          child: Text("Nenhuma fazenda selecionada. Vá em Menu > Trocar Fazenda."),
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.cottage_outlined, size: 80, color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+                const SizedBox(height: 24),
+                Text(
+                  "Nenhuma fazenda selecionada",
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Abra o menu e selecione ou cadastre uma fazenda.",
+                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
         ),
       );
+    }
+
+    if (provedor.totalPiquetes == 0) {
+      return _construirOnboardingPiquete(context, theme, provedor);
+    }
+
+    if (provedor.totalAnimais == 0) {
+      return _construirOnboardingAnimal(context, theme, provedor);
     }
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       drawer: const GavetaMenu(),
-      body: CustomScrollView(
-        controller: _scrollController,
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          // 1. App Bar Moderna com Saudação
-          SliverAppBar(
-            expandedHeight: 140,
-            floating: false,
-            pinned: true,
-            elevation: 0,
-            centerTitle: true,
-            backgroundColor: theme.colorScheme.primary,
-            foregroundColor: theme.colorScheme.onPrimary,
-            title: AnimatedOpacity(
-              opacity: _exibirTitulo ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              child: const Text(
-                "Painel",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              collapseMode: CollapseMode.pin,
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary,
-                      theme.colorScheme.primary.withValues(alpha: 0.8),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 20, bottom: 20),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AnimatedOpacity(
-                        opacity: _exibirTitulo ? 0.0 : 1.0,
-                        duration: const Duration(milliseconds: 200),
-                        child: Text(
-                          "Olá, ${provedor.propriedadeAtiva!.nomeProprietario.split(' ').first}!",
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.onPrimary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.location_on, size: 14, color: theme.colorScheme.onPrimary.withValues(alpha: 0.7)),
-                          const SizedBox(width: 4),
-                          Text(
-                            provedor.propriedadeAtiva!.nomeFazenda,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.notifications_none_rounded),
-                onPressed: () {},
-                color: theme.colorScheme.onPrimary,
-              ),
+      appBar: AppBarPadrao(
+        titulo: "BoviCheck",
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async => await provedor.carregarPropriedades(),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _cabecalhoFazenda(theme, provedor).animate().fadeIn(duration: 300.ms),
+
+              const SizedBox(height: 28),
+
+              const _SecaoTitulo(titulo: "Resumo do Rebanho"),
+              const SizedBox(height: 16),
+
+              _heroTotalRebanho(theme, provedor),
+
+              const SizedBox(height: 16),
+
+              _gridSecundario(theme, provedor),
+
+              const SizedBox(height: 28),
+
+              _cardInsightIA(theme, provedor),
+
+              const SizedBox(height: 32),
+
+              const _SecaoTitulo(titulo: "Ações Rápidas"),
+              const SizedBox(height: 16),
+
+              _gridAgesRapidas(context, theme),
+
+              const SizedBox(height: 40),
             ],
           ),
-
-          // 2. Conteúdo do Dashboard
-          SliverToBoxAdapter(
-            child: RefreshIndicator(
-              onRefresh: () async => await provedor.carregarPropriedades(),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // --- BENTO GRID KPIs ---
-                    _SecaoTitulo(titulo: "Resumo Estratégico"),
-                    const SizedBox(height: 12),
-                    
-                    // Layout Bento
-                    Row(
-                      children: [
-                        // Card Grande: Total Animais
-                        Expanded(
-                          flex: 2,
-                          child: _CardKPIBento(
-                            titulo: "Total Rebanho",
-                            valor: provedor.totalAnimais.toString(),
-                            cor: Colors.blue.shade700,
-                            iconWidget: SvgPicture.asset(
-                              IconesApp.iconAnimalSvg,
-                              width: 32,
-                              height: 32,
-                              colorFilter: ColorFilter.mode(Colors.blue.shade700, BlendMode.srcIn),
-                            ),
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaListaAnimais())),
-                            isDestaque: true,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        // Coluna de 2 cards menores
-                        Expanded(
-                          flex: 1,
-                          child: Column(
-                            children: [
-                              _CardKPIBento(
-                                titulo: "Lotes",
-                                valor: provedor.totalLotes.toString(),
-                                cor: Colors.orange.shade800,
-                                icon: IconesApp.lote,
-                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaListaLotes())),
-                              ),
-                              const SizedBox(height: 12),
-                              _CardKPIBento(
-                                titulo: "Alertas",
-                                valor: provedor.totalAnimaisDoentes.toString(),
-                                cor: provedor.totalAnimaisDoentes > 0 ? Colors.red : Colors.green,
-                                icon: IconesApp.iaAtencao,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _CardKPIBento(
-                            titulo: "Leite (Mês)",
-                            valor: "${provedor.totalLeiteMes.toStringAsFixed(0)}L",
-                            cor: Colors.cyan.shade700,
-                            icon: IconesApp.leite,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _CardKPIBento(
-                            titulo: "GMD Médio",
-                            valor: "${provedor.mediaGMD.toStringAsFixed(2)}kg",
-                            cor: Colors.teal.shade700,
-                            icon: IconesApp.peso,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // --- CARD DE SUGESTÃO IA ---
-                    _CardSugestaoIA(
-                      sugestao: provedor.totalAnimaisDoentes > 0 
-                        ? "Atenção: Você tem ${provedor.totalAnimaisDoentes} animais com alertas de saúde. Recomenda-se vistoria no lote."
-                        : "Seu rebanho está saudável! O GMD médio subiu 0.2kg esta semana. Continue assim.",
-                      carregando: false,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaIAConsultor())),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // --- AÇÕES RÁPIDAS ---
-                    _SecaoTitulo(titulo: "Ações do Dia"),
-                    const SizedBox(height: 12),
-                    GridView.count(
-                      crossAxisCount: 4,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      children: [
-                        _BotaoAcaoCircular(
-                          label: "Pesar",
-                          icon: IconesApp.peso,
-                          cor: Colors.indigo,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormPesagem())),
-                        ),
-                        _BotaoAcaoCircular(
-                          label: "Saúde",
-                          icon: IconesApp.vacina,
-                          cor: Colors.red,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormSanitario())),
-                        ),
-                        _BotaoAcaoCircular(
-                          label: "Cio/Prenhez",
-                          icon: IconesApp.reproducao,
-                          cor: Colors.pink,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormReprodutivo())),
-                        ),
-                        _BotaoAcaoCircular(
-                          label: "Leite",
-                          icon: IconesApp.leite,
-                          cor: Colors.blue,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormLeite())),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // --- ÚLTIMAS ATIVIDADES ---
-                    _SecaoTitulo(titulo: "Linha do Tempo"),
-                    const SizedBox(height: 12),
-                    _CardAtividade(
-                      titulo: "Novo registro de pesagem",
-                      subtitulo: "Lote: Engorda I",
-                      data: "Há 15 min",
-                      icon: IconesApp.peso,
-                      cor: Colors.indigo,
-                    ),
-                    _CardAtividade(
-                      titulo: "Vacinação concluída",
-                      subtitulo: "12 animais imunizados",
-                      data: "Hoje, 08:30",
-                      icon: IconesApp.vacina,
-                      cor: Colors.red,
-                    ),
-                    
-                    const SizedBox(height: 100), // Espaço para não bater no fundo
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
       floatingActionButton: BotaoFlutuanteBovi(
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormAnimal())),
@@ -332,9 +136,508 @@ class _TelaDashboardState extends State<TelaDashboard> {
       ),
     );
   }
-}
 
-// --- WIDGETS AUXILIARES REFORMULADOS ---
+  Widget _cabecalhoFazenda(ThemeData theme, ProvedorFazenda provedor) {
+    final propriedade = provedor.propriedadeAtiva!;
+    final iniciais = propriedade.nomeFazenda.length >= 2
+        ? propriedade.nomeFazenda.substring(0, 2).toUpperCase()
+        : propriedade.nomeFazenda[0].toUpperCase();
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primary.withValues(alpha: 0.15),
+            theme.colorScheme.surface,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primary,
+                  theme.colorScheme.primary.withValues(alpha: 0.7),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                iniciais,
+                style: TextStyle(
+                  color: theme.colorScheme.onPrimary,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 22,
+                  letterSpacing: -1,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  propriedade.nomeFazenda,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(Icons.location_on_rounded, size: 16, color: theme.colorScheme.primary),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        "${propriedade.cidade}, ${propriedade.estado}",
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              "Olá, ${propriedade.nomeProprietario.split(' ').first}",
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSecondaryContainer,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroTotalRebanho(ThemeData theme, ProvedorFazenda provedor) {
+    return InkWell(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaListaAnimais())),
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.primary,
+              theme.colorScheme.primary.withValues(alpha: 0.75),
+            ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: theme.colorScheme.primary.withValues(alpha: 0.35),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: SvgPicture.asset(
+                IconesApp.iconAnimalSvg,
+                width: 36,
+                height: 36,
+                colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              ),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Total do Rebanho",
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    provedor.totalAnimais.toString(),
+                    style: theme.textTheme.displaySmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      height: 1.1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_rounded, color: Colors.white.withValues(alpha: 0.7), size: 28),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _gridSecundario(ThemeData theme, ProvedorFazenda provedor) {
+    return Row(
+      children: [
+        Expanded(
+          child: _cardStatPequeno(
+            theme: theme,
+            titulo: "Piquetes",
+            valor: provedor.totalPiquetes.toString(),
+            icone: IconesApp.piquete,
+            cor: Colors.orange.shade700,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaListaPiquetes())),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _cardStatPequeno(
+            theme: theme,
+            titulo: "Leite (mês)",
+            valor: "${provedor.totalLeiteMes.toStringAsFixed(0)} L",
+            icone: IconesApp.leite,
+            cor: Colors.cyan.shade700,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _cardStatPequeno(
+            theme: theme,
+            titulo: "GMD Médio",
+            valor: "${provedor.mediaGMD.toStringAsFixed(2)} kg",
+            icone: IconesApp.peso,
+            cor: Colors.teal.shade700,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _cardStatPequeno(
+            theme: theme,
+            titulo: "Alertas",
+            valor: provedor.totalAnimaisDoentes.toString(),
+            icone: IconesApp.iaAtencao,
+            cor: provedor.totalAnimaisDoentes > 0 ? Colors.red.shade700 : Colors.green.shade700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _cardStatPequeno({
+    required ThemeData theme,
+    required String titulo,
+    required String valor,
+    required IconData icone,
+    required Color cor,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: cor.withValues(alpha: 0.2),
+            width: 1.2,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icone, color: cor, size: 22),
+            const SizedBox(height: 8),
+            Text(
+              valor,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: cor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              titulo,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _cardInsightIA(ThemeData theme, ProvedorFazenda provedor) {
+    final temAlerta = provedor.totalAnimaisDoentes > 0;
+    return InkWell(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaIAConsultor())),
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: temAlerta
+              ? Colors.red.shade50
+              : theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: temAlerta
+                ? Colors.red.shade200
+                : theme.colorScheme.primary.withValues(alpha: 0.15),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: temAlerta ? Colors.red : theme.colorScheme.primary,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: (temAlerta ? Colors.red : theme.colorScheme.primary).withValues(alpha: 0.25),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(
+                temAlerta ? Icons.warning_rounded : Icons.auto_awesome,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Consultor IA",
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: temAlerta ? Colors.red.shade700 : theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    temAlerta
+                        ? "${provedor.totalAnimaisDoentes} animal(is) com alerta de saúde"
+                        : "Rebanho saudável! GMD médio de ${provedor.mediaGMD.toStringAsFixed(2)} kg.",
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: temAlerta ? Colors.red.shade800 : theme.colorScheme.onSurface,
+                      height: 1.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant, size: 24),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 300.ms);
+  }
+
+  Widget _gridAgesRapidas(BuildContext context, ThemeData theme) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: _botaoAcao(context, "Pesagem", IconesApp.peso, Colors.indigo, const FormPesagem())),
+            const SizedBox(width: 12),
+            Expanded(child: _botaoAcao(context, "Saúde", IconesApp.vacina, Colors.red, const FormSanitario())),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: _botaoAcao(context, "Reprodução", IconesApp.reproducao, Colors.pink, const FormReprodutivo())),
+            const SizedBox(width: 12),
+            Expanded(child: _botaoAcao(context, "Leite", IconesApp.leite, Colors.blue, const FormLeite())),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _botaoAcao(BuildContext context, String label, IconData icone, Color cor, Widget destino) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => destino)),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: cor.withValues(alpha: 0.2), width: 1.2),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: cor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icone, color: cor, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                label,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: cor.withValues(alpha: 0.4), size: 22),
+          ],
+        ),
+      ),
+    ).animate().scale(delay: 200.ms, curve: Curves.easeOutBack);
+  }
+
+  Scaffold _construirOnboardingPiquete(BuildContext context, ThemeData theme, ProvedorFazenda provedor) {
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      drawer: const GavetaMenu(),
+      appBar: const AppBarPadrao(titulo: "BoviCheck"),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(IconesApp.piquete, size: 100, color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+            const SizedBox(height: 32),
+            Text(
+              "Crie seu primeiro piquete",
+              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Piquetes organizam seus animais por categoria, como 'Matrizes', 'Bezerros' ou 'Confinamento'.\n\nCrie ao menos um piquete para começar.",
+              style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+            const Spacer(),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: FilledButton.icon(
+                onPressed: () async {
+                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const FormPiquete()));
+                  if (!context.mounted) return;
+                  await context.read<ProvedorFazenda>().carregarPropriedades();
+                },
+                icon: const Icon(Icons.add),
+                label: const Text("Criar Piquete", style: TextStyle(fontSize: 18)),
+              ),
+            ),
+            const SizedBox(height: 48),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Scaffold _construirOnboardingAnimal(BuildContext context, ThemeData theme, ProvedorFazenda provedor) {
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      drawer: const GavetaMenu(),
+      appBar: const AppBarPadrao(titulo: "BoviCheck"),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgPicture.asset(
+              IconesApp.iconAnimalSvg,
+              width: 100,
+              height: 100,
+              colorFilter: ColorFilter.mode(theme.colorScheme.primary.withValues(alpha: 0.3), BlendMode.srcIn),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              "Cadastre seu primeiro animal",
+              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Agora cadastre os animais do seu rebanho. Informe brinco, nome, raça, data de nascimento e muito mais.",
+              style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+            const Spacer(),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: FilledButton.icon(
+                onPressed: () async {
+                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const FormAnimal()));
+                  if (!context.mounted) return;
+                  await context.read<ProvedorFazenda>().carregarPropriedades();
+                },
+                icon: const Icon(Icons.add),
+                label: const Text("Cadastrar Animal", style: TextStyle(fontSize: 18)),
+              ),
+            ),
+            const SizedBox(height: 48),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _SecaoTitulo extends StatelessWidget {
   final String titulo;
@@ -344,285 +647,11 @@ class _SecaoTitulo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       titulo,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+      style: Theme.of(context).textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w800,
-            letterSpacing: 0.5,
           ),
     );
   }
 }
 
-class _CardKPIBento extends StatelessWidget {
-  final String titulo;
-  final String valor;
-  final IconData? icon;
-  final Widget? iconWidget;
-  final Color cor;
-  final VoidCallback? onTap;
-  final bool isDestaque;
 
-  const _CardKPIBento({
-    required this.titulo,
-    required this.valor,
-    this.icon,
-    this.iconWidget,
-    required this.cor,
-    this.onTap,
-    this.isDestaque = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bool clicavel = onTap != null;
-    
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        height: isDestaque ? 160 : 74,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: clicavel 
-              ? cor.withValues(alpha: 0.3) 
-              : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-            width: clicavel ? 1.5 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: clicavel ? cor.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Stack(
-          children: [
-            if (clicavel)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Icon(Icons.arrow_outward_rounded, size: 14, color: cor.withValues(alpha: 0.5)),
-              ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: isDestaque ? MainAxisAlignment.spaceBetween : MainAxisAlignment.center,
-              children: [
-                if (isDestaque) ...[
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: cor.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: iconWidget ?? Icon(icon, color: cor, size: 24),
-                  ),
-                  const Spacer(),
-                  Text(valor, style: theme.textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.w900, color: cor)),
-                  Text(titulo, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant)),
-                ] else ...[
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(icon, color: cor, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(valor, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, height: 1.1)),
-                            ),
-                            Text(titulo, 
-                              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontSize: 10), 
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ],
-                        ),
-                      )
-                    ],
-                  )
-                ],
-              ],
-            ),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
-  }
-}
-
-class _CardSugestaoIA extends StatelessWidget {
-  final String sugestao;
-  final bool carregando;
-  final VoidCallback onTap;
-
-  const _CardSugestaoIA({required this.sugestao, required this.carregando, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: carregando ? null : onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              theme.colorScheme.primaryContainer.withValues(alpha: 0.7),
-              theme.colorScheme.surfaceContainerHighest,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))
-                ]
-              ),
-              child: carregando 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Insight da IA",
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  if (carregando)
-                    Container(
-                      width: double.infinity,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 1.seconds)
-                  else
-                    Text(
-                      sugestao,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        height: 1.3,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            if (!carregando) Icon(Icons.chevron_right_rounded, color: theme.colorScheme.primary),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(delay: 400.ms);
-  }
-}
-
-class _BotaoAcaoCircular extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color cor;
-  final VoidCallback onTap;
-
-  const _BotaoAcaoCircular({required this.label, required this.icon, required this.cor, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: cor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(icon, color: cor, size: 28),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    ).animate().scale(delay: 200.ms);
-  }
-}
-
-class _CardAtividade extends StatelessWidget {
-  final String titulo;
-  final String subtitulo;
-  final String data;
-  final IconData icon;
-  final Color cor;
-
-  const _CardAtividade({required this.titulo, required this.subtitulo, required this.data, required this.icon, required this.cor});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: cor.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: cor, size: 18),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                Text(subtitulo, style: theme.textTheme.bodySmall),
-              ],
-            ),
-          ),
-          Text(data, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        ],
-      ),
-    ).animate().fadeIn().slideX(begin: 0.05, end: 0);
-  }
-}

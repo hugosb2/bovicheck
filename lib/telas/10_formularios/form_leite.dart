@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -88,9 +89,12 @@ class _FormLeiteState extends State<FormLeite> {
       await BancoDadosServico.instancia.salvarProducaoLeite(producao);
 
       if (mounted) {
-        context.read<ProvedorFazenda>().carregarPropriedades();
+        final provedor = context.read<ProvedorFazenda>();
+        if (provedor.propriedadeAtiva != null) {
+          await provedor.carregarAnimais(provedor.propriedadeAtiva!.id);
+        }
         _mostrarSucesso('Produção de leite salva com sucesso!');
-        Navigator.pop(context);
+        if (mounted) Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) _mostrarErro('Erro ao salvar: $e');
@@ -143,7 +147,7 @@ class _FormLeiteState extends State<FormLeite> {
                     if (widget.animalPreSelecionado == null)
                       DropdownPadrao<String>(
                         label: 'Vaca',
-                        icone: IconesApp.animal,
+                        svgIcone: IconesApp.iconAnimalSvg,
                         valorSelecionado: _animalIdSelecionado,
                         itens: femeas.map((a) {
                           return DropdownMenuItem(
@@ -156,7 +160,7 @@ class _FormLeiteState extends State<FormLeite> {
                       )
                     else
                       _WidgetInformativo(
-                        icone: IconesApp.animal,
+                        svgIcone: IconesApp.iconAnimalSvg,
                         titulo: 'Vaca Selecionada',
                         valor: '${widget.animalPreSelecionado!.brinco} - ${widget.animalPreSelecionado!.nome ?? "Sem nome"}',
                       ),
@@ -243,11 +247,11 @@ class _FormLeiteState extends State<FormLeite> {
 }
 
 class _WidgetInformativo extends StatelessWidget {
-  final IconData icone;
+  final String? svgIcone;
   final String titulo;
   final String valor;
 
-  const _WidgetInformativo({required this.icone, required this.titulo, required this.valor});
+  const _WidgetInformativo({this.svgIcone, required this.titulo, required this.valor});
 
   @override
   Widget build(BuildContext context) {
@@ -262,7 +266,8 @@ class _WidgetInformativo extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icone, color: theme.colorScheme.primary),
+          if (svgIcone != null)
+            SvgPicture.asset(svgIcone!, width: 24, height: 24, colorFilter: ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn)),
           const SizedBox(width: 16),
           Expanded(
             child: Column(

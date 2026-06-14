@@ -3,12 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../estilos/icones.dart';
 import '../../estilos/tema.dart';
-import '../../modelos/lote.dart';
+import '../../modelos/piquete.dart';
 import '../../modelos/animal.dart';
 import '../../provedores/provedor_fazenda.dart';
 import 'tela_detalhes_animal.dart';
 import 'form_animal.dart';
-import '../9_lotes/form_lote.dart';
+import '../9_piquetes/form_piquete.dart';
 
 class TelaListaAnimais extends StatefulWidget {
   const TelaListaAnimais({super.key});
@@ -37,25 +37,25 @@ class _TelaListaAnimaisState extends State<TelaListaAnimais> {
 
   void _navegarParaNovoAnimal(BuildContext context) {
     final provedor = context.read<ProvedorFazenda>();
-    if (provedor.lotes.isEmpty) {
-      _mostrarAvisoSemLote(context);
+    if (provedor.piquetes.isEmpty) {
+      _mostrarAvisoSemPiquete(context);
     } else {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const FormAnimal()));
     }
   }
 
-  void _mostrarAvisoSemLote(BuildContext context) {
+  void _mostrarAvisoSemPiquete(BuildContext context) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Lote Necessário'),
-        content: const Text('Para cadastrar animais, você precisa de pelo menos um lote ou pasto ativo.'),
+        title: const Text('Piquete Necessário'),
+        content: const Text('Para cadastrar animais, você precisa de pelo menos um piquete ou pasto ativo.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('VOLTAR')),
           FilledButton(
-            onPressed: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const FormLote())); },
-            child: const Text('CRIAR LOTE'),
+            onPressed: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const FormPiquete())); },
+            child: const Text('CRIAR PIQUETE'),
           ),
         ],
       ),
@@ -113,8 +113,8 @@ class _TelaListaAnimaisState extends State<TelaListaAnimais> {
                       itemCount: animaisFiltrados.length,
                       itemBuilder: (context, index) {
                         final animal = animaisFiltrados[index];
-                        final lote = provedor.lotes.cast<Lote?>().firstWhere((l) => l?.id == animal.loteId, orElse: () => null);
-                        return _CardAnimalModerno(animal: animal, loteNome: lote?.nome ?? 'Sem lote', index: index);
+                        final piquete = provedor.piquetes.cast<Piquete?>().firstWhere((p) => p?.id == animal.loteId, orElse: () => null);
+                        return _CardAnimalModerno(animal: animal, loteNome: piquete?.nome ?? 'Sem piquete', index: index);
                       },
                     ),
             ),

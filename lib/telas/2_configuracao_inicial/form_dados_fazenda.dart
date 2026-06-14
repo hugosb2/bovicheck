@@ -9,7 +9,7 @@ import '../../modelos/propriedade.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../servicos/preferencias_usuario.dart';
 import '../../servicos/banco_dados_servico.dart';
-import '../4_dashboard/tela_dashboard.dart' hide Text;
+import '../4_dashboard/tela_dashboard.dart';
 
 class FormDadosFazenda extends StatefulWidget {
   final Propriedade? propriedadeExistente;
@@ -22,7 +22,6 @@ class FormDadosFazenda extends StatefulWidget {
 
 class _FormDadosFazendaState extends State<FormDadosFazenda> {
   final PageController _pageController = PageController();
-  final _formKey = GlobalKey<FormState>();
 
   final _nomeFazendaController = TextEditingController();
   final _proprietarioController = TextEditingController();
@@ -92,15 +91,6 @@ class _FormDadosFazendaState extends State<FormDadosFazenda> {
     
     if (_etapaAtual < 2) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-
-  void _etapaAnterior() {
-    if (_etapaAtual > 0) {
-      _pageController.previousPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
@@ -433,7 +423,7 @@ class _FormDadosFazendaState extends State<FormDadosFazenda> {
               Expanded(
                 flex: 2,
                 child: DropdownButtonFormField<String>(
-                  value: _estadoSelecionado,
+                  initialValue: _estadoSelecionado,
                   decoration: _inputDecor('UF', Icons.map),
                   isExpanded: true,
                   items: _estados.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
@@ -471,7 +461,7 @@ class _FormDadosFazendaState extends State<FormDadosFazenda> {
           const SizedBox(height: 32),
           
           DropdownButtonFormField<String>(
-            value: _sistemaProducao,
+            initialValue: _sistemaProducao,
             decoration: _inputDecor('Sistema de Produção', Icons.settings_input_component),
             items: _sistemas.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
             onChanged: (v) => setState(() => _sistemaProducao = v!),
@@ -507,16 +497,7 @@ class _FormDadosFazendaState extends State<FormDadosFazenda> {
       child: SafeArea(
         child: Row(
           children: [
-            if (_etapaAtual > 0)
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _etapaAnterior,
-                  child: const Text('VOLTAR'),
-                ),
-              ),
-            if (_etapaAtual > 0) const SizedBox(width: 16),
             Expanded(
-              flex: 2,
               child: FilledButton(
                 onPressed: _salvando 
                     ? null 

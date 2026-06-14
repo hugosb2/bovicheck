@@ -1,5 +1,5 @@
 import 'package:uuid/uuid.dart';
-import 'lote.dart';
+import 'piquete.dart';
 import 'animal.dart';
 import 'log_sistema.dart';
 
@@ -34,9 +34,8 @@ class Propriedade {
 
   // --- Métodos do Diagrama de Classes ---
 
-  /// Adiciona um lote à lista fornecida (retorna nova lista imutável).
-  List<Lote> adicionarLote(List<Lote> lotes, Lote lote) {
-    return [...lotes, lote];
+  List<Piquete> adicionarPiquete(List<Piquete> piquetes, Piquete piquete) {
+    return [...piquetes, piquete];
   }
 
   /// Registra um log de ação do sistema e o retorna.
@@ -49,7 +48,7 @@ class Propriedade {
   }
 
   /// Gera um sumário textual do relatório geral .
-  String gerarRelatorioGeral(List<Animal> animais, List<Lote> lotes) {
+  String gerarRelatorioGeral(List<Animal> animais, List<Piquete> piquetes) {
     final total = getTotalAnimais(animais);
     final natal = calcularNatalidadeGlobal(animais);
     final mort = calcularMortalidadeGlobal(animais);
@@ -57,7 +56,7 @@ class Propriedade {
 Relatório Geral - $nomeFazenda
 Proprietário: $nomeProprietario
 Total de Animais: $total
-Lotes: ${lotes.length}
+Piquetes: ${piquetes.length}
 Natalidade Global: ${natal.toStringAsFixed(1)}%
 Mortalidade Global: ${mort.toStringAsFixed(1)}%
     '''

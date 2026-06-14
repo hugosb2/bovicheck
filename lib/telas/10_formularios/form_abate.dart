@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../estilos/icones.dart';
+import '../../estilos/tema.dart';
 import '../../modelos/animal.dart';
 import '../../modelos/eventos/abate.dart';
 import '../../provedores/provedor_fazenda.dart';
@@ -22,13 +25,14 @@ class _FormAbateState extends State<FormAbate> {
   final _pesoCarcacaController = TextEditingController();
   final _observacaoController = TextEditingController();
 
-  DateTime _dataAbate = DateTime.now();
+  late DateTime _dataAbate;
   String? _animalIdSelecionado;
   bool _salvando = false;
 
   @override
   void initState() {
     super.initState();
+    _dataAbate = DateTime.now();
     if (widget.animalPreSelecionado != null) {
       _animalIdSelecionado = widget.animalPreSelecionado!.id;
       _pesoVivoController.text = widget.animalPreSelecionado!.pesoAtualKg.toString();
@@ -43,24 +47,22 @@ class _FormAbateState extends State<FormAbate> {
     super.dispose();
   }
 
-  Future<void> _selecionarData(BuildContext context) async {
-    final DateTime? colhida = await showDatePicker(
+  String get _dataFormatada => DateFormat('dd/MM/yyyy').format(_dataAbate);
+
+  Future<void> _selecionarData() async {
+    final picked = await showDatePicker(
       context: context,
       initialDate: _dataAbate,
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
     );
-    if (colhida != null && colhida != _dataAbate) {
-      setState(() => _dataAbate = colhida);
-    }
+    if (picked != null) setState(() => _dataAbate = picked);
   }
 
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
     if (_animalIdSelecionado == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecione um animal')),
-      );
+      _mostrarErro('Selecione um animal');
       return;
     }
 
@@ -73,42 +75,45 @@ class _FormAbateState extends State<FormAbate> {
         data: _dataAbate,
         pesoVivoKg: double.parse(_pesoVivoController.text.replaceAll(',', '.')),
         pesoCarcacaKg: double.parse(_pesoCarcacaController.text.replaceAll(',', '.')),
-        observacao: _observacaoController.text,
+        observacao: _observacaoController.text.isEmpty ? null : _observacaoController.text,
       );
 
-      // Usando o método correto do banco
       await BancoDadosServico.instancia.salvarAbate(abate.toMap());
 
-      if (mounted) {
-        final provedor = context.read<ProvedorFazenda>();
-        await provedor.carregarAnimais(provedor.propriedadeAtiva!.id);
-        
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Abate registrado com sucesso!'), backgroundColor: Colors.green),
-        );
-      }
+      if (!mounted) return;
+      final provedor = context.read<ProvedorFazenda>();
+      await provedor.carregarAnimais(provedor.propriedadeAtiva!.id);
+
+      if (!mounted) return;
+      _mostrarSucesso('Abate registrado com sucesso!');
+      Navigator.pop(context);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao salvar: $e'), backgroundColor: Colors.red),
-        );
-      }
+      if (mounted) _mostrarErro('Erro ao salvar: $e');
     } finally {
       if (mounted) setState(() => _salvando = false);
     }
+  }
+
+  void _mostrarErro(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red.shade800, behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  void _mostrarSucesso(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.green.shade800, behavior: SnackBarBehavior.floating),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final provedor = context.watch<ProvedorFazenda>();
-    final listaAnimais = provedor.animais;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Registrar Abate'),
-      ),
+      backgroundColor: theme.colorScheme.surface,
+      appBar: const AppBarPadrao(titulo: 'Registrar Abate', centralizar: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Form(
@@ -116,131 +121,151 @@ class _FormAbateState extends State<FormAbate> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Card(
-                elevation: 0,
-                color: theme.colorScheme.surfaceContainerLow,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Informações do Animal',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        value: _animalIdSelecionado,
-                        decoration: InputDecoration(
-                          labelText: 'Selecione o animal',
-                          border: const OutlineInputBorder(),
-                          prefixIcon: Icon(IconesApp.animal),
-                        ),
-                        items: listaAnimais
-                            .where((a) => a.isAtivo)
-                            .map(
-                              (animal) => DropdownMenuItem(
-                                value: animal.id,
-                                child: Text(
-                                  '${animal.brinco} - ${animal.nome ?? animal.raca}',
-                                ),
-                              ),
-                            )
-                            .toList(),
+              const SecaoTitulo(texto: 'Animal', svgIcone: IconesApp.iconAnimalSvg),
+              CartaoPadrao(
+                child: Column(
+                  children: [
+                    if (widget.animalPreSelecionado == null)
+                      DropdownPadrao<String>(
+                        label: 'Selecione o animal',
+                        svgIcone: IconesApp.iconAnimalSvg,
+                        valorSelecionado: _animalIdSelecionado,
+                        itens: provedor.animais.where((a) => a.isAtivo).map((a) {
+                          return DropdownMenuItem(
+                            value: a.id,
+                            child: Text('${a.brinco} - ${a.nome ?? a.raca}'),
+                          );
+                        }).toList(),
                         onChanged: (val) {
                           setState(() {
                             _animalIdSelecionado = val;
                             if (val != null) {
-                              final animal = listaAnimais.firstWhere((a) => a.id == val);
+                              final animal = provedor.animais.firstWhere((a) => a.id == val);
                               _pesoVivoController.text = animal.pesoAtualKg.toString();
                             }
                           });
                         },
+                        validador: (v) => v == null ? 'Obrigatório' : null,
+                      )
+                    else
+                      _WidgetInformativo(
+                        svgIcone: IconesApp.iconAnimalSvg,
+                        titulo: 'Animal Selecionado',
+                        valor: '${widget.animalPreSelecionado!.brinco} - ${widget.animalPreSelecionado!.nome ?? "Sem nome"}',
                       ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
               const SizedBox(height: 24),
-              Text(
-                'Dados do Abate',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.calendar_today),
-                title: const Text('Data do Abate'),
-                subtitle: Text('${_dataAbate.day}/${_dataAbate.month}/${_dataAbate.year}'),
-                trailing: TextButton(
-                  onPressed: () => _selecionarData(context),
-                  child: const Text('ALTERAR'),
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _pesoVivoController,
-                      decoration: const InputDecoration(
-                        labelText: 'Peso Vivo (kg) *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.monitor_weight_outlined),
+              const SecaoTitulo(texto: 'Dados do Abate', icone: Icons.fitness_center),
+              CartaoPadrao(
+                child: Column(
+                  children: [
+                    InkWell(
+                      onTap: _selecionarData,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InputDecorator(
+                        decoration: const InputDecoration(
+                          labelText: 'Data do Abate',
+                          prefixIcon: Icon(Icons.calendar_today_outlined),
+                        ),
+                        child: Text(_dataFormatada, style: theme.textTheme.bodyLarge),
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: (val) => (val == null || val.isEmpty) ? 'Obrigatório' : null,
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _pesoCarcacaController,
-                      decoration: const InputDecoration(
-                        labelText: 'Carcaça (kg) *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.fitness_center),
-                      ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: (val) => (val == null || val.isEmpty) ? 'Obrigatório' : null,
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: CampoFormularioPadrao(
+                            label: 'Peso Vivo (kg)',
+                            icone: IconesApp.peso,
+                            controller: _pesoVivoController,
+                            tipoTeclado: const TextInputType.numberWithOptions(decimal: true),
+                            validador: (v) {
+                              if (v!.isEmpty) return 'Obrigatório';
+                              if (double.tryParse(v.replaceAll(',', '.')) == null) return 'Inválido';
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: CampoFormularioPadrao(
+                            label: 'Carcaça (kg)',
+                            icone: Icons.fitness_center,
+                            controller: _pesoCarcacaController,
+                            tipoTeclado: const TextInputType.numberWithOptions(decimal: true),
+                            validador: (v) {
+                              if (v!.isEmpty) return 'Obrigatório';
+                              if (double.tryParse(v.replaceAll(',', '.')) == null) return 'Inválido';
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _observacaoController,
-                decoration: const InputDecoration(
-                  labelText: 'Observações',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.notes),
+                  ],
                 ),
-                maxLines: 3,
+              ),
+              const SizedBox(height: 24),
+              const SecaoTitulo(texto: 'Observações', icone: Icons.notes_rounded),
+              CartaoPadrao(
+                child: CampoFormularioPadrao(
+                  label: 'Informações adicionais (Opcional)',
+                  controller: _observacaoController,
+                  maxLinhas: 3,
+                ),
               ),
               const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: FilledButton(
-                  onPressed: _salvando ? null : _salvar,
-                  child: _salvando
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('REGISTRAR ABATE'),
-                ),
+              BotaoPadrao(
+                label: 'REGISTRAR ABATE',
+                icone: IconesApp.salvar,
+                onPressed: _salvando ? null : _salvar,
+                carregando: _salvando,
+                expandido: true,
               ),
+              const SizedBox(height: 40),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _WidgetInformativo extends StatelessWidget {
+  final String? svgIcone;
+  final String titulo;
+  final String valor;
+
+  const _WidgetInformativo({this.svgIcone, required this.titulo, required this.valor});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          if (svgIcone != null)
+            SvgPicture.asset(svgIcone!, width: 24, height: 24, colorFilter: ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(titulo, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary)),
+                Text(valor, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

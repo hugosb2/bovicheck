@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -26,12 +27,7 @@ class _FormPesagemState extends State<FormPesagem> {
   
   late DateTime _dataSelecionada;
   String? _animalIdSelecionado;
-  String _etapaSelecionada = 'Geral';
   bool _salvando = false;
-
-  final List<String> _etapas = [
-    'Geral', 'Nascimento', 'Desmame', 'Entrada Engorda', 'Saída Engorda', 'Venda',
-  ];
 
   @override
   void initState() {
@@ -82,16 +78,18 @@ class _FormPesagemState extends State<FormPesagem> {
         animalId: _animalIdSelecionado!,
         data: _dataSelecionada,
         pesoKg: peso,
-        etapa: _etapaSelecionada,
         observacao: _obsController.text.isEmpty ? null : _obsController.text,
       );
 
       await BancoDadosServico.instancia.salvarPesagem(novaPesagem);
 
       if (mounted) {
-        context.read<ProvedorFazenda>().carregarPropriedades();
+        final p = context.read<ProvedorFazenda>();
+        if (p.propriedadeAtiva != null) {
+          await p.carregarAnimais(p.propriedadeAtiva!.id);
+        }
         _mostrarSucesso('Pesagem registrada com sucesso!');
-        Navigator.pop(context);
+        if (mounted) Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) _mostrarErro('Erro ao salvar: $e');
@@ -143,7 +141,7 @@ class _FormPesagemState extends State<FormPesagem> {
                     if (widget.animalPreSelecionado == null)
                       DropdownPadrao<String>(
                         label: 'Animal',
-                        icone: IconesApp.animal,
+                        svgIcone: IconesApp.iconAnimalSvg,
                         valorSelecionado: _animalIdSelecionado,
                         itens: provedor.animais.map((a) {
                           return DropdownMenuItem(
@@ -156,7 +154,7 @@ class _FormPesagemState extends State<FormPesagem> {
                       )
                     else
                       _WidgetInformativo(
-                        icone: IconesApp.animal,
+                        svgIcone: IconesApp.iconAnimalSvg,
                         titulo: 'Animal Selecionado',
                         valor: '${widget.animalPreSelecionado!.brinco} - ${widget.animalPreSelecionado!.nome ?? "Sem nome"}',
                       ),
@@ -198,14 +196,6 @@ class _FormPesagemState extends State<FormPesagem> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    DropdownPadrao<String>(
-                      label: 'Etapa / Contexto',
-                      icone: Icons.timeline,
-                      valorSelecionado: _etapaSelecionada,
-                      itens: _etapas.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                      onChanged: (v) => setState(() => _etapaSelecionada = v!),
-                    ),
                   ],
                 ),
               ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1, end: 0),
@@ -243,11 +233,11 @@ class _FormPesagemState extends State<FormPesagem> {
 }
 
 class _WidgetInformativo extends StatelessWidget {
-  final IconData icone;
+  final String? svgIcone;
   final String titulo;
   final String valor;
 
-  const _WidgetInformativo({required this.icone, required this.titulo, required this.valor});
+  const _WidgetInformativo({this.svgIcone, required this.titulo, required this.valor});
 
   @override
   Widget build(BuildContext context) {
@@ -262,7 +252,8 @@ class _WidgetInformativo extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icone, color: theme.colorScheme.primary),
+          if (svgIcone != null)
+            SvgPicture.asset(svgIcone!, width: 24, height: 24, colorFilter: ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn)),
           const SizedBox(width: 16),
           Expanded(
             child: Column(

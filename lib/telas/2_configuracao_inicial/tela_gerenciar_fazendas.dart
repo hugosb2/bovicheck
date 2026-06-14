@@ -244,7 +244,7 @@ class TelaGerenciarFazendas extends StatelessWidget {
                           title: const Text('Excluir Fazenda?'),
                           content: Text(
                             'Tem certeza que deseja excluir "${fazenda.nomeFazenda}"?\n\n'
-                            'Isso também excluirá todos os lotes, animais e eventos desta fazenda.',
+                            'Isso também excluirá todos os piquetes, animais e eventos desta fazenda.',
                           ),
                           actions: [
                             TextButton(

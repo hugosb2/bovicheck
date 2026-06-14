@@ -11,7 +11,6 @@ class PreferenciasUsuario {
   final String idioma;
 
   static const _keyTema = 'tema_app_v2';
-  static const _keyCor = 'cor_app_v2';
   static const _keyUltimaFazenda = 'ultima_fazenda_id';
 
   PreferenciasUsuario({

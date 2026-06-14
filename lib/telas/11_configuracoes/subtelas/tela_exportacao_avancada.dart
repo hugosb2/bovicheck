@@ -4,10 +4,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../../../estilos/tema.dart';
 import '../../../modelos/propriedade.dart';
-import '../../../modelos/lote.dart';
+import '../../../modelos/piquete.dart';
 import '../../../modelos/animal.dart';
 import '../../../servicos/banco_dados_servico.dart';
 
@@ -22,11 +21,11 @@ class _TelaExportacaoAvancadaState extends State<TelaExportacaoAvancada> {
   bool _carregando = true;
   bool _tudoSelecionado = false;
   List<Propriedade> _fazendas = [];
-  Map<String, List<Lote>> _lotesPorFazenda = {};
-  Map<String, List<Animal>> _animaisPorLote = {};
+  final Map<String, List<Piquete>> _piquetesPorFazenda = {};
+  final Map<String, List<Animal>> _animaisPorLote = {};
 
   final Set<String> _fazendasSelecionadas = {};
-  final Set<String> _lotesSelecionados = {};
+  final Set<String> _piquetesSelecionados = {};
   final Set<String> _animaisSelecionados = {};
   
   final Set<String> _camposAnimalSelecionados = {
@@ -57,16 +56,15 @@ class _TelaExportacaoAvancadaState extends State<TelaExportacaoAvancada> {
       final fazendas = await db.getPropriedades();
       
       for (var f in fazendas) {
-        final lotes = await db.getLotesPorFazenda(f.id);
-        _lotesPorFazenda[f.id] = lotes;
-        
-        for (var l in lotes) {
+        final piquetes = await db.getPiquetesPorFazenda(f.id);
+        _piquetesPorFazenda[f.id] = piquetes;
+        for (var p in piquetes) {
           final animais = await db.database.then((database) => database.query(
             'animais',
             where: 'loteId = ?',
-            whereArgs: [l.id],
+            whereArgs: [p.id],
           ));
-          _animaisPorLote[l.id] = animais.map((a) => Animal.fromMap(a)).toList();
+          _animaisPorLote[p.id] = animais.map((a) => Animal.fromMap(a)).toList();
         }
       }
 
@@ -87,18 +85,18 @@ class _TelaExportacaoAvancadaState extends State<TelaExportacaoAvancada> {
       if (_tudoSelecionado) {
         for (var f in _fazendas) {
           _fazendasSelecionadas.add(f.id);
-          final lotes = _lotesPorFazenda[f.id] ?? [];
-          for (var l in lotes) {
-            _lotesSelecionados.add(l.id);
-            final animais = _animaisPorLote[l.id] ?? [];
-            for (var a in animais) {
+          final piquetes = _piquetesPorFazenda[f.id] ?? [];
+          for (var p in piquetes) {
+            _piquetesSelecionados.add(p.id);
+            final animais = _animaisPorLote[p.id] ?? [];
+                    for (var a in animais) {
               _animaisSelecionados.add(a.id);
             }
           }
         }
       } else {
         _fazendasSelecionadas.clear();
-        _lotesSelecionados.clear();
+        _piquetesSelecionados.clear();
         _animaisSelecionados.clear();
       }
     });
@@ -108,10 +106,10 @@ class _TelaExportacaoAvancadaState extends State<TelaExportacaoAvancada> {
     setState(() {
       if (_fazendasSelecionadas.contains(id)) {
         _fazendasSelecionadas.remove(id);
-        final lotes = _lotesPorFazenda[id] ?? [];
-        for (var l in lotes) {
-          _lotesSelecionados.remove(l.id);
-          final animais = _animaisPorLote[l.id] ?? [];
+        final piquetes = _piquetesPorFazenda[id] ?? [];
+        for (var p in piquetes) {
+          _piquetesSelecionados.remove(p.id);
+          final animais = _animaisPorLote[p.id] ?? [];
           for (var a in animais) {
             _animaisSelecionados.remove(a.id);
           }
@@ -119,10 +117,10 @@ class _TelaExportacaoAvancadaState extends State<TelaExportacaoAvancada> {
         _tudoSelecionado = false;
       } else {
         _fazendasSelecionadas.add(id);
-        final lotes = _lotesPorFazenda[id] ?? [];
-        for (var l in lotes) {
-          _lotesSelecionados.add(l.id);
-          final animais = _animaisPorLote[l.id] ?? [];
+        final piquetes = _piquetesPorFazenda[id] ?? [];
+        for (var p in piquetes) {
+          _piquetesSelecionados.add(p.id);
+          final animais = _animaisPorLote[p.id] ?? [];
           for (var a in animais) {
             _animaisSelecionados.add(a.id);
           }
@@ -131,19 +129,19 @@ class _TelaExportacaoAvancadaState extends State<TelaExportacaoAvancada> {
     });
   }
 
-  void _alternarLote(String fazendaId, String loteId) {
+  void _alternarPiquete(String fazendaId, String piqueteId) {
     setState(() {
-      if (_lotesSelecionados.contains(loteId)) {
-        _lotesSelecionados.remove(loteId);
-        final animais = _animaisPorLote[loteId] ?? [];
+      if (_piquetesSelecionados.contains(piqueteId)) {
+        _piquetesSelecionados.remove(piqueteId);
+        final animais = _animaisPorLote[piqueteId] ?? [];
         for (var a in animais) {
           _animaisSelecionados.remove(a.id);
         }
         _tudoSelecionado = false;
       } else {
-        _lotesSelecionados.add(loteId);
+        _piquetesSelecionados.add(piqueteId);
         _fazendasSelecionadas.add(fazendaId);
-        final animais = _animaisPorLote[loteId] ?? [];
+        final animais = _animaisPorLote[piqueteId] ?? [];
         for (var a in animais) {
           _animaisSelecionados.add(a.id);
         }
@@ -151,21 +149,21 @@ class _TelaExportacaoAvancadaState extends State<TelaExportacaoAvancada> {
     });
   }
 
-  void _alternarAnimal(String fazendaId, String loteId, String animalId) {
+  void _alternarAnimal(String fazendaId, String piqueteId, String animalId) {
     setState(() {
       if (_animaisSelecionados.contains(animalId)) {
         _animaisSelecionados.remove(animalId);
         _tudoSelecionado = false;
       } else {
         _animaisSelecionados.add(animalId);
-        _lotesSelecionados.add(loteId);
+        _piquetesSelecionados.add(piqueteId);
         _fazendasSelecionadas.add(fazendaId);
       }
     });
   }
 
   Future<void> _exportar() async {
-    if (_fazendasSelecionadas.isEmpty && _lotesSelecionados.isEmpty && _animaisSelecionados.isEmpty) {
+    if (_fazendasSelecionadas.isEmpty && _piquetesSelecionados.isEmpty && _animaisSelecionados.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Selecione ao menos um item para exportar.')),
       );
@@ -175,7 +173,7 @@ class _TelaExportacaoAvancadaState extends State<TelaExportacaoAvancada> {
     try {
       final jsonStr = await BancoDadosServico.instancia.exportarDadosGranular(
         fazendaIds: _fazendasSelecionadas.toList(),
-        loteIds: _lotesSelecionados.toList(),
+        piqueteIds: _piquetesSelecionados.toList(),
         animalIds: _animaisSelecionados.toList(),
         camposAnimal: _camposAnimalSelecionados,
       );
@@ -302,7 +300,7 @@ class _TelaExportacaoAvancadaState extends State<TelaExportacaoAvancada> {
   }
 
   Widget _buildFazendaTile(Propriedade f) {
-    final lotes = _lotesPorFazenda[f.id] ?? [];
+    final piquetes = _piquetesPorFazenda[f.id] ?? [];
     final selecionada = _fazendasSelecionadas.contains(f.id);
 
     return ExpansionTile(
@@ -311,37 +309,37 @@ class _TelaExportacaoAvancadaState extends State<TelaExportacaoAvancada> {
         onChanged: (_) => _alternarFazenda(f.id),
       ),
       title: Text(f.nomeFazenda, style: const TextStyle(fontWeight: FontWeight.bold)),
-      subtitle: Text('${lotes.length} lotes'),
-      children: lotes.map((l) => _buildLoteTile(f.id, l)).toList(),
+      subtitle: Text('${piquetes.length} piquetes'),
+      children: piquetes.map((p) => _buildPiqueteTile(f.id, p)).toList(),
     );
   }
 
-  Widget _buildLoteTile(String fazendaId, Lote l) {
-    final animais = _animaisPorLote[l.id] ?? [];
-    final selecionado = _lotesSelecionados.contains(l.id);
+  Widget _buildPiqueteTile(String fazendaId, Piquete p) {
+    final animais = _animaisPorLote[p.id] ?? [];
+    final selecionado = _piquetesSelecionados.contains(p.id);
 
     return Padding(
       padding: const EdgeInsets.only(left: 16),
       child: ExpansionTile(
         leading: Checkbox(
           value: selecionado,
-          onChanged: (_) => _alternarLote(fazendaId, l.id),
+          onChanged: (_) => _alternarPiquete(fazendaId, p.id),
         ),
-        title: Text(l.nome),
+        title: Text(p.nome),
         subtitle: Text('${animais.length} animais'),
-        children: animais.map((a) => _buildAnimalTile(fazendaId, l.id, a)).toList(),
+        children: animais.map((a) => _buildAnimalTile(fazendaId, p.id, a)).toList(),
       ),
     );
   }
 
-  Widget _buildAnimalTile(String fazendaId, String loteId, Animal a) {
+  Widget _buildAnimalTile(String fazendaId, String piqueteId, Animal a) {
     final selecionado = _animaisSelecionados.contains(a.id);
 
     return ListTile(
       contentPadding: const EdgeInsets.only(left: 48, right: 16),
       leading: Checkbox(
         value: selecionado,
-        onChanged: (_) => _alternarAnimal(fazendaId, loteId, a.id),
+        onChanged: (_) => _alternarAnimal(fazendaId, piqueteId, a.id),
       ),
       title: Text('Brinco: ${a.brinco}'),
       subtitle: Text(a.raca),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -36,6 +37,7 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
     'Parto',
     'Aborto',
     'Cio',
+    'Desmame',
   ];
 
   @override
@@ -93,9 +95,12 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
       await BancoDadosServico.instancia.salvarEventoReprodutivo(evento);
 
       if (mounted) {
-        context.read<ProvedorFazenda>().carregarPropriedades();
+        final provedor = context.read<ProvedorFazenda>();
+        if (provedor.propriedadeAtiva != null) {
+          await provedor.carregarAnimais(provedor.propriedadeAtiva!.id);
+        }
         _mostrarSucesso('Evento reprodutivo registrado!');
-        Navigator.pop(context);
+        if (mounted) Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) _mostrarErro('Erro ao salvar: $e');
@@ -120,7 +125,9 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final provedor = context.watch<ProvedorFazenda>();
-    final femeas = provedor.animais.where((a) => a.sexo == 'F').toList();
+    final listaAnimais = _tipoSelecionado == 'Desmame'
+        ? provedor.animais
+        : provedor.animais.where((a) => a.sexo == 'F').toList();
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -147,10 +154,10 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
                     const SizedBox(height: 16),
                     if (widget.animalPreSelecionado == null)
                       DropdownPadrao<String>(
-                        label: 'Fêmea',
-                        icone: IconesApp.animal,
+                        label: _tipoSelecionado == 'Desmame' ? 'Animal' : 'Fêmea',
+                        svgIcone: IconesApp.iconAnimalSvg,
                         valorSelecionado: _animalIdSelecionado,
-                        itens: femeas.map((a) {
+                        itens: listaAnimais.map((a) {
                           return DropdownMenuItem(
                             value: a.id,
                             child: Text('${a.brinco} - ${a.nome ?? "S/N"}'),
@@ -161,8 +168,8 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
                       )
                     else
                       _WidgetInformativo(
-                        icone: IconesApp.animal,
-                        titulo: 'Fêmea Selecionada',
+                        svgIcone: IconesApp.iconAnimalSvg,
+                        titulo: _tipoSelecionado == 'Desmame' ? 'Animal Selecionado' : 'Fêmea Selecionada',
                         valor: '${widget.animalPreSelecionado!.brinco} - ${widget.animalPreSelecionado!.nome ?? "Sem nome"}',
                       ),
                   ],
@@ -181,7 +188,18 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
                       icone: IconesApp.reproducao,
                       valorSelecionado: _tipoSelecionado,
                       itens: _tipos.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                      onChanged: (v) => setState(() => _tipoSelecionado = v!),
+                      onChanged: (v) {
+                        setState(() {
+                          _tipoSelecionado = v!;
+                          if (_tipoSelecionado != 'Desmame' && _animalIdSelecionado != null) {
+                            final animal = context.read<ProvedorFazenda>().animais.firstWhere(
+                              (a) => a.id == _animalIdSelecionado,
+                              orElse: () => Animal(id: '', fazendaId: '', loteId: '', brinco: '', raca: '', sexo: 'M', categoria: '', dataNascimento: DateTime.now(), pesoAtualKg: 0),
+                            );
+                            if (animal.sexo != 'F') _animalIdSelecionado = null;
+                          }
+                        });
+                      },
                     ),
                     const SizedBox(height: 16),
                     CampoFormularioPadrao(
@@ -226,11 +244,11 @@ class _FormReprodutivoState extends State<FormReprodutivo> {
 }
 
 class _WidgetInformativo extends StatelessWidget {
-  final IconData icone;
+  final String? svgIcone;
   final String titulo;
   final String valor;
 
-  const _WidgetInformativo({required this.icone, required this.titulo, required this.valor});
+  const _WidgetInformativo({this.svgIcone, required this.titulo, required this.valor});
 
   @override
   Widget build(BuildContext context) {
@@ -245,7 +263,8 @@ class _WidgetInformativo extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icone, color: theme.colorScheme.primary),
+          if (svgIcone != null)
+            SvgPicture.asset(svgIcone!, width: 24, height: 24, colorFilter: ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn)),
           const SizedBox(width: 16),
           Expanded(
             child: Column(

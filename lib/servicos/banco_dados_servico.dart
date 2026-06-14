@@ -1,10 +1,11 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import '../modelos/propriedade.dart';
-import '../modelos/lote.dart';
+import '../modelos/piquete.dart';
 import '../modelos/animal.dart';
 import '../modelos/eventos/pesagem.dart';
 import '../modelos/eventos/evento_reprodutivo.dart';
@@ -28,10 +29,15 @@ class BancoDadosServico {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 5,
+      onConfigure: _onConfigure,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
+  }
+
+  Future<void> _onConfigure(Database db) async {
+    await db.execute('PRAGMA foreign_keys = ON');
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -60,8 +66,8 @@ class BancoDadosServico {
         fazendaId TEXT NOT NULL,
         nome TEXT NOT NULL,
         tipo TEXT NOT NULL,
-        capacidade INTEGER NOT NULL,
-        descricao TEXT NOT NULL,
+        capacidade INTEGER NOT NULL DEFAULT 0,
+        descricao TEXT NOT NULL DEFAULT '',
         sistemaProducao TEXT NOT NULL DEFAULT 'Extensivo',
         areaHectares REAL DEFAULT 0,
         FOREIGN KEY (fazendaId) REFERENCES propriedades (id) ON DELETE CASCADE
@@ -83,8 +89,16 @@ class BancoDadosServico {
         pesoAtualKg REAL NOT NULL,
         dataObito TEXT,
         isAtivo INTEGER NOT NULL,
+        status TEXT DEFAULT 'Ativo',
+        causaObito TEXT,
+        paiId TEXT,
+        maeId TEXT,
+        dataSaida TEXT,
+        motivoSaida TEXT,
+        pesoVendaKg REAL,
+        valorVenda REAL,
         FOREIGN KEY (fazendaId) REFERENCES propriedades (id) ON DELETE CASCADE,
-        FOREIGN KEY (loteId) REFERENCES lotes (id) ON DELETE SET NULL
+        FOREIGN KEY (loteId) REFERENCES lotes (id) ON DELETE NO ACTION
       )
     ''');
 
@@ -96,6 +110,7 @@ class BancoDadosServico {
         data TEXT NOT NULL,
         pesoKg REAL NOT NULL,
         etapa TEXT NOT NULL,
+        observacao TEXT,
         FOREIGN KEY (animalId) REFERENCES animais (id) ON DELETE CASCADE
       )
     ''');
@@ -124,6 +139,7 @@ class BancoDadosServico {
         data TEXT NOT NULL,
         litros REAL NOT NULL,
         periodo TEXT NOT NULL,
+        observacao TEXT,
         FOREIGN KEY (animalId) REFERENCES animais (id) ON DELETE CASCADE
       )
     ''');
@@ -136,6 +152,7 @@ class BancoDadosServico {
         data TEXT NOT NULL,
         tipo TEXT NOT NULL,
         nomeMedicamento TEXT,
+        dose TEXT,
         observacao TEXT,
         FOREIGN KEY (animalId) REFERENCES animais (id) ON DELETE CASCADE
       )
@@ -166,12 +183,39 @@ class BancoDadosServico {
       );
     }
     if (oldVersion < 3) {
-      await db.execute(
-        "ALTER TABLE lotes ADD COLUMN sistemaProducao TEXT NOT NULL DEFAULT 'Extensivo'",
-      );
-      await db.execute(
-        'ALTER TABLE lotes ADD COLUMN areaHectares REAL DEFAULT 0',
-      );
+      // Tenta adicionar colunas sistemaProducao e areaHectares (pode já existir se o onCreate mudou)
+      try {
+        await db.execute(
+          "ALTER TABLE lotes ADD COLUMN sistemaProducao TEXT NOT NULL DEFAULT 'Extensivo'",
+        );
+        await db.execute(
+          'ALTER TABLE lotes ADD COLUMN areaHectares REAL DEFAULT 0',
+        );
+      } catch (e) {
+        debugPrint("Colunas sistemaProducao/areaHectares já existem ou erro: $e");
+      }
+    }
+    if (oldVersion < 4) {
+      // 1. Novas colunas para Lotes (caso tenham sido esquecidas em versões anteriores do código)
+      try { await db.execute("ALTER TABLE lotes ADD COLUMN capacidade INTEGER NOT NULL DEFAULT 0"); } catch (_) {}
+      try { await db.execute("ALTER TABLE lotes ADD COLUMN descricao TEXT NOT NULL DEFAULT ''"); } catch (_) {}
+
+      // 2. Novas colunas para Animais
+      try { await db.execute("ALTER TABLE animais ADD COLUMN status TEXT DEFAULT 'Ativo'"); } catch (_) {}
+      try { await db.execute("ALTER TABLE animais ADD COLUMN causaObito TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE animais ADD COLUMN paiId TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE animais ADD COLUMN maeId TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE animais ADD COLUMN dataSaida TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE animais ADD COLUMN motivoSaida TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE animais ADD COLUMN pesoVendaKg REAL"); } catch (_) {}
+      try { await db.execute("ALTER TABLE animais ADD COLUMN valorVenda REAL"); } catch (_) {}
+
+      // 3. Novas colunas para Pesagens e Leite
+      try { await db.execute("ALTER TABLE pesagens ADD COLUMN observacao TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE producao_leite ADD COLUMN observacao TEXT"); } catch (_) {}
+    }
+    if (oldVersion < 5) {
+      try { await db.execute("ALTER TABLE eventos_sanitarios ADD COLUMN dose TEXT"); } catch (_) {}
     }
   }
 
@@ -214,28 +258,28 @@ class BancoDadosServico {
     return result.map((json) => Propriedade.fromMap(json)).toList();
   }
 
-  Future<void> adicionarLote(Lote l) async {
+  Future<void> adicionarPiquete(Piquete p) async {
     final db = await database;
     await db.insert(
       'lotes',
-      l.toMap(),
+      p.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  Future<void> updateLote(Lote l) async {
+  Future<void> updatePiquete(Piquete p) async {
     final db = await database;
-    await db.update('lotes', l.toMap(), where: 'id = ?', whereArgs: [l.id]);
+    await db.update('lotes', p.toMap(), where: 'id = ?', whereArgs: [p.id]);
   }
 
-  Future<List<Lote>> getLotesPorFazenda(String fazendaId) async {
+  Future<List<Piquete>> getPiquetesPorFazenda(String fazendaId) async {
     final db = await database;
     final result = await db.query(
       'lotes',
       where: 'fazendaId = ?',
       whereArgs: [fazendaId],
     );
-    return result.map((json) => Lote.fromMap(json)).toList();
+    return result.map((json) => Piquete.fromMap(json)).toList();
   }
 
   Future<void> adicionarAnimal(Animal a) async {
@@ -396,7 +440,7 @@ class BancoDadosServico {
     );
     if (prop.isEmpty) throw Exception('Fazenda não encontrada.');
 
-    // Lotes
+    // Piquetes
     final lotes = await db.query(
       'lotes',
       where: 'fazendaId = ?',
@@ -465,9 +509,9 @@ class BancoDadosServico {
 
   Future<String> exportarDadosGranular({
     List<String>? fazendaIds,
-    List<String>? loteIds,
+    List<String>? piqueteIds,
     List<String>? animalIds,
-    Set<String>? camposAnimal, // Ex: {'brinco', 'nome', 'raca'}
+    Set<String>? camposAnimal,
   }) async {
     final db = await database;
 
@@ -479,11 +523,11 @@ class BancoDadosServico {
     final prop = await db.query('propriedades',
         where: whereProp.isEmpty ? null : whereProp, whereArgs: fazendaIds);
 
-    // 2. Lotes
+    // 2. Piquetes
     String whereLote = '';
-    List<String>? argsLote = loteIds;
-    if (loteIds != null && loteIds.isNotEmpty) {
-      whereLote = 'id IN (${List.filled(loteIds.length, '?').join(',')})';
+    List<String>? argsLote = piqueteIds;
+    if (piqueteIds != null && piqueteIds.isNotEmpty) {
+      whereLote = 'id IN (${List.filled(piqueteIds.length, '?').join(',')})';
     } else if (fazendaIds != null && fazendaIds.isNotEmpty) {
       whereLote = 'fazendaId IN (${List.filled(fazendaIds.length, '?').join(',')})';
       argsLote = fazendaIds;
@@ -496,9 +540,9 @@ class BancoDadosServico {
     List<String>? argsAnimal = animalIds;
     if (animalIds != null && animalIds.isNotEmpty) {
       whereAnimal = 'id IN (${List.filled(animalIds.length, '?').join(',')})';
-    } else if (loteIds != null && loteIds.isNotEmpty) {
-      whereAnimal = 'loteId IN (${List.filled(loteIds.length, '?').join(',')})';
-      argsAnimal = loteIds;
+    } else if (piqueteIds != null && piqueteIds.isNotEmpty) {
+      whereAnimal = 'loteId IN (${List.filled(piqueteIds.length, '?').join(',')})';
+      argsAnimal = piqueteIds;
     } else if (fazendaIds != null && fazendaIds.isNotEmpty) {
       whereAnimal = 'fazendaId IN (${List.filled(fazendaIds.length, '?').join(',')})';
       argsAnimal = fazendaIds;
@@ -589,7 +633,7 @@ class BancoDadosServico {
         }
       }
 
-      // 2. Importar Lotes
+      // 2. Importar Piquetes
       final lotes = data['lotes'] as List;
       for (final l in lotes) {
         await txn.insert('lotes', Map<String, dynamic>.from(l),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../estilos/icones.dart';
@@ -28,7 +28,7 @@ class _FormAnimalState extends State<FormAnimal> {
   final _racaController = TextEditingController();
   final _pesoController = TextEditingController();
 
-  String? _loteSelecionadoId;
+  String? _piqueteSelecionadoId;
   String _sexo = 'M';
   String _categoria = 'Bezerro';
   DateTime _dataNascimento = DateTime.now();
@@ -47,7 +47,7 @@ class _FormAnimalState extends State<FormAnimal> {
       _nomeController.text = a.nome ?? '';
       _racaController.text = a.raca;
       _pesoController.text = a.pesoAtualKg.toString();
-      _loteSelecionadoId = a.loteId;
+      _piqueteSelecionadoId = a.loteId;
       _sexo = a.sexo;
       _categoria = a.categoria;
       _dataNascimento = a.dataNascimento;
@@ -72,7 +72,7 @@ class _FormAnimalState extends State<FormAnimal> {
   bool _validarEtapa(int etapa) {
     if (etapa == 0) {
       if (_brincoController.text.isEmpty) return _erro('Informe o número do brinco');
-      if (_loteSelecionadoId == null) return _erro('Selecione um lote ou pasto');
+      if (_piqueteSelecionadoId == null) return _erro('Selecione um piquete ou pasto');
     }
     if (etapa == 1) {
       if (_racaController.text.isEmpty) return _erro('Informe a raça do animal');
@@ -100,9 +100,9 @@ class _FormAnimalState extends State<FormAnimal> {
 
     try {
       final novoAnimal = Animal(
-        id: widget.animalExistente?.id ?? const Uuid().v4(),
+        id: widget.animalExistente?.id ?? _brincoController.text,
         fazendaId: provedor.propriedadeAtiva!.id,
-        loteId: _loteSelecionadoId!,
+        loteId: _piqueteSelecionadoId!,
         brinco: _brincoController.text,
         nome: _nomeController.text.isEmpty ? null : _nomeController.text,
         raca: _racaController.text,
@@ -151,8 +151,8 @@ class _FormAnimalState extends State<FormAnimal> {
                 _PaginaIdentificacao(
                   brincoController: _brincoController,
                   nomeController: _nomeController,
-                  loteSelecionadoId: _loteSelecionadoId,
-                  onLoteChanged: (v) => setState(() => _loteSelecionadoId = v),
+                  piqueteSelecionadoId: _piqueteSelecionadoId,
+                  onPiqueteChanged: (v) => setState(() => _piqueteSelecionadoId = v),
                 ),
                 _PaginaCaracteristicas(
                   racaController: _racaController,
@@ -171,7 +171,7 @@ class _FormAnimalState extends State<FormAnimal> {
                   pesoController: _pesoController,
                   brinco: _brincoController.text,
                   raca: _racaController.text,
-                  loteId: _loteSelecionadoId,
+                  loteId: _piqueteSelecionadoId,
                 ),
               ],
             ),
@@ -182,7 +182,6 @@ class _FormAnimalState extends State<FormAnimal> {
         etapaAtual: _etapaAtual,
         total: _totalEtapas,
         salvando: _salvando,
-        onVoltar: () => _etapaAtual == 0 ? Navigator.pop(context) : _irParaEtapa(_etapaAtual - 1),
         onProximo: _proximaEtapa,
       ),
     );
@@ -225,10 +224,9 @@ class _BotoesNavegacao extends StatelessWidget {
   final int etapaAtual;
   final int total;
   final bool salvando;
-  final VoidCallback onVoltar;
   final VoidCallback onProximo;
 
-  const _BotoesNavegacao({required this.etapaAtual, required this.total, required this.salvando, required this.onVoltar, required this.onProximo});
+  const _BotoesNavegacao({required this.etapaAtual, required this.total, required this.salvando, required this.onProximo});
 
   @override
   Widget build(BuildContext context) {
@@ -241,15 +239,6 @@ class _BotoesNavegacao extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: BotaoPadrao(
-              label: 'VOLTAR',
-              outlined: true,
-              onPressed: salvando ? null : onVoltar,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
             child: BotaoPadrao(
               label: etapaAtual == total - 1 ? 'FINALIZAR' : 'PRÓXIMO',
               icone: etapaAtual == total - 1 ? IconesApp.salvar : Icons.arrow_forward_rounded,
@@ -268,27 +257,27 @@ class _BotoesNavegacao extends StatelessWidget {
 class _PaginaIdentificacao extends StatelessWidget {
   final TextEditingController brincoController;
   final TextEditingController nomeController;
-  final String? loteSelecionadoId;
-  final ValueChanged<String?> onLoteChanged;
+  final String? piqueteSelecionadoId;
+  final ValueChanged<String?> onPiqueteChanged;
 
-  const _PaginaIdentificacao({required this.brincoController, required this.nomeController, required this.loteSelecionadoId, required this.onLoteChanged});
+  const _PaginaIdentificacao({required this.brincoController, required this.nomeController, required this.piqueteSelecionadoId, required this.onPiqueteChanged});
 
   @override
   Widget build(BuildContext context) {
-    final lotes = context.watch<ProvedorFazenda>().lotes;
+    final piquetes = context.watch<ProvedorFazenda>().piquetes;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SecaoTitulo(texto: 'Onde o animal está?', icone: IconesApp.lote),
+          const SecaoTitulo(texto: 'Onde o animal está?', icone: IconesApp.piquete),
           CartaoPadrao(
             child: DropdownPadrao<String>(
-              label: 'Lote / Pasto *',
-              icone: IconesApp.lote,
-              valorSelecionado: loteSelecionadoId,
-              itens: lotes.map((l) => DropdownMenuItem(value: l.id, child: Text(l.nome))).toList(),
-              onChanged: onLoteChanged,
+              label: 'Piquete / Pasto *',
+              icone: IconesApp.piquete,
+              valorSelecionado: piqueteSelecionadoId,
+              itens: piquetes.map((p) => DropdownMenuItem(value: p.id, child: Text(p.nome))).toList(),
+              onChanged: onPiqueteChanged,
             ),
           ),
           const SizedBox(height: 24),
@@ -322,19 +311,18 @@ class _PaginaCaracteristicas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SecaoTitulo(texto: 'Genética e Tipo', icone: IconesApp.animal),
+          const SecaoTitulo(texto: 'Genética e Tipo', svgIcone: IconesApp.iconAnimalSvg),
           CartaoPadrao(
             child: Column(
               children: [
                 _SeletorSexo(sexo: sexo, onChanged: onSexoChanged),
                 const SizedBox(height: 20),
-                CampoFormularioPadrao(label: 'Raça *', icone: Icons.pets, controller: racaController),
+                CampoFormularioPadrao(label: 'Raça *', svgIcone: IconesApp.iconAnimalSvg, controller: racaController),
                 const SizedBox(height: 16),
                 DropdownPadrao<String>(
                   label: 'Categoria',
@@ -373,8 +361,7 @@ class _PaginaRevisao extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final loteNome = context.watch<ProvedorFazenda>().lotes.firstWhere((l) => l.id == loteId, orElse: () => throw 'Lote não encontrado').nome;
+    final piqueteNome = context.watch<ProvedorFazenda>().piquetes.firstWhere((p) => p.id == loteId, orElse: () => throw 'Piquete não encontrado').nome;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -396,8 +383,8 @@ class _PaginaRevisao extends StatelessWidget {
             child: Column(
               children: [
                 _ItemResumo(label: 'Brinco', valor: brinco, icon: Icons.tag),
-                _ItemResumo(label: 'Raça', valor: raca, icon: Icons.pets),
-                _ItemResumo(label: 'Lote', valor: loteNome, icon: IconesApp.lote, isUltimo: true),
+                _ItemResumo(label: 'Raça', valor: raca, svgIcon: IconesApp.iconAnimalSvg),
+                _ItemResumo(label: 'Piquete', valor: piqueteNome, icon: IconesApp.piquete, isUltimo: true),
               ],
             ),
           ),
@@ -466,10 +453,11 @@ class _BotaoSexo extends StatelessWidget {
 class _ItemResumo extends StatelessWidget {
   final String label;
   final String valor;
-  final IconData icon;
+  final IconData? icon;
+  final String? svgIcon;
   final bool isUltimo;
 
-  const _ItemResumo({required this.label, required this.valor, required this.icon, this.isUltimo = false});
+  const _ItemResumo({required this.label, required this.valor, this.icon, this.svgIcon, this.isUltimo = false});
 
   @override
   Widget build(BuildContext context) {
@@ -479,7 +467,15 @@ class _ItemResumo extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
-              Icon(icon, size: 18, color: Colors.grey),
+              if (svgIcon != null)
+                SvgPicture.asset(
+                  svgIcon!,
+                  width: 18,
+                  height: 18,
+                  colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+                )
+              else if (icon != null)
+                Icon(icon, size: 18, color: Colors.grey),
               const SizedBox(width: 12),
               Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
               const Spacer(),

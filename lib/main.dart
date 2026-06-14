@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -27,19 +28,34 @@ class BoviCheckApp extends StatelessWidget {
       ],
       child: Consumer<ProvedorTema>(
         builder: (context, provedorTema, _) {
-          return MaterialApp(
-            title: 'BoviCheck',
-            debugShowCheckedModeBanner: false,
-            theme: TemaApp.criarTemaClaro(provedorTema.corSemente),
-            darkTheme: TemaApp.criarTemaEscuro(provedorTema.corSemente),
-            themeMode: provedorTema.modoTema,
-            localizationsDelegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            supportedLocales: const [Locale('pt', 'BR')],
-            home: const TelaInicial(),
+          final isDark = provedorTema.modoTema == ThemeMode.dark ||
+              (provedorTema.modoTema == ThemeMode.system &&
+                  View.of(context).platformDispatcher.platformBrightness ==
+                      Brightness.dark);
+
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle(
+              systemNavigationBarColor: isDark ? Colors.black : Colors.white,
+              systemNavigationBarIconBrightness:
+                  isDark ? Brightness.light : Brightness.dark,
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness:
+                  isDark ? Brightness.light : Brightness.dark,
+            ),
+            child: MaterialApp(
+              title: 'BoviCheck',
+              debugShowCheckedModeBanner: false,
+              theme: TemaApp.criarTemaClaro(provedorTema.corSemente),
+              darkTheme: TemaApp.criarTemaEscuro(provedorTema.corSemente),
+              themeMode: provedorTema.modoTema,
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: const [Locale('pt', 'BR')],
+              home: const TelaInicial(),
+            ),
           );
         },
       ),
