@@ -37,7 +37,7 @@ class _TelaIndicadoresState extends State<TelaIndicadores> {
       try {
         final provedor = context.read<ProvedorFazenda>();
         if (provedor.propriedadeAtiva != null) {
-          if (provedor.animais.isEmpty || provedor.eventosReprodutivos.isEmpty) {
+          if (provedor.animais.isEmpty) {
             await provedor.carregarAnimais(provedor.propriedadeAtiva!.id);
           }
         }
