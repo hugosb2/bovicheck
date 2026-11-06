@@ -1,0 +1,42 @@
+# This file configures the analyzer, which statically analyzes Dart code to
+# check for errors, warnings, and lints.
+#
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
+# invoked from the command line by running `flutter analyze`.
+
+# The following line activates a set of recommended lints for Flutter apps,
+# packages, and plugins designed to encourage good coding practices.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  strong-mode:
+    implicit-casts: false
+    implicit-dynamic: false
+  errors:
+    missing_return: error
+    dead_code: warning
+    unused_import: error
+    unused_local_variable: error
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
+
+linter:
+  rules:
+    - camel_case_types              # Classes em PascalCase
+    - file_names                    # Arquivos em snake_case
+    - non_constant_identifier_names # Variáveis em camelCase
+    - constant_identifier_names     # Constantes em camelCase (Dart!)
+    - prefer_const_constructors
+    - prefer_final_fields
+    - prefer_single_quotes
+    - always_declare_return_types
+    - avoid_print                   # usar logger
+    - use_key_in_widget_constructors
+

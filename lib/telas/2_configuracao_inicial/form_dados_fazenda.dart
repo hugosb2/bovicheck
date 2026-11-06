@@ -78,9 +78,15 @@ class _FormDadosFazendaState extends State<FormDadosFazenda> {
         final data = json.decode(response.body);
         if (data['erro'] != true && data['localidade'] != null) {
           setState(() {_cidadeController.text = data['localidade'] ?? ''; _estadoSelecionado = data['uf'];});
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('CEP: ${data['localidade']}/${data['uf']}'), backgroundColor: Colors.green));
-        } else if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CEP não encontrado'), backgroundColor: Colors.orange));
-      } else if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível consultar o CEP. Verifique sua conexão e preencha cidade/UF manualmente.'), backgroundColor: Colors.orange));
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('CEP: ${data['localidade']}/${data['uf']}'), backgroundColor: Colors.green));
+          }
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CEP não encontrado'), backgroundColor: Colors.orange));
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível consultar o CEP. Verifique sua conexão e preencha cidade/UF manualmente.'), backgroundColor: Colors.orange));
+      }
     } catch (e) {
       debugPrint('Erro ao buscar CEP: $e');
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sem conexão para consultar o CEP. Preencha a cidade e UF manualmente.'), backgroundColor: Colors.orange));
@@ -98,7 +104,11 @@ class _FormDadosFazendaState extends State<FormDadosFazenda> {
         await BancoDadosServico.instancia.updatePropriedade(novaFazenda);
         if (!mounted) return;
         final provedor = context.read<ProvedorFazenda>();
-        if (provedor.propriedadeAtiva?.id == novaFazenda.id) await provedor.selecionarFazenda(novaFazenda.id); else await provedor.carregarPropriedades();
+        if (provedor.propriedadeAtiva?.id == novaFazenda.id) {
+          await provedor.selecionarFazenda(novaFazenda.id);
+        } else {
+          await provedor.carregarPropriedades();
+        }
         if (!mounted) return;
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dados atualizados!'), backgroundColor: Colors.green));

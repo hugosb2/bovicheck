@@ -6,8 +6,10 @@ import '../../estilos/icones.dart';
 import '../../estilos/tema.dart';
 import '../../estilos/cores.dart';
 import '../../provedores/provedor_fazenda.dart';
-import '../../servicos/ia_gemini_cliente.dart';
+import '../../servicos/ia_groq_cliente.dart';
+import '../../servicos/configuracao.dart';
 import '../../servicos/rag/modelo_documento.dart';
+import '../11_configuracoes/subtelas/tela_config_ia.dart';
 
 class TelaIAConsultor extends StatefulWidget {
   const TelaIAConsultor({super.key});
@@ -22,7 +24,8 @@ class _TelaIAConsultorState extends State<TelaIAConsultor> {
   List<DocumentoRAG> _fontes = [];
   List<double> _scores = [];
   bool _usouRAG = false;
-  bool _usouGemini = false;
+  bool _usouGroq = false;
+  String? _modeloUsado;
   String? _erro;
 
   @override
@@ -71,7 +74,7 @@ class _TelaIAConsultorState extends State<TelaIAConsultor> {
         },
       };
 
-      final resultado = await IAGeminiCliente().analisarRebanhoComRAG(dadosParaIA);
+      final resultado = await IAGroqCliente().analisarRebanhoComRAG(dadosParaIA);
 
       if (mounted) {
         setState(() {
@@ -79,7 +82,8 @@ class _TelaIAConsultorState extends State<TelaIAConsultor> {
           _fontes = resultado.fontes;
           _scores = resultado.retrievals.map((r) => r.score).toList();
           _usouRAG = resultado.usouRAG;
-          _usouGemini = resultado.usouGemini;
+          _usouGroq = resultado.usouGroq;
+          _modeloUsado = resultado.modeloUsado;
         });
       }
     } catch (e) {
@@ -173,7 +177,7 @@ class _TelaIAConsultorState extends State<TelaIAConsultor> {
                             .shimmer(duration: 1.seconds),
                         const SizedBox(height: 8),
                         Text(
-                          'Recuperando contexto técnico + Gemini.',
+                          'Recuperando contexto técnico + Groq.',
                           style: theme.textTheme.bodySmall,
                         ),
                       ],
@@ -186,9 +190,10 @@ class _TelaIAConsultorState extends State<TelaIAConsultor> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Badges RAG/Gemini
+                        // Badges RAG/Groq
                         Wrap(
                           spacing: 8,
+                          runSpacing: 8,
                           children: [
                             Chip(
                               label: Text(_usouRAG ? 'RAG: ON' : 'RAG: OFF'),
@@ -201,15 +206,30 @@ class _TelaIAConsultorState extends State<TelaIAConsultor> {
                               ),
                             ),
                             Chip(
-                              label: Text(_usouGemini ? 'Gemini: ON' : 'Offline'),
-                              backgroundColor: _usouGemini
+                              label: Text(_usouGroq
+                                  ? 'Groq: ${_modeloUsado ?? 'ON'}'
+                                  : 'Offline'),
+                              backgroundColor: _usouGroq
                                   ? theme.colorScheme.primaryContainer
                                   : Colors.orange.shade100,
                               avatar: Icon(
-                                _usouGemini ? Icons.cloud_done : Icons.cloud_off,
+                                _usouGroq ? Icons.cloud_done : Icons.cloud_off,
                                 size: 18,
                               ),
                             ),
+                            if (!Configuracao.temChaveGroq)
+                              ActionChip(
+                                label: const Text('Configurar IA'),
+                                avatar: const Icon(Icons.settings_outlined, size: 18),
+                                onPressed: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => const TelaConfigIA()),
+                                  );
+                                  if (mounted) _gerarAnalise();
+                                },
+                              ),
                           ],
                         ),
                         const SizedBox(height: 16),

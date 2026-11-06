@@ -1,0 +1,162 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ############################################################
+  # 1) FLUTTER APP — analise + testes dentro de container
+  ############################################################
+  flutter-test:
+    name: Flutter (analyze + test)
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cirruslabs/flutter:stable
+      options: --cpus 4
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache pub
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Run tests
+        run: flutter test --coverage --reporter expanded
+
+      - name: Build web
+        run: flutter build web --release
+
+  ############################################################
+  # 2) LANDING — lint + build dentro de container
+  ############################################################
+  landing-build:
+    name: Landing (lint + build)
+    runs-on: ubuntu-latest
+    container:
+      image: node:24-alpine
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check landing folder exists
+        id: check
+        run: |
+          if [ -d bovicheck-landing ]; then echo "exists=true" >> $GITHUB_OUTPUT; fi
+
+      - name: Install dependencies
+        if: steps.check.outputs.exists == 'true'
+        working-directory: bovicheck-landing
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        if: steps.check.outputs.exists == 'true'
+        working-directory: bovicheck-landing
+        run: npm run lint
+
+      - name: Build
+        if: steps.check.outputs.exists == 'true'
+        working-directory: bovicheck-landing
+        run: npm run build
+
+  ############################################################
+  # 3) IMAGENS DOCKER — build + scan ligeiro (Trivy)
+  ############################################################
+  docker-images:
+    name: Docker images
+    needs: [flutter-test, landing-build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build bovicheck image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: bovicheck:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build landing image
+        if: hashFiles('bovicheck-landing/Dockerfile') != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: bovicheck-landing
+          push: false
+          load: true
+          tags: bovicheck-landing:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan images with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: bovicheck:ci
+          format: sarif
+          severity: HIGH,CRITICAL
+          output: trivy-results.sarif
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+  ############################################################
+  # 4) DEPLOY — smoke test da stack completa com compose
+  ############################################################
+  deploy:
+    name: Deploy (docker compose + smoke)
+    needs: [docker-images]
+    runs-on: ubuntu-latest
+    # Só roda em main e quando existir um docker-compose.yml no repositório.
+    if: github.ref == 'refs/heads/main' && hashFiles('docker-compose.yml') != ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bring stack up
+        run: docker compose -f docker-compose.yml up -d --build
+
+      - name: Smoke test landing
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/healthz > /dev/null; then break; fi
+            sleep 2
+          done
+          curl -sf http://localhost:8080/ | grep -q '<div id="root">'
+
+      - name: Smoke test app
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8081/healthz > /dev/null; then break; fi
+            sleep 2
+          done
+          curl -sf http://localhost:8081/ | grep -q 'flutter'
+
+      - name: Teardown
+        run: docker compose -f docker-compose.yml down
+        if: always()

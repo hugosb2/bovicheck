@@ -19,7 +19,7 @@ class RAGService {
     );
   }
 
-  /// Monta o prompt final para Gemini com dados + contexto RAG.
+  /// Monta o prompt final para o LLM (Groq) com dados + contexto RAG.
   String construirPrompt(Map<String, dynamic> dadosRebanho, RagContext rag) {
     final dadosStr = _formatarDadosRebanho(dadosRebanho);
 

@@ -34,7 +34,7 @@ O **BoviCheck** é uma solução completa desenvolvida em Flutter para gestão d
 ### Principais Diferenciais
 
 - ✅ **Interface moderna e responsiva** com Material Design 3
-- ✅ **Análise inteligente** com IA (Gemini)
+- ✅ **Análise inteligente** com IA (Groq + RAG)
 - ✅ **Cálculos automáticos** de índices zootécnicos
 - ✅ **Banco de dados local** SQLite
 - ✅ **Backup e restauração** de dados
@@ -46,7 +46,7 @@ O **BoviCheck** é uma solução completa desenvolvida em Flutter para gestão d
 
 ### 🏠 Dashboard
 - Visão geral do rebanho com estatísticas principais
-- Análise inteligente com IA (Powered by Gemini)
+- Análise inteligente com IA (Powered by Groq)
 - Indicadores globais e por lote
 - Gráficos de evolução temporal
 
@@ -139,15 +139,18 @@ flutter pub get
 
 ### 3. Configure a API Key (Opcional)
 
-Para habilitar o recurso de IA Consultant, edite o arquivo `lib/servicos/configuracao.dart`:
+O Consultor IA usa a **Groq** para gerar a análise. A forma recomendada é
+configurar direto no app, sem recompilar:
 
-```dart
-class Configuracao {
-  static const String geminiApiKey = 'SUA_CHAVE_AQUI';
-}
-```
+**Configurações → Consultor IA (Groq)** → cole a chave (`gsk_...`) → **Salvar** → **Testar**
 
-Obtenha sua chave em: https://aistudio.google.com/app/apikey
+Obtenha sua chave gratuita em: https://console.groq.com/keys
+
+Alternativamente, para desenvolvimento, defina `GROQ_API_KEY` no arquivo `.env`
+(usado como padrão quando não há chave salva no app).
+
+> Sem chave o app continua funcionando: o consultor exibe a análise local
+> gerada apenas pelo retrieval (RAG offline, sem LLM).
 
 ### 4. Build
 
@@ -184,7 +187,8 @@ bovicheck/
 │   ├── servicos/                    # Serviços
 │   │   ├── banco_dados_servico.dart
 │   │   ├── configuracao.dart
-│   │   └── ia_gemini_cliente.dart
+│   │   ├── ia_groq_cliente.dart
+│   │   └── rag/                     # RAG: base de conhecimento + retrieval
 │   ├── estilos/                     # Estilos e temas
 │   │   ├── tema.dart
 │   │   ├── cores.dart

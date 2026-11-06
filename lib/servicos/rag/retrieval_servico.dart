@@ -4,7 +4,7 @@ import 'base_conhecimento.dart';
 
 /// RetrievalService local sem dependência de API de embeddings.
 /// Implementa TF-IDF + Cosine Similarity puramente em Dart (offline-first).
-/// Opcionalmente pode delegar para Gemini Embeddings quando `usarEmbeddings=true`.
+/// Não usa API de embeddings — decisão deliberada para manter o app offline.
 class RetrievalService {
   final List<DocumentoRAG> _docs;
 

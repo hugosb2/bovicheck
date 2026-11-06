@@ -15,6 +15,7 @@ import 'package:provider/provider.dart';
 import '../../provedores/provedor_fazenda.dart';
 import '../../servicos/banco_dados_servico.dart';
 import 'subtelas/tela_config_dados.dart';
+import 'subtelas/tela_config_ia.dart';
 
 class TelaConfiguracoes extends StatefulWidget {
   const TelaConfiguracoes({super.key});
@@ -113,6 +114,19 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                     builder: (_) => const TelaConfigDados())),
             delay: 150,
           ),
+          _cabecalho(theme, 'Inteligência Artificial'),
+
+          _CardMenu(
+            titulo: 'Consultor IA (Groq)',
+            descricao: 'Chave de API, modelo e teste de conexão.',
+            icone: IconesApp.iaConsultor,
+            corIcone: Colors.indigo,
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const TelaConfigIA())),
+            delay: 200,
+          ),
           _cabecalho(theme, 'Aplicativo'),
 
           _CardMenu(
@@ -124,7 +138,7 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                 context,
                 MaterialPageRoute(
                     builder: (_) => const TelaSobre())),
-            delay: 200,
+            delay: 250,
           ),
 
           const SizedBox(height: 50),

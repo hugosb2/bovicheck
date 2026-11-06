@@ -39,11 +39,21 @@ class _TelaDetalhesAnimalState extends State<TelaDetalhesAnimal> {
     final sanitarios = await db.getEventosSanitariosPorAnimal(animalId);
     final abates = await db.getAbatesPorAnimal(animalId);
     List<Map<String, dynamic>> temp = [];
-    for (var p in pesagens) temp.add({'tipo': 'Pesagem', 'data': p.data, 'desc': '${p.pesoKg} kg', 'id': p.id, 'tabela': 'pesagens'});
-    for (var r in reprodutivos) temp.add({'tipo': 'Reprodutivo', 'data': r.data, 'desc': '${r.tipo} ${r.resultado != null ? '(${r.resultado})' : ''}', 'id': r.id, 'tabela': 'eventos_reprodutivos'});
-    for (var l in leite) temp.add({'tipo': 'Leite', 'data': l.data, 'desc': '${l.litros} L - ${l.periodo}', 'id': l.id, 'tabela': 'producao_leite'});
-    for (var s in sanitarios) temp.add({'tipo': 'Sanitário', 'data': DateTime.parse(s['data'].toString()), 'desc': '${s['tipo']} ${s['nomeMedicamento'] ?? ''}', 'id': s['id'], 'tabela': 'eventos_sanitarios'});
-    for (var a in abates) temp.add({'tipo': 'Abate', 'data': DateTime.parse(a['data'].toString()), 'desc': '${a['pesoCarcacaKg']} kg carcaça', 'id': a['id'], 'tabela': 'abates'});
+    for (var p in pesagens) {
+      temp.add({'tipo': 'Pesagem', 'data': p.data, 'desc': '${p.pesoKg} kg', 'id': p.id, 'tabela': 'pesagens'});
+    }
+    for (var r in reprodutivos) {
+      temp.add({'tipo': 'Reprodutivo', 'data': r.data, 'desc': '${r.tipo} ${r.resultado != null ? '(${r.resultado})' : ''}', 'id': r.id, 'tabela': 'eventos_reprodutivos'});
+    }
+    for (var l in leite) {
+      temp.add({'tipo': 'Leite', 'data': l.data, 'desc': '${l.litros} L - ${l.periodo}', 'id': l.id, 'tabela': 'producao_leite'});
+    }
+    for (var s in sanitarios) {
+      temp.add({'tipo': 'Sanitário', 'data': DateTime.parse(s['data'].toString()), 'desc': '${s['tipo']} ${s['nomeMedicamento'] ?? ''}', 'id': s['id'], 'tabela': 'eventos_sanitarios'});
+    }
+    for (var a in abates) {
+      temp.add({'tipo': 'Abate', 'data': DateTime.parse(a['data'].toString()), 'desc': '${a['pesoCarcacaKg']} kg carcaça', 'id': a['id'], 'tabela': 'abates'});
+    }
     temp.sort((a, b) => (b['data'] as DateTime).compareTo(a['data'] as DateTime));
     if (mounted) setState(() {_historico = temp; _carregandoHistorico = false;});
   }

@@ -6,13 +6,21 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'provedores/provedor_fazenda.dart';
 import 'provedores/provedor_tema.dart';
 import 'estilos/tema.dart';
+import 'servicos/configuracao.dart';
 
 import 'telas/2_configuracao_inicial/tela_boas_vindas.dart';
 import 'telas/2_configuracao_inicial/tela_selecionar_fazenda.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
+  // O `.env` é opcional: a chave do Consultor IA pode ser configurada no app.
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {
+    // Sem .env empacotado: segue com a configuração salva nas preferências.
+  }
+  // Carrega a chave/modelo do Consultor IA (prefs do usuário > .env).
+  await Configuracao.carregar();
   runApp(const BoviCheckApp());
 }
 

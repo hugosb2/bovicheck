@@ -1,4 +1,13 @@
-# Miscellaneous
+# =============================================================================
+# .gitignore — BoviCheck (Flutter)
+#
+# Regra de ouro: só artefatos gerados e SEGREDOS ficam de fora.
+# Código-fonte, testes, pubspec.yaml/pubspec.lock, analysis_options.yaml e as
+# pastas de plataforma (android/, ios/, web/...) DEVEM ser versionados — sem
+# eles um clone limpo não builda e o CI não roda.
+# =============================================================================
+
+# --- Diversos ---
 *.class
 *.log
 *.pyc
@@ -6,54 +15,45 @@
 .DS_Store
 .atom/
 .build/
-.buildlog/
+.buildlog
 .history
 .svn/
 .swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
+# --- IntelliJ / Android Studio ---
 *.iml
 *.ipr
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
+# --- Flutter / Dart (gerados) ---
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
 /coverage/
 
-# Symbolication related
+# --- Símbolos / ofuscação de build ---
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# --- Artefatos de build do Android Studio ---
 /android/app/debug
 /android/app/profile
 /android/app/release
-android
-/.idea
-ios
-linux
-macos
-test
-web
-windows
-.metadata
-analysis_options.yaml
-pubspec.lock
-pubspec.yaml
+
+# --- Segredos: NUNCA versionar ---
+# O template versionado é o `.env.example` (sem valores).
+# A chave da Groq deve ser configurada no app (Configurações → Consultor IA),
+# onde fica apenas nas preferências do dispositivo.
 .env
-.env.example
+.env.*
+!.env.example
+*.jks
+*.keystore
+key.properties
